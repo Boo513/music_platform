@@ -37,28 +37,29 @@ export function PlayerBar() {
  <div className="text-secondary text-10 truncate">{song.artist}</div>
  </div>
 
- <div className="w-200 hidden-mobile flex items-center gap-2">
- <span className="text-secondary text-10 tabular-nums w-10 text-right">{formatTime(currentTime)}</span>
+ <div className="flex items-center gap-2" style={{ width: 220 }}>
+ <span style={{ fontSize: 10, color: '#a09080', fontFamily: 'monospace', minWidth: 32, textAlign: 'right' }}>{formatTime(currentTime)}</span>
  <div
- className="flex-1 h-1 bg-white-6 rounded cursor-pointer relative"
+ style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2, cursor: 'pointer', position: 'relative' }}
  onClick={(e) => {
  const rect = e.currentTarget.getBoundingClientRect();
  seek(((e.clientX - rect.left) / rect.width) * duration);
  }}
  >
- <div className="neon-progress h-full rounded absolute left-0 top-0" style={{ width: `${progress}%` }} />
+ <div className="neon-progress" style={{ width: `${progress}%`, height: '100%', borderRadius: 2, position: 'absolute', left: 0, top: 0 }} />
  </div>
- <span className="text-secondary text-10 tabular-nums w-10">{formatTime(duration)}</span>
+ <span style={{ fontSize: 10, color: '#a09080', fontFamily: 'monospace', minWidth: 32 }}>{formatTime(duration)}</span>
  </div>
 
- <div className="flex items-center gap-2.5">
- <span className="text-primary text-sm">🔊</span>
- <div className="w-60 h-0.5 bg-white-8 rounded cursor-pointer relative"
+ <div className="flex items-center gap-2">
+ <span style={{ fontSize: 14, color: '#908070' }}>🔊</span>
+ <div style={{ width: 80, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, cursor: 'pointer', position: 'relative' }}
  onClick={(e) => {
  const r = e.currentTarget.getBoundingClientRect();
  setVolume((e.clientX - r.left) / r.width);
  }}>
- <div className="h-full rounded absolute left-0 top-0" style={{ width: `${volume * 100}%`, background: '#c0b0a0' }} />
+ <div style={{ width: `${volume * 100}%`, height: '100%', borderRadius: 2, position: 'absolute', left: 0, top: 0, background: '#c0b0a0' }} />
+ </div>
  </div>
  <button
  className="rounded-full flex items-center justify-center cursor-pointer border-0"
