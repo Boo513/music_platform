@@ -41,6 +41,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 左上角：大号音量图标 + 120px 进度条
 - 底部：进度条贴底边全宽，霓虹渐变色
 
+## Bug 修复规则
+
+当用户报告 Bug 时：
+1. 自行排查并修复代码
+2. 修复后自行测试（编译检查 + 浏览器验证 + 逐页确认）
+3. 测试不通过则继续修复，直到通过为止
+4. 通过后再通知用户
+
 ## 目录结构（规划）
 
 ```
