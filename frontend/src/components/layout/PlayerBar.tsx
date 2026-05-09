@@ -1,3 +1,4 @@
+import { useRef, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/playerStore';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +11,7 @@ function formatTime(sec: number): string {
 
 export function PlayerBar() {
   const navigate = useNavigate();
+  const volRef = useRef<HTMLDivElement>(null);
   useAudioPlayer();
   const { currentSong, isPlaying, currentTime, duration, volume, playMode,
     pause, resume, next, prev, setVolume, seek, togglePlayMode } = usePlayerStore();
@@ -18,13 +20,25 @@ export function PlayerBar() {
   if (!song) return null;
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  const updateVol = useCallback((clientX: number) => {
+    if (!volRef.current) return;
+    const r = volRef.current.getBoundingClientRect();
+    setVolume(Math.max(0, Math.min(1, (clientX - r.left) / r.width)));
+  }, [setVolume]);
+
+  const handleVolDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    updateVol(e.clientX);
+    const onMove = (ev: MouseEvent) => updateVol(ev.clientX);
+    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     seek(((e.clientX - rect.left) / rect.width) * duration);
-  };
-  const handleVolume = (e: React.MouseEvent<HTMLDivElement>) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    setVolume((e.clientX - r.left) / r.width);
   };
 
   const s = {
@@ -76,7 +90,7 @@ export function PlayerBar() {
       </div>
       <div style={s.volWrap}>
         <span style={s.volIcon}>🔊</span>
-        <div style={s.volTrack} onClick={handleVolume}>
+        <div ref={volRef} style={s.volTrack} onMouseDown={handleVolDown}>
           <div style={s.volFill(volume)} />
         </div>
       </div>
