@@ -1,0 +1,328 @@
+/* ===== LOGIN PAGE ===== */
+.login-page {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #050505;
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: #fff;
+  user-select: none;
+}
+
+/* ===== 3D SCENE CONTAINER ===== */
+.scene-container {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+.scene-container canvas {
+  display: block;
+}
+
+/* ===== UI OVERLAY ===== */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 40px 48px;
+}
+
+/* ===== LEFT HERO TEXT ===== */
+.hero-text {
+  pointer-events: none;
+  position: absolute;
+  left: 48px;
+  top: 50%;
+  transform: translateY(-60%);
+}
+.hero-title {
+  font-size: clamp(48px, 7vw, 96px);
+  font-weight: 900;
+  letter-spacing: -2px;
+  line-height: 1;
+  color: #fff;
+  text-transform: uppercase;
+  margin: 0;
+}
+.hero-subtitle {
+  font-size: 14px;
+  font-weight: 300;
+  letter-spacing: 4px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 12px;
+  text-transform: uppercase;
+}
+.hero-live {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 4px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #fff;
+  background: #FF007F;
+  border-radius: 3px;
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* ===== LOGIN FORM ===== */
+.login-form {
+  pointer-events: auto;
+  position: absolute;
+  right: 60px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 340px;
+  padding: 40px 36px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+}
+.form-header {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  margin-bottom: 32px;
+}
+.form-error {
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  background: rgba(255, 0, 127, 0.1);
+  border: 1px solid rgba(255, 0, 127, 0.25);
+  border-radius: 6px;
+  font-size: 12px;
+  color: #FF007F;
+  text-align: center;
+}
+
+.input-group {
+  position: relative;
+  margin-bottom: 28px;
+}
+.input-group input {
+  width: 100%;
+  padding: 10px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+.input-group input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+.input-group input:focus {
+  border-bottom-color: #FF007F;
+}
+.input-group input:focus + .input-line {
+  transform: scaleX(1);
+}
+.input-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: #FF007F;
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+
+.form-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+  font-style: italic;
+  margin: -12px 0 24px;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #FF007F, #FFD700);
+  border: none;
+  border-radius: 8px;
+  color: #050505;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: opacity 0.3s, box-shadow 0.3s;
+}
+.submit-btn:hover {
+  box-shadow: 0 0 30px rgba(255, 0, 127, 0.3);
+}
+.submit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.form-switch {
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 20px;
+}
+.form-switch span {
+  color: #FF007F;
+  cursor: pointer;
+  font-weight: 600;
+}
+.form-switch span:hover {
+  color: #FFD700;
+}
+
+/* ===== PLAYER BAR ROMANTIC ===== */
+.player-bar-romantic {
+  pointer-events: auto;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  background: rgba(5, 5, 5, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.pb-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pb-song {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+.pb-artist {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+}
+.pb-center {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  max-width: 400px;
+  margin: 0 40px;
+}
+.pb-time {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  min-width: 32px;
+}
+.pb-time:first-child {
+  text-align: right;
+}
+.pb-track {
+  flex: 1;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 1px;
+  position: relative;
+  overflow: hidden;
+}
+.pb-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 45%;
+  background: linear-gradient(90deg, #FF007F, #FFD700);
+  border-radius: 1px;
+  animation: progressSlide 4s ease-in-out infinite;
+}
+@keyframes progressSlide {
+  0%, 100% { width: 42%; }
+  50% { width: 48%; }
+}
+.pb-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pb-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #FFD700;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 3px;
+}
+.pb-tag-vip {
+  color: #FF007F;
+  border-color: rgba(255, 0, 127, 0.3);
+}
+.pb-tag-text {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.2);
+  letter-spacing: 1px;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .hero-title {
+    font-size: 36px;
+  }
+  .hero-text {
+    left: 24px;
+    top: 30%;
+  }
+  .login-form {
+    right: 20px;
+    width: 280px;
+    padding: 28px 24px;
+  }
+}
+@media (max-width: 640px) {
+  .login-overlay {
+    padding: 20px;
+  }
+  .hero-text {
+    position: relative;
+    left: 0;
+    top: 0;
+    transform: none;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .hero-title {
+    font-size: 28px;
+  }
+  .login-form {
+    position: relative;
+    right: 0;
+    top: 0;
+    transform: none;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .player-bar-romantic {
+    padding: 0 16px;
+  }
+  .pb-right {
+    display: none;
+  }
+}
