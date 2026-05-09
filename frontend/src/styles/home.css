@@ -76,6 +76,28 @@
   50% { opacity: 0.5; }
 }
 
+.home-top-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+.upload-btn {
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #FF8C42, #FFB366);
+  border: none;
+  border-radius: 20px;
+  color: #050508;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  letter-spacing: 1px;
+}
+.upload-btn:hover {
+  box-shadow: 0 0 24px rgba(255, 140, 66, 0.4);
+  transform: translateY(-1px);
+}
 .home-param {
   display: flex;
   flex-direction: column;

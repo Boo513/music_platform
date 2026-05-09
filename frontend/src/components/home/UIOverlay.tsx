@@ -1,8 +1,11 @@
+import { useNavigate } from 'react-router-dom';
 import { SceneList } from './SceneList';
 import { MusicList } from './MusicList';
 import { Shockwave } from './Shockwave';
 
 export function UIOverlay() {
+  const navigate = useNavigate();
+
   return (
     <div className="home-overlay">
       <Shockwave />
@@ -14,9 +17,12 @@ export function UIOverlay() {
           <p className="home-subtitle">Immerse in 3D soundscapes</p>
           <span className="home-live">LIVE</span>
         </div>
-        <div className="home-param">
-          <span className="param-value">0.70</span>
-          <span className="param-label">验证你的身份</span>
+        <div className="home-top-right">
+          <button className="upload-btn" onClick={() => navigate('/upload')}>＋ 上传音乐</button>
+          <div className="home-param">
+            <span className="param-value">0.70</span>
+            <span className="param-label">验证你的身份</span>
+          </div>
         </div>
       </div>
 
