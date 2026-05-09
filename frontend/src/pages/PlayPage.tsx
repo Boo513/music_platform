@@ -485,10 +485,14 @@ function SnowParticles() {
 
 function ZoomController({ zoomLevel }: { zoomLevel: number }) {
   const { camera } = useThree();
-  useFrame(() => {
-    const targetZ = -55 - zoomLevel * 15;
-    camera.position.z += (targetZ - camera.position.z) * 0.08;
-  });
+  const prevZoom = useRef(zoomLevel);
+  useEffect(() => {
+    if (prevZoom.current !== zoomLevel) {
+      prevZoom.current = zoomLevel;
+      const targetZ = -55 - zoomLevel * 15;
+      camera.position.z = targetZ;
+    }
+  }, [zoomLevel, camera]);
   return null;
 }
 
