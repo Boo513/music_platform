@@ -66,11 +66,11 @@ export default function ProfilePage() {
             <div><span className="text-[#FFB366] font-bold text-lg">{playlists.length}</span> <span className="text-[#a09080] text-[11px]">歌单</span></div>
           </div>
         </div>
-        <button className="px-5 py-2 rounded-2xl border border-white/[0.1] text-[#d0c0b0] text-xs"
+        <button className="px-5 py-2 rounded-2xl border border-white/10 text-[#d0c0b0] text-xs"
           onClick={() => setShowEditProfile(true)}>✎ 编辑资料</button>
       </div>
 
-      <div className="flex gap-0 px-8 border-b border-white/[0.06]">
+      <div className="flex gap-0 px-8 border-b border-white/6">
         {tabs.map((t) => (
           <button key={t.key}
             className={`px-5 py-3 text-[13px] font-semibold transition-all border-b-2
@@ -90,7 +90,7 @@ export default function ProfilePage() {
                   <div className="text-[#a09080] text-[11px]">{pl.songCount} 首 · {pl.isPublic ? '公开' : '私密 🔒'}</div></div>
               </div>
             ))}
-            <div className="min-w-[175px] border-2 border-dashed border-white/[0.08] rounded-2xl
+            <div className="min-w-[175px] border-2 border-dashed border-white/8 rounded-2xl
               flex flex-col items-center justify-center text-white/20 text-2xl cursor-pointer"
               onClick={() => setShowCreatePlaylist(true)}>+<div className="text-[11px] mt-1">新建歌单</div></div>
           </div>

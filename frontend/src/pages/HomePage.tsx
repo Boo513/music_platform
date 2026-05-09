@@ -44,7 +44,7 @@ export default function HomePage() {
             text-white text-xl shadow-[0_0_20px_rgba(255,140,66,0.3)]"
           onClick={() => navigate('/upload')}>+</button>
         <button
-          className="w-9 h-9 rounded-full bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-sm"
+          className="w-9 h-9 rounded-full bg-white/3 border border-white/8 flex items-center justify-center text-sm"
           onClick={() => navigate('/profile')}>👤</button>
       </div>
 
@@ -56,7 +56,7 @@ export default function HomePage() {
           { icon: '🕐', title: '最近播放', desc: '继续收听', onClick: () => navigate('/profile') },
         ].map((card) => (
           <div key={card.title}
-            className="flex-1 glass-panel !p-4 flex items-center gap-3 cursor-pointer hover:bg-white/[0.06]"
+            className="flex-1 glass-panel !p-4 flex items-center gap-3 cursor-pointer hover:bg-white/6"
             onClick={card.onClick}>
             <div className="text-2xl">{card.icon}</div>
             <div>
@@ -73,13 +73,13 @@ export default function HomePage() {
         <button
           className={`px-3 py-1.5 rounded-2xl text-[11px] whitespace-nowrap transition-all
             ${!styleFilter ? 'bg-[#FF8C42]/15 border border-[#FFB366]/20 text-[#FFB366] font-semibold'
-                         : 'bg-white/[0.04] text-[#a09080] hover:bg-white/[0.06]'}`}
+                         : 'bg-white/4 text-[#a09080] hover:bg-white/6'}`}
           onClick={() => setStyleFilter(null)}>🔥 全部</button>
         {STYLE_OPTIONS.map((s) => (
           <button key={s.value}
             className={`px-3 py-1.5 rounded-2xl text-[11px] whitespace-nowrap transition-all
               ${styleFilter === s.value ? 'bg-[#FF8C42]/15 border border-[#FFB366]/20 text-[#FFB366] font-semibold'
-                                       : 'bg-white/[0.04] text-[#a09080] hover:bg-white/[0.06]'}`}
+                                       : 'bg-white/4 text-[#a09080] hover:bg-white/6'}`}
             onClick={() => setStyleFilter(s.value)}>{s.emoji} {s.label}</button>
         ))}
       </div>

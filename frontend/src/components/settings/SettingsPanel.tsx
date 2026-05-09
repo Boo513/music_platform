@@ -16,7 +16,7 @@ export function SettingsPanel({ open, onClose, selectedScene, onSelectScene, eff
     <>
       <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
       <div className="fixed right-0 top-0 bottom-0 w-[320px] z-50
-        bg-[rgba(14,10,22,0.9)] backdrop-blur-[40px] border-l border-white/[0.08]
+        bg-[rgba(14,10,22,0.9)] backdrop-blur-[40px] border-l border-white/8
         shadow-[-20px_0_60px_rgba(0,0,0,0.5)] p-6 overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <span className="text-[#f0e6e0] text-base font-bold">⚙ 设置</span>
@@ -46,7 +46,7 @@ export function SettingsPanel({ open, onClose, selectedScene, onSelectScene, eff
           ))}
         </div>
 
-        <div className="border-t border-white/[0.06] pt-5">
+        <div className="border-t border-white/6 pt-5">
           <div className="text-[#a09080] text-[11px] uppercase tracking-wider mb-3">画面效果</div>
           {([
             ['particles', '粒子特效'],
@@ -57,7 +57,7 @@ export function SettingsPanel({ open, onClose, selectedScene, onSelectScene, eff
               <span className="text-[#d0c0b0] text-[13px]">{label}</span>
               <button
                 className={`w-10 h-[22px] rounded-full relative transition-colors
-                  ${effects[key] ? 'bg-[#FF8C42]' : 'bg-white/[0.08]'}`}
+                  ${effects[key] ? 'bg-[#FF8C42]' : 'bg-white/8'}`}
                 onClick={() => onToggleEffect(key)}
               >
                 <div className={`absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white transition-all

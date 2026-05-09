@@ -14,8 +14,8 @@ export function SongRow({ song, onClick, extra }: SongRowProps) {
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.04]
-        hover:bg-white/[0.04] cursor-pointer transition-all duration-200"
+      className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/2 border border-white/4
+        hover:bg-white/4 cursor-pointer transition-all duration-200"
       onClick={() => onClick(song)}
     >
       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#1e1830] to-[#141020]

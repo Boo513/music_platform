@@ -20,7 +20,7 @@ export function PlayerBar() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 h-[72px] flex items-center gap-3.5 px-5
-      bg-[rgba(14,12,20,0.8)] backdrop-blur-2xl border-t border-white/[0.06]">
+      bg-[rgba(14,12,20,0.8)] backdrop-blur-2xl border-t border-white/6">
       <div
         className="w-[46px] h-[46px] rounded-full bg-gradient-to-br from-[#1e1830] to-[#141020]
           border-2 border-[#FFB366]/12 flex items-center justify-center text-lg flex-shrink-0
@@ -39,7 +39,7 @@ export function PlayerBar() {
       <div className="w-[200px] hidden sm:flex items-center gap-2">
         <span className="text-[10px] text-[#a09080] tabular-nums w-10 text-right">{formatTime(currentTime)}</span>
         <div
-          className="flex-1 h-1 bg-white/[0.06] rounded cursor-pointer relative"
+          className="flex-1 h-1 bg-white/6 rounded cursor-pointer relative"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             seek(((e.clientX - rect.left) / rect.width) * duration);
@@ -52,7 +52,7 @@ export function PlayerBar() {
 
       <div className="flex items-center gap-2.5">
         <span className="text-[#908070] text-sm">🔊</span>
-        <div className="w-[60px] h-0.5 bg-white/[0.08] rounded cursor-pointer relative"
+        <div className="w-[60px] h-0.5 bg-white/8 rounded cursor-pointer relative"
           onClick={(e) => {
             const r = e.currentTarget.getBoundingClientRect();
             setVolume((e.clientX - r.left) / r.width);

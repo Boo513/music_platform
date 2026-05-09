@@ -102,7 +102,7 @@ export default function PlayPage() {
       />
 
       {/* Brand text */}
-      <div className="fixed top-[30px] right-[90px] z-10 text-[13px] font-semibold tracking-[1.5px] text-white/[0.3]">
+      <div className="fixed top-[30px] right-[90px] z-10 text-[13px] font-semibold tracking-[1.5px] text-white/30">
         HEAR THE 🌍
       </div>
     </div>

@@ -1,0 +1,213 @@
+<h2>播放页 & 个人主页</h2>
+<p class="subtitle">暗夜霓虹超现实 · 核心体验 + 个人中心</p>
+
+<div class="section">
+  <h3>播放页 — 延续 india-radio.html 五区域布局</h3>
+  <p style="color:#a09080;font-size:13px;">与原型一致，不再重复展示。新增：场景主题切换器（建议2），在左上角 ⚙ 设置中触发</p>
+</div>
+
+<!-- ===== 设置面板 ===== -->
+<div class="mockup">
+  <div class="mockup-header">场景主题切换器 — 点击 ⚙ 后从右侧滑入</div>
+  <div class="mockup-body">
+    <div style="background:linear-gradient(160deg,#152238,#0a1628);border-radius:12px;overflow:hidden;min-height:380px;position:relative;">
+      <div style="position:absolute;inset:0;opacity:0.15;background:radial-gradient(ellipse at 30% 50%,rgba(100,60,180,0.3),transparent 60%);"></div>
+      <!-- 半透明遮罩 -->
+      <div style="position:absolute;inset:0;background:rgba(0,0,0,0.4);z-index:3;"></div>
+      <!-- 设置面板 -->
+      <div style="position:absolute;right:0;top:0;bottom:0;width:320px;background:rgba(14,10,22,0.9);backdrop-filter:blur(40px);border-left:1px solid rgba(255,180,130,0.1);z-index:5;padding:24px;box-shadow:-20px 0 60px rgba(0,0,0,0.5);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+          <span style="color:#f0e6e0;font-size:16px;font-weight:700;">⚙ 设置</span>
+          <span style="color:#a09080;font-size:20px;cursor:pointer;">×</span>
+        </div>
+
+        <div style="color:#a09080;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">场景主题</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,140,66,0.1);border:1px solid rgba(255,180,130,0.2);">
+            <span style="font-size:20px;">🎵</span>
+            <div style="flex:1;">
+              <div style="color:#FFB366;font-size:13px;font-weight:600;">自动匹配</div>
+              <div style="color:rgba(160,144,128,0.6);font-size:10px;">根据歌曲风格/情绪自动切换</div>
+            </div>
+            <div style="width:12px;height:12px;border-radius:50%;background:#FF8C42;box-shadow:0 0 8px rgba(255,140,66,0.5);"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;">
+            <span style="font-size:20px;">🔮</span>
+            <div style="flex:1;">
+              <div style="color:#d0c0b0;font-size:13px;">赛博朋克城市</div>
+              <div style="color:rgba(160,144,128,0.5);font-size:10px;">霓虹都市 · 电子/摇滚</div>
+            </div>
+            <div style="width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,180,130,0.2);"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;">
+            <span style="font-size:20px;">🌌</span>
+            <div style="flex:1;">
+              <div style="color:#d0c0b0;font-size:13px;">宇宙星河</div>
+              <div style="color:rgba(160,144,128,0.5);font-size:10px;">深空星云 · 古典/平静</div>
+            </div>
+            <div style="width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,180,130,0.2);"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;">
+            <span style="font-size:20px;">🌸</span>
+            <div style="flex:1;">
+              <div style="color:#d0c0b0;font-size:13px;">春日樱花</div>
+              <div style="color:rgba(160,144,128,0.5);font-size:10px;">樱花山脉 · 流行/开心</div>
+            </div>
+            <div style="width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,180,130,0.2);"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;">
+            <span style="font-size:20px;">🏖</span>
+            <div style="flex:1;">
+              <div style="color:#d0c0b0;font-size:13px;">夏日海滩</div>
+              <div style="color:rgba(160,144,128,0.5);font-size:10px;">碧海蓝天 · 摇滚/激昂</div>
+            </div>
+            <div style="width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,180,130,0.2);"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;">
+            <span style="font-size:20px;">🌧</span>
+            <div style="flex:1;">
+              <div style="color:#d0c0b0;font-size:13px;">雨夜都市</div>
+              <div style="color:rgba(160,144,128,0.5);font-size:10px;">阴雨霓虹 · 爵士/悲伤</div>
+            </div>
+            <div style="width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,180,130,0.2);"></div>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid rgba(255,180,130,0.06);padding-top:20px;">
+          <div style="color:#a09080;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">画面效果</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="color:#d0c0b0;font-size:13px;">粒子特效</span>
+            <div style="width:40px;height:22px;border-radius:11px;background:#FF8C42;position:relative;">
+              <div style="position:absolute;right:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;"></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="color:#d0c0b0;font-size:13px;">后处理 Bloom</span>
+            <div style="width:40px;height:22px;border-radius:11px;background:rgba(255,255,255,0.08);position:relative;">
+              <div style="position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,0.3);"></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="color:#d0c0b0;font-size:13px;">暗角遮罩</span>
+            <div style="width:40px;height:22px;border-radius:11px;background:#FF8C42;position:relative;">
+              <div style="position:absolute;right:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 个人主页 ===== -->
+<div class="section">
+  <h3>个人主页</h3>
+  <p class="subtitle">用户中心 — 头像 + 统计数据 + Tab 切换内容区</p>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">个人主页完整布局</div>
+  <div class="mockup-body">
+    <div style="background:linear-gradient(160deg,#0a0a18 0%,#0d1025 50%,#111835 100%);border-radius:12px;overflow:hidden;min-height:480px;position:relative;">
+      <div style="position:absolute;inset:0;opacity:0.1;background:radial-gradient(ellipse at 50% 0%,rgba(80,40,150,0.4),transparent 55%),radial-gradient(circle at 75% 70%,rgba(255,140,66,0.12),transparent 40%);"></div>
+
+      <!-- 顶部信息 -->
+      <div style="position:relative;z-index:2;display:flex;align-items:center;gap:22px;padding:28px 32px 20px;">
+        <!-- 头像 -->
+        <div style="position:relative;">
+          <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(145deg,#2a1840,#141028);border:3px solid rgba(255,180,130,0.2);box-shadow:0 0 35px rgba(255,140,66,0.12);display:flex;align-items:center;justify-content:center;font-size:36px;">🌌</div>
+          <div style="position:absolute;bottom:-2px;right:-2px;width:22px;height:22px;border-radius:50%;background:#FF8C42;border:2px solid #0a0a18;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;">✎</div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:22px;font-weight:700;color:#f0e6e0;">音乐爱好者</div>
+          <div style="color:#a09080;font-size:12px;margin-top:3px;">@musiclover</div>
+          <div style="display:flex;gap:28px;margin-top:12px;">
+            <div><span style="color:#FFB366;font-weight:700;font-size:18px;">48</span> <span style="color:#a09080;font-size:11px;">上传</span></div>
+            <div><span style="color:#FFB366;font-weight:700;font-size:18px;">128</span> <span style="color:#a09080;font-size:11px;">收藏</span></div>
+            <div><span style="color:#FFB366;font-weight:700;font-size:18px;">12</span> <span style="color:#a09080;font-size:11px;">歌单</span></div>
+          </div>
+        </div>
+        <div style="padding:8px 20px;border:1px solid rgba(255,180,130,0.12);border-radius:20px;color:#d0c0b0;font-size:12px;cursor:pointer;">✎ 编辑资料</div>
+      </div>
+
+      <!-- Tab 栏 -->
+      <div style="position:relative;z-index:2;display:flex;gap:0;padding:0 32px;border-bottom:1px solid rgba(255,180,130,0.06);">
+        <div style="padding:12px 20px;color:#FFB366;font-size:13px;font-weight:600;border-bottom:2px solid #FF8C42;cursor:pointer;">📋 我的歌单</div>
+        <div style="padding:12px 20px;color:#a09080;font-size:13px;cursor:pointer;">🎵 上传歌曲</div>
+        <div style="padding:12px 20px;color:#a09080;font-size:13px;cursor:pointer;">🕐 播放历史</div>
+        <div style="padding:12px 20px;color:#a09080;font-size:13px;cursor:pointer;">❤️ 我的收藏</div>
+      </div>
+
+      <!-- 内容区：歌单卡片 -->
+      <div style="position:relative;z-index:2;display:flex;gap:14px;padding:20px 32px;overflow-x:auto;">
+        <div style="min-width:175px;background:rgba(18,14,24,0.5);backdrop-filter:blur(14px);border:1px solid rgba(255,180,130,0.08);border-radius:14px;overflow:hidden;cursor:pointer;">
+          <div style="height:80px;background:linear-gradient(135deg,#2a1840,#4a2040);display:flex;align-items:center;justify-content:center;font-size:32px;">🎸</div>
+          <div style="padding:12px 14px 4px;color:#f0e6e0;font-size:13px;font-weight:600;">摇滚精选</div>
+          <div style="padding:0 14px 12px;color:#a09080;font-size:11px;">15 首 · 公开</div>
+        </div>
+        <div style="min-width:175px;background:rgba(18,14,24,0.5);backdrop-filter:blur(14px);border:1px solid rgba(255,180,130,0.08);border-radius:14px;overflow:hidden;cursor:pointer;">
+          <div style="height:80px;background:linear-gradient(135deg,#1a3040,#204060);display:flex;align-items:center;justify-content:center;font-size:32px;">🌙</div>
+          <div style="padding:12px 14px 4px;color:#f0e6e0;font-size:13px;font-weight:600;">深夜电台</div>
+          <div style="padding:0 14px 12px;color:#a09080;font-size:11px;">22 首 · 公开</div>
+        </div>
+        <div style="min-width:175px;background:rgba(18,14,24,0.5);backdrop-filter:blur(14px);border:1px solid rgba(255,180,130,0.08);border-radius:14px;overflow:hidden;cursor:pointer;">
+          <div style="height:80px;background:linear-gradient(135deg,#1a2830,#204030);display:flex;align-items:center;justify-content:center;font-size:32px;">🌸</div>
+          <div style="padding:12px 14px 4px;color:#f0e6e0;font-size:13px;font-weight:600;">春日物语</div>
+          <div style="padding:0 14px 12px;color:#a09080;font-size:11px;">8 首 · 私密 🔒</div>
+        </div>
+        <div style="min-width:175px;border:2px dashed rgba(255,180,130,0.12);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(160,144,128,0.4);font-size:28px;cursor:pointer;">+<div style="font-size:11px;margin-top:4px;">新建歌单</div></div>
+      </div>
+
+      <!-- 底部播放器 -->
+      <div style="position:absolute;bottom:0;left:0;right:0;z-index:3;height:68px;background:rgba(14,12,20,0.8);backdrop-filter:blur(24px);border-top:1px solid rgba(255,180,130,0.06);display:flex;align-items:center;padding:0 20px;gap:14px;">
+        <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(145deg,#2a1830,#141020);border:2px solid rgba(255,140,66,0.3);"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="color:#f0e6e0;font-size:12px;font-weight:600;">Police</div>
+          <div style="color:#a09080;font-size:9px;">Cheema Y, Gur Sidhu</div>
+        </div>
+        <div style="width:160px;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;">
+          <div style="width:45%;height:100%;background:linear-gradient(90deg,#FF8C42,#FFB366);border-radius:2px;box-shadow:0 0 8px rgba(255,140,66,0.5);"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;color:#908070;">🔊</span>
+          <div style="width:30px;height:30px;border-radius:50%;background:#f0e6e0;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>个人主页 4 个 Tab 内容区</h3>
+  <table style="width:100%;border-collapse:collapse;color:#d0c0b0;font-size:13px;">
+    <tr style="border-bottom:1px solid rgba(255,180,130,0.1);">
+      <td style="padding:10px 0;color:#FFB366;font-weight:600;">📋 我的歌单</td>
+      <td style="padding:10px 0;">横向滚动卡片列表，每张卡片：渐变色封面 + 歌单名 + 歌曲数 + 公开/私密标识。末尾 +新建歌单 虚线卡片</td>
+    </tr>
+    <tr style="border-bottom:1px solid rgba(255,180,130,0.1);">
+      <td style="padding:10px 0;color:#FFB366;font-weight:600;">🎵 上传歌曲</td>
+      <td style="padding:10px 0;">歌曲列表（与首页网格类似但紧凑），每行：小封面(36px)+歌名+艺术家+标签+播放次数。点击行进入播放</td>
+    </tr>
+    <tr style="border-bottom:1px solid rgba(255,180,130,0.1);">
+      <td style="padding:10px 0;color:#FFB366;font-weight:600;">🕐 播放历史</td>
+      <td style="padding:10px 0;">按时间倒序列表，分组显示（今天/昨天/更早），每行右侧显示播放时间。点击重新播放</td>
+    </tr>
+    <tr>
+      <td style="padding:10px 0;color:#FFB366;font-weight:600;">❤️ 我的收藏</td>
+      <td style="padding:10px 0;">与上传歌曲 Tab 布局一致，额外显示收藏时间。支持取消收藏（心形图标点击切换）</td>
+    </tr>
+  </table>
+</div>
+
+<div class="section">
+  <h3>个人主页交互细节</h3>
+  <div style="color:#b0a0a0;line-height:1.8;">
+    <ul>
+      <li><b>头像编辑</b>：点击右下角 ✎ → 弹出文件选择器 → 上传裁剪（1:1）→ 调用 POST /api/songs/{id}/cover 类似逻辑</li>
+      <li><b>编辑资料</b>：点击右上角按钮 → 弹出小型玻璃态 Modal：昵称修改 + 保存</li>
+      <li><b>新建歌单</b>：点击 + → 弹出 Modal：歌单名称 + 描述 + 公开/私密切换 → 创建成功添加到列表</li>
+      <li><b>返回按钮</b>：左上角 ← 返回首页</li>
+      <li><b>空状态</b>：Tab 内无数据时显示居中插画 + "还没有上传歌曲" + 引导按钮</li>
+    </ul>
+  </div>
+</div>

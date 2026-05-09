@@ -9,7 +9,7 @@ interface Props {
 
 export function SceneBanner({ selectedScene, onSelectScene }: Props) {
   return (
-    <div className="mx-6 mt-4 rounded-2xl overflow-hidden border border-white/[0.08] h-[180px] flex">
+    <div className="mx-6 mt-4 rounded-2xl overflow-hidden border border-white/8 h-[180px] flex">
       <div className="flex-1 relative bg-gradient-to-b from-[#152238] via-[#2a4560] to-[#FF9B55]/60">
         <Canvas camera={{ position: [0, 0, 3], fov: 45 }}>
           <Stars radius={20} depth={10} count={150} factor={2} fade speed={0.3} />
