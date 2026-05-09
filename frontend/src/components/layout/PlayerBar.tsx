@@ -15,11 +15,7 @@ export function PlayerBar() {
   useAudioPlayer();
   const { currentSong, isPlaying, currentTime, duration, volume, playMode,
     pause, resume, next, prev, setVolume, seek, togglePlayMode } = usePlayerStore();
-  const modeIcon = playMode === 'sequential' ? '🔁' : playMode === 'shuffle' ? '🔀' : '🔂';
   const song = currentSong();
-  if (!song) return null;
-
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   const updateVol = useCallback((clientX: number) => {
     if (!volRef.current) return;
@@ -27,14 +23,19 @@ export function PlayerBar() {
     setVolume(Math.max(0, Math.min(1, (clientX - r.left) / r.width)));
   }, [setVolume]);
 
-  const handleVolDown = (e: React.MouseEvent) => {
+  const handleVolDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     updateVol(e.clientX);
     const onMove = (ev: MouseEvent) => updateVol(ev.clientX);
     const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  };
+  }, [updateVol]);
+
+  if (!song) return null;
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const modeIcon = playMode === 'sequential' ? '🔁' : playMode === 'shuffle' ? '🔀' : '🔂';
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
