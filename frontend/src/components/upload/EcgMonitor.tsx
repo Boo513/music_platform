@@ -19,36 +19,37 @@ export function EcgMonitor() {
 
     // --- ECG generator: real waveform shape ---
     function ecgY(x: number, cycle: number): number {
-      // Normalize x within the cycle (60px per beat)
-      const p = ((x % 60) + 60) % 60;
+      // Normalize x within the cycle (80px per beat - wider waveform)
+      const p = ((x % 80) + 80) % 80;
       let y = 0;
 
-      // P wave: small bump at start
-      if (p > 2 && p < 10) {
-        const t = (p - 2) / 8;
-        y = 3 * Math.sin(t * Math.PI) * Math.exp(-t * 2);
+      // P wave: small bump at start (~8px)
+      if (p > 4 && p < 16) {
+        const t = (p - 4) / 12;
+        y = 10 * Math.sin(t * Math.PI) * Math.exp(-t * 1.5);
       }
-      // Q wave: small dip
-      if (p > 11 && p < 14) {
-        y = -2 * Math.sin(((p - 11) / 3) * Math.PI * 0.5);
+      // PR segment: flat
+      // Q wave: small dip (~-8px)
+      if (p > 18 && p < 22) {
+        y = -8 * Math.sin(((p - 18) / 4) * Math.PI * 0.5);
       }
-      // R wave: tall spike
-      if (p >= 14 && p <= 16) {
-        const t = (p - 14) / 2;
-        y = 28 * Math.sin(t * Math.PI * 0.5) * (1 - t);
+      // R wave: TALL spike (~65px peak)
+      if (p >= 22 && p <= 26) {
+        const t = (p - 22) / 4;
+        y = 65 * Math.sin(t * Math.PI) * (1 - t * 0.8);
       }
-      // S wave: deep dip
-      if (p > 16 && p < 20) {
-        const t = (p - 16) / 4;
-        y = -10 * Math.sin(t * Math.PI * 0.5);
+      // S wave: deep dip (~-25px)
+      if (p > 26 && p < 32) {
+        const t = (p - 26) / 6;
+        y = -25 * Math.sin(t * Math.PI * 0.5);
       }
-      // T wave: gentle bump
-      if (p > 20 && p < 32) {
-        const t = (p - 20) / 12;
-        y = 5 * Math.sin(t * Math.PI) * Math.exp(-t);
+      // T wave: medium bump (~15px)
+      if (p > 35 && p < 52) {
+        const t = (p - 35) / 17;
+        y = 15 * Math.sin(t * Math.PI) * Math.exp(-t * 0.8);
       }
-      // Noise
-      y += (Math.sin(cycle * 0.7 + p * 0.3) * 0.3) + (Math.random() - 0.5) * 0.4;
+      // Micro noise for realism
+      y += (Math.sin(cycle * 0.7 + p * 0.3) * 0.8) + (Math.random() - 0.5) * 0.6;
       return y;
     }
 
@@ -60,7 +61,7 @@ export function EcgMonitor() {
       // Grid lines
       ctx.strokeStyle = 'rgba(0,255,157,0.05)';
       ctx.lineWidth = 0.5;
-      for (let gx = 0; gx < cw; gx += 60) {
+      for (let gx = 0; gx < cw; gx += 80) {
         ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, ch); ctx.stroke();
       }
       for (let gy = 0; gy < ch; gy += 30) {
@@ -91,10 +92,10 @@ export function EcgMonitor() {
         else ctx.lineTo(px, py);
       }
       ctx.strokeStyle = '#00ff9d';
-      ctx.lineWidth = 6;
+      ctx.lineWidth = 8;
       ctx.shadowColor = '#00ff9d';
-      ctx.shadowBlur = 15;
-      ctx.globalAlpha = 0.3;
+      ctx.shadowBlur = 25;
+      ctx.globalAlpha = 0.25;
       ctx.stroke();
       ctx.restore();
 
@@ -107,9 +108,9 @@ export function EcgMonitor() {
         else ctx.lineTo(px, py);
       }
       ctx.strokeStyle = '#00ff9d';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.5;
       ctx.shadowColor = '#00ff9d';
-      ctx.shadowBlur = 6;
+      ctx.shadowBlur = 10;
       ctx.globalAlpha = 1;
       ctx.stroke();
       ctx.shadowBlur = 0;
@@ -119,10 +120,10 @@ export function EcgMonitor() {
         const lastX = pointsRef.current.length - 1;
         const lastY = ch / 2 - pointsRef.current[pointsRef.current.length - 1];
         ctx.beginPath();
-        ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);
+        ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
         ctx.fillStyle = '#fff';
         ctx.shadowColor = '#00ff9d';
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 18;
         ctx.fill();
         ctx.shadowBlur = 0;
       }
