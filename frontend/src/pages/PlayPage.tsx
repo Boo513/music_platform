@@ -510,16 +510,22 @@ function Scene3D() {
 
 export default function PlayPage() {
   const { songId } = useParams<{ songId: string }>();
-  const { isPlaying, pause, resume } = usePlayerStore();
+  const { isPlaying, currentSong, play, pause, resume } = usePlayerStore();
   const [demoSong, setDemoSong] = useState<Song | null>(null);
 
   useEffect(() => {
     if (songId) {
-      songsApi.getById(Number(songId)).then(() => {}).catch(() => setDemoSong(DEMO_SONG));
+      songsApi.getById(Number(songId)).then((res) => {
+        play(res.data);
+      }).catch(() => {
+        play(DEMO_SONG);
+        setDemoSong(DEMO_SONG);
+      });
     }
   }, [songId]);
 
-  const song = demoSong || DEMO_SONG;
+  const storeSong = currentSong();
+  const song = storeSong || demoSong || DEMO_SONG;
 
   return (
     <div className="fixed inset-0" style={{ background: '#0a0a18' }}>
