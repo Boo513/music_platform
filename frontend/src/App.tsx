@@ -11,40 +11,40 @@ const PlayPage = lazy(() => import('@/pages/PlayPage'));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
 
 function PageFallback() {
-  return <div className="flex items-center justify-center h-screen text-[#a09080]">加载中...</div>;
+ return <div className="flex items-center justify-center h-screen">加载中...</div>;
 }
 
 function AnimatedRoutes() {
-  const location = useLocation();
-  return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={location.pathname}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Routes location={location}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/play/:songId" element={<PlayPage />} />
-            <Route path="/upload" element={<UploadPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-          </Route>
-        </Routes>
-      </motion.div>
-    </AnimatePresence>
-  );
+ const location = useLocation();
+ return (
+ <AnimatePresence mode="wait">
+ <motion.div
+ key={location.pathname}
+ initial={{ opacity: 0 }}
+ animate={{ opacity: 1 }}
+ exit={{ opacity: 0 }}
+ transition={{ duration: 0.3 }}
+ >
+ <Routes location={location}>
+ <Route path="/login" element={<LoginPage />} />
+ <Route element={<AppLayout />}>
+ <Route path="/" element={<HomePage />} />
+ <Route path="/play/:songId" element={<PlayPage />} />
+ <Route path="/upload" element={<UploadPage />} />
+ <Route path="/profile" element={<ProfilePage />} />
+ </Route>
+ </Routes>
+ </motion.div>
+ </AnimatePresence>
+ );
 }
 
 export default function App() {
-  return (
-    <BrowserRouter>
-      <Suspense fallback={<PageFallback />}>
-        <AnimatedRoutes />
-      </Suspense>
-    </BrowserRouter>
-  );
+ return (
+ <BrowserRouter>
+ <Suspense fallback={<PageFallback />}>
+ <AnimatedRoutes />
+ </Suspense>
+ </BrowserRouter>
+ );
 }
