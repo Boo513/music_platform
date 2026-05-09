@@ -40,7 +40,8 @@ export default function HomePage() {
  style={{ padding: '10px 16px' }}>
  <span className="text-base opacity-40">🔍</span>
  <input
- className="text-primary text-13 flex-1"
+ className="text-13 flex-1"
+ style={{background:'transparent',border:'none',outline:'none',color:'#f0e6e0'}}
  placeholder="搜索歌曲或艺术家..." value={keyword} onChange={(e) => setKeyword(e.target.value)}
  />
  </div>
@@ -69,7 +70,7 @@ export default function HomePage() {
  <div className="text-2xl">{card.icon}</div>
  <div>
  <div className="text-primary text-sm font-semibold">{card.title}</div>
- <div className="text-primary text-11">{card.desc}</div>
+ <div className="text-secondary text-11">{card.desc}</div>
  </div>
  </div>
  ))}
@@ -81,16 +82,16 @@ export default function HomePage() {
  <button
  className={`px-3 py-1.5 rounded-2xl text-11 whitespace-nowrap transition-all border cursor-pointer
  ${!styleFilter
- ? ' font-semibold border-orange-20'
- : ' border-transparent hover-text-white'}`}
+ ? 'text-accent font-semibold border-orange-20'
+ : 'text-secondary border-transparent hover-text-white'}`}
  style={!styleFilter ? { background: 'rgba(255,140,66,0.15)' } : { background: 'rgba(255,255,255,0.04)' }}
  onClick={() => setStyleFilter(null)}>🔥 全部</button>
  {STYLE_OPTIONS.map((s) => (
  <button key={s.value}
  className={`px-3 py-1.5 rounded-2xl text-11 whitespace-nowrap transition-all border cursor-pointer
  ${styleFilter === s.value
- ? ' font-semibold border-orange-20'
- : ' border-transparent hover-text-white'}`}
+ ? 'text-accent font-semibold border-orange-20'
+ : 'text-secondary border-transparent hover-text-white'}`}
  style={styleFilter === s.value ? { background: 'rgba(255,140,66,0.15)' } : { background: 'rgba(255,255,255,0.04)' }}
  onClick={() => setStyleFilter(s.value)}>{s.emoji} {s.label}</button>
  ))}
