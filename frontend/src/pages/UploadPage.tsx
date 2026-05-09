@@ -51,7 +51,7 @@ export default function UploadPage() {
     <div className="min-h-screen pb-24 relative">
       <div className="fixed inset-0 -z-10 opacity-10 bg-[radial-gradient(ellipse_at_30%_50%,rgba(100,60,180,0.4),transparent_60%),radial-gradient(circle_at_70%_40%,rgba(255,140,66,0.15),transparent_50%)]" />
 
-      <div className="flex items-center gap-4 px-6 py-4 border-b border-white/6">
+      <div className="flex items-center gap-4 px-6 py-4 border-b border-[rgba(255,255,255,0.06)]">
         <button className="text-[#a09080] text-lg hover:text-[#ffe0c8]" onClick={() => navigate(-1)}>←</button>
         <span className="text-[#f0e6e0] text-base font-semibold">上传音乐</span>
       </div>
@@ -62,7 +62,7 @@ export default function UploadPage() {
             min-h-[350px] cursor-pointer transition-all duration-200
             ${dragOver ? 'border-[#FFB366]/60 bg-[#FF8C42]/5' :
               file ? 'border-green-500/30 bg-green-500/2' :
-              'border-white/10 bg-white/2'}`}
+              'border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.02)]'}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -72,7 +72,7 @@ export default function UploadPage() {
             <>
               <div className="text-4xl mb-3">⏳</div>
               <div className="text-[#f0e6e0] text-sm">上传中 {progress}%</div>
-              <div className="w-4/5 h-1 bg-white/6 rounded mt-4">
+              <div className="w-4/5 h-1 bg-[rgba(255,255,255,0.06)] rounded mt-4">
                 <div className="neon-progress h-full rounded" style={{ width: `${progress}%` }} />
               </div>
             </>
@@ -99,12 +99,12 @@ export default function UploadPage() {
 
         <div className="w-[300px] glass-panel !p-5 flex flex-col">
           <label className="text-[#a09080] text-[11px] uppercase tracking-wider mb-1.5">歌曲标题 *</label>
-          <input className="w-full px-3 py-2.5 rounded-lg bg-white/3 border border-white/6
+          <input className="w-full px-3 py-2.5 rounded-lg bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)]
             text-[#f0e6e0] text-[13px] outline-none focus:border-[#FFB366]/30 mb-4"
             value={title} onChange={(e) => setTitle(e.target.value)} placeholder="输入歌曲名称..." />
 
           <label className="text-[#a09080] text-[11px] uppercase tracking-wider mb-1.5">艺术家 *</label>
-          <input className="w-full px-3 py-2.5 rounded-lg bg-white/3 border border-white/6
+          <input className="w-full px-3 py-2.5 rounded-lg bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)]
             text-[#f0e6e0] text-[13px] outline-none focus:border-[#FFB366]/30 mb-4"
             value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="输入艺术家..." />
 
@@ -113,8 +113,8 @@ export default function UploadPage() {
             {STYLE_OPTIONS.map((s) => (
               <button key={s.value}
                 className={`px-2.5 py-1 rounded-2xl text-[11px] transition-all
-                  ${style === s.value ? 'bg-[#FF8C42]/15 border border-[#FFB366]/20 text-[#FFB366] font-semibold'
-                                      : 'bg-white/4 text-[#a09080]'}`}
+                  ${style === s.value ? 'bg-[rgba(255,140,66,0.15)] border border-[rgba(255,179,102,0.2)] text-[#FFB366] font-semibold'
+                                      : 'bg-[rgba(255,255,255,0.04)] text-[#a09080]'}`}
                 onClick={() => setStyle(s.value)}>{s.emoji} {s.label}</button>
             ))}
           </div>
@@ -125,7 +125,7 @@ export default function UploadPage() {
               <button key={m.value}
                 className={`px-2.5 py-1 rounded-2xl text-[11px] transition-all
                   ${mood === m.value ? 'bg-[#7c3aed]/15 border border-[#a78bfa]/20 text-[#c4b5fd] font-semibold'
-                                      : 'bg-white/4 text-[#a09080]'}`}
+                                      : 'bg-[rgba(255,255,255,0.04)] text-[#a09080]'}`}
                 onClick={() => setMood(m.value)}>{m.emoji} {m.label}</button>
             ))}
           </div>

@@ -18,7 +18,7 @@ export function GlassInput({ icon, placeholder, type = 'text', value, onChange, 
   return (
     <div className="mb-3">
       <div className={`flex items-center gap-2.5 px-3.5 py-3 rounded-xl transition-all duration-200
-        bg-white/3 border ${error ? 'border-red-500/50' : focused ? 'border-[#FFB366]/30' : 'border-white/6'}`}>
+        bg-[rgba(255,255,255,0.03)] border ${error ? 'border-red-500/50' : focused ? 'border-[#FFB366]/30' : 'border-white/6'}`}>
         {icon && <span className="opacity-40 text-base">{icon}</span>}
         <input
           type={type}

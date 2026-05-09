@@ -14,7 +14,7 @@ export function RadioPanel({ song, isPlaying, onTogglePlay, onClose }: RadioPane
 
   return (
     <div className="fixed left-7 top-[45%] -translate-y-[55%] z-10 w-[310px]
-      bg-[rgba(18,14,24,0.55)] backdrop-blur-[28px] border border-white/8
+      bg-[rgba(18,14,24,0.55)] backdrop-blur-[28px] border border-[rgba(255,255,255,0.08)]
       rounded-2xl overflow-hidden shadow-[0_24px_70px_rgba(0,0,0,0.55)]">
       <div className="relative h-40 bg-gradient-to-br from-[#3a2218] via-[#1e1830] to-[#141828]">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[rgba(18,14,22,0.8)]" />

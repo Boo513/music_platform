@@ -52,7 +52,7 @@ export default function ProfilePage() {
       <div className="flex items-center gap-5 px-8 pt-7 pb-5">
         <div className="relative group">
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#2a1840] to-[#141028]
-            border-[3px] border-[#FFB366]/20 shadow-[0_0_35px_rgba(255,140,66,0.12)]
+            border-[3px] border-[rgba(255,179,102,0.2)] shadow-[0_0_35px_rgba(255,140,66,0.12)]
             flex items-center justify-center text-4xl">🌌</div>
           <div className="absolute -bottom-0.5 -right-0.5 w-[22px] h-[22px] rounded-full bg-[#FF8C42]
             border-2 border-[#0a0a18] flex items-center justify-center text-[10px] text-white cursor-pointer">✎</div>
@@ -66,11 +66,11 @@ export default function ProfilePage() {
             <div><span className="text-[#FFB366] font-bold text-lg">{playlists.length}</span> <span className="text-[#a09080] text-[11px]">歌单</span></div>
           </div>
         </div>
-        <button className="px-5 py-2 rounded-2xl border border-white/10 text-[#d0c0b0] text-xs"
+        <button className="px-5 py-2 rounded-2xl border border-[rgba(255,255,255,0.1)] text-[#d0c0b0] text-xs"
           onClick={() => setShowEditProfile(true)}>✎ 编辑资料</button>
       </div>
 
-      <div className="flex gap-0 px-8 border-b border-white/6">
+      <div className="flex gap-0 px-8 border-b border-[rgba(255,255,255,0.06)]">
         {tabs.map((t) => (
           <button key={t.key}
             className={`px-5 py-3 text-[13px] font-semibold transition-all border-b-2
@@ -90,7 +90,7 @@ export default function ProfilePage() {
                   <div className="text-[#a09080] text-[11px]">{pl.songCount} 首 · {pl.isPublic ? '公开' : '私密 🔒'}</div></div>
               </div>
             ))}
-            <div className="min-w-[175px] border-2 border-dashed border-white/8 rounded-2xl
+            <div className="min-w-[175px] border-2 border-dashed border-[rgba(255,255,255,0.08)] rounded-2xl
               flex flex-col items-center justify-center text-white/20 text-2xl cursor-pointer"
               onClick={() => setShowCreatePlaylist(true)}>+<div className="text-[11px] mt-1">新建歌单</div></div>
           </div>

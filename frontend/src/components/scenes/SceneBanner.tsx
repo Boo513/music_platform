@@ -9,7 +9,7 @@ interface Props {
 
 export function SceneBanner({ selectedScene, onSelectScene }: Props) {
   return (
-    <div className="mx-6 mt-4 rounded-2xl overflow-hidden border border-white/8 h-[180px] flex">
+    <div className="mx-6 mt-4 rounded-2xl overflow-hidden border border-[rgba(255,255,255,0.08)] h-[180px] flex">
       <div className="flex-1 relative bg-gradient-to-b from-[#152238] via-[#2a4560] to-[#FF9B55]/60">
         <Canvas camera={{ position: [0, 0, 3], fov: 45 }}>
           <Stars radius={20} depth={10} count={150} factor={2} fade speed={0.3} />
@@ -27,7 +27,7 @@ export function SceneBanner({ selectedScene, onSelectScene }: Props) {
         {SCENE_OPTIONS.map((s) => (
           <div key={s.key}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] cursor-pointer transition-all
-              ${selectedScene === s.key ? 'bg-[#FF8C42]/12 border border-[#FFB366]/20 text-[#FFB366]' : 'text-[#a09080]'}`}
+              ${selectedScene === s.key ? 'bg-[#FF8C42]/12 border border-[rgba(255,179,102,0.2)] text-[#FFB366]' : 'text-[#a09080]'}`}
             onClick={() => onSelectScene(s.key)}
           >{s.emoji} {s.label}</div>
         ))}

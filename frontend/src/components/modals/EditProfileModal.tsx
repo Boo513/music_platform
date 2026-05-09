@@ -20,12 +20,12 @@ export function EditProfileModal({ open, onClose, initialNickname, onSave }: Pro
         <h3 className="text-[#f0e6e0] text-lg font-bold mb-4">✎ 编辑资料</h3>
         <label className="text-[#a09080] text-[11px] uppercase tracking-wider mb-1.5 block">昵称</label>
         <input
-          className="w-full px-3.5 py-3 rounded-xl bg-white/3 border border-white/6
+          className="w-full px-3.5 py-3 rounded-xl bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)]
             text-[#f0e6e0] text-[13px] outline-none focus:border-[#FFB366]/30"
           value={nickname} onChange={(e) => setNickname(e.target.value)}
         />
         <div className="flex gap-3 mt-6">
-          <button className="flex-1 py-3 rounded-xl border border-white/8 text-[#a09080] text-sm" onClick={onClose}>
+          <button className="flex-1 py-3 rounded-xl border border-[rgba(255,255,255,0.08)] text-[#a09080] text-sm" onClick={onClose}>
             取消
           </button>
           <div className="flex-1"><NeonButton onClick={() => { onSave(nickname); onClose(); }}>保存</NeonButton></div>
