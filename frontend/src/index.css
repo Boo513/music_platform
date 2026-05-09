@@ -284,6 +284,7 @@ body {
 .bg-dark-60 { background: rgba(35,28,45,0.6); }
 .bg-dark-55h { background: rgba(40,30,50,0.55); }
 
+.border-white-4 { border-color: rgba(255,255,255,0.04); }
 .border-white-6 { border-color: rgba(255,255,255,0.06); }
 .border-white-8 { border-color: rgba(255,255,255,0.08); }
 .border-white-10 { border-color: rgba(255,255,255,0.1); }
@@ -307,6 +308,8 @@ body {
 .hover-border-white-15:hover { border-color: rgba(255,255,255,0.15); }
 .hover-text-white:hover { color: #ffe0c8; }
 .hover-scale-110:hover { transform: scale(1.1); }
+.hover-bg-black-70:hover { background: rgba(0,0,0,0.7); }
+.hover-text-red-400:hover { color: #f87171; }
 
 /* ===== SPECIFIC WIDTHS & HEIGHTS ===== */
 .w-18 { width: 18px; } .h-18 { height: 18px; }

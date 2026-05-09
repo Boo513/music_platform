@@ -19,7 +19,7 @@ export function RadioPanel({ song, isPlaying, onTogglePlay, onClose }: RadioPane
  <div className="relative h-40 grad-panel-thumb">
  <div className="absolute inset-0" style={{background:'linear-gradient(180deg, transparent 40%, rgba(18,14,22,0.8) 100%)'}} />
  <button className="absolute top-3 left-3 w-26 h-26 rounded-full bg-black-45
- flex items-center justify-center text-white text-xs z-10 hover:bg-black-70" onClick={onClose}>×</button>
+ flex items-center justify-center text-white text-xs z-10 hover-bg-black-70" onClick={onClose}>×</button>
  <span className="absolute top-3 right-3 z-10 text-white text-10 font-bold
  px-2.5 py-1 rounded-md animate-pulse">LIVE</span>
  <div className="absolute bottom-0 left-0 right-0 flex items-end gap-1 px-1">
