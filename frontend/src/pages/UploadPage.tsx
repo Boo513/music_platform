@@ -52,8 +52,8 @@ export default function UploadPage() {
  <div className="fixed inset-0 -z-10 opacity-10 bg-[radial-gradient(ellipse_at_30%_50%,rgba(100,60,180,0.4),transparent_60%),radial-gradient(circle_at_70%_40%,rgba(255,140,66,0.15),transparent_50%)]" />
 
  <div className="flex items-center gap-4 px-6 py-4 border-b border-white-6">
- <button className=" text-lg hover-text-white" onClick={() => navigate(-1)}>←</button>
- <span className=" text-base font-semibold">上传音乐</span>
+ <button className="text-primary text-lg hover-text-white" onClick={() => navigate(-1)}>←</button>
+ <span className="text-primary text-base font-semibold">上传音乐</span>
  </div>
 
  <div className="flex gap-5 p-6 items-stretch">
@@ -71,7 +71,7 @@ export default function UploadPage() {
  {uploading ? (
  <>
  <div className="text-4xl mb-3">⏳</div>
- <div className=" text-sm">上传中 {progress}%</div>
+ <div className="text-primary text-sm">上传中 {progress}%</div>
  <div className="w-4/5 h-1 bg-white-6 rounded mt-4">
  <div className="neon-progress h-full rounded" style={{ width: `${progress}%` }} />
  </div>
@@ -79,16 +79,16 @@ export default function UploadPage() {
  ) : file ? (
  <>
  <div className="text-4xl mb-3">✅</div>
- <div className=" text-sm font-semibold">{file.name}</div>
- <div className=" text-11 mt-1">{(file.size / 1024 / 1024).toFixed(1)} MB</div>
- <button className=" text-11 mt-2 hover:text-red-400"
+ <div className="text-primary text-sm font-semibold">{file.name}</div>
+ <div className="text-primary text-11 mt-1">{(file.size / 1024 / 1024).toFixed(1)} MB</div>
+ <button className="text-primary text-11 mt-2 hover:text-red-400"
  onClick={(e) => { e.stopPropagation(); setFile(null); }}>× 移除</button>
  </>
  ) : (
  <>
  <div className="text-5xl mb-3.5">🎵</div>
- <div className=" text-lg font-semibold">拖拽 MP3 到此处</div>
- <div className=" text-xs mt-1.5">或点击下方按钮选择文件 · 最大 50MB</div>
+ <div className="text-primary text-lg font-semibold">拖拽 MP3 到此处</div>
+ <div className="text-primary text-xs mt-1.5">或点击下方按钮选择文件 · 最大 50MB</div>
  <div className="mt-5 px-7 py-2.5 rounded-3xl
  text-white text-sm font-semibold">选择文件</div>
  </>
@@ -98,17 +98,17 @@ export default function UploadPage() {
  </div>
 
  <div className="w-300 glass-panel !p-5 flex flex-col">
- <label className=" text-11 uppercase tracking-wider mb-1.5">歌曲标题 *</label>
+ <label className="text-primary text-11 uppercase tracking-wider mb-1.5">歌曲标题 *</label>
  <input className="w-full px-3 py-2.5 rounded-lg bg-white-3 border border-white-6
  text-13  mb-4"
  value={title} onChange={(e) => setTitle(e.target.value)} placeholder="输入歌曲名称..." />
 
- <label className=" text-11 uppercase tracking-wider mb-1.5">艺术家 *</label>
+ <label className="text-primary text-11 uppercase tracking-wider mb-1.5">艺术家 *</label>
  <input className="w-full px-3 py-2.5 rounded-lg bg-white-3 border border-white-6
  text-13  mb-4"
  value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="输入艺术家..." />
 
- <label className=" text-11 uppercase tracking-wider mb-1.5">风格 *</label>
+ <label className="text-primary text-11 uppercase tracking-wider mb-1.5">风格 *</label>
  <div className="flex flex-wrap gap-1.5 mb-4">
  {STYLE_OPTIONS.map((s) => (
  <button key={s.value}
@@ -119,12 +119,12 @@ export default function UploadPage() {
  ))}
  </div>
 
- <label className=" text-11 uppercase tracking-wider mb-1.5">情绪 *</label>
+ <label className="text-primary text-11 uppercase tracking-wider mb-1.5">情绪 *</label>
  <div className="flex flex-wrap gap-1.5 mb-6">
  {MOOD_OPTIONS.map((m) => (
  <button key={m.value}
  className={`px-2.5 py-1 rounded-2xl text-11 transition-all
- ${mood === m.value ? 'bg-purple-15 border border-[#a78bfa]/20 font-semibold'
+ ${mood === m.value ? 'bg-purple-15 border border-purple-20 font-semibold'
  : 'bg-white-4 '}`}
  onClick={() => setMood(m.value)}>{m.emoji} {m.label}</button>
  ))}

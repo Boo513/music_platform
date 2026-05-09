@@ -40,17 +40,17 @@ export default function HomePage() {
  style={{ padding: '10px 16px' }}>
  <span className="text-base opacity-40">🔍</span>
  <input
- className=" text-13 flex-1"
+ className="text-primary text-13 flex-1"
  placeholder="搜索歌曲或艺术家..." value={keyword} onChange={(e) => setKeyword(e.target.value)}
  />
  </div>
  <button
- className="w-10 h-10 min-w-[40px] rounded-full flex items-center justify-center
+ className="w-10 h-10  rounded-full flex items-center justify-center
  text-white text-xl border-0 cursor-pointer"
  style={{ boxShadow: '0 0 20px rgba(255,140,66,0.3)' }}
  onClick={() => navigate('/upload')}>+</button>
  <button
- className="w-9 h-9 min-w-[36px] rounded-full flex items-center justify-center text-sm border-0 cursor-pointer"
+ className="w-9 h-9  rounded-full flex items-center justify-center text-sm border-0 cursor-pointer"
  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
  onClick={() => navigate('/profile')}>👤</button>
  </div>
@@ -68,8 +68,8 @@ export default function HomePage() {
  onClick={card.onClick}>
  <div className="text-2xl">{card.icon}</div>
  <div>
- <div className=" text-sm font-semibold">{card.title}</div>
- <div className=" text-11">{card.desc}</div>
+ <div className="text-primary text-sm font-semibold">{card.title}</div>
+ <div className="text-primary text-11">{card.desc}</div>
  </div>
  </div>
  ))}
@@ -77,7 +77,7 @@ export default function HomePage() {
 
  {/* 4. Style filter tags */}
  <div className="flex items-center gap-2 px-6 mb-5 overflow-x-auto pb-1">
- <span className=" text-xs mr-1 flex-shrink-0">风格</span>
+ <span className="text-primary text-xs mr-1 flex-shrink-0">风格</span>
  <button
  className={`px-3 py-1.5 rounded-2xl text-11 whitespace-nowrap transition-all border cursor-pointer
  ${!styleFilter
@@ -100,7 +100,7 @@ export default function HomePage() {
  {loading ? (
  <div className="flex items-center justify-center py-20 text-sm">加载中...</div>
  ) : songs.length > 0 ? (
- <div className="grid grid-cols-[repeat(auto-fill,minmax(155px,1fr))] gap-3.5 px-6">
+ <div className="grid grid-cols-fill gap-3.5 px-6">
  {songs.map((song) => (
  <SongCard key={song.id} song={song} onClick={handlePlay} />
  ))}

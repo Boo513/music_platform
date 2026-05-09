@@ -19,11 +19,11 @@ export function SettingsPanel({ open, onClose, selectedScene, onSelectScene, eff
  bg-dark-90 border-l border-white-8
  p-6 overflow-y-auto">
  <div className="flex items-center justify-between mb-6">
- <span className=" text-base font-bold">⚙ 设置</span>
- <button className=" text-xl hover-text-white" onClick={onClose}>×</button>
+ <span className="text-primary text-base font-bold">⚙ 设置</span>
+ <button className="text-primary text-xl hover-text-white" onClick={onClose}>×</button>
  </div>
 
- <div className=" text-11 uppercase tracking-wider mb-3">场景主题</div>
+ <div className="text-primary text-11 uppercase tracking-wider mb-3">场景主题</div>
  <div className="flex flex-col gap-2 mb-6">
  {SCENE_OPTIONS.map((s) => (
  <div key={s.key}
@@ -47,14 +47,14 @@ export function SettingsPanel({ open, onClose, selectedScene, onSelectScene, eff
  </div>
 
  <div className="border-t border-white-6 pt-5">
- <div className=" text-11 uppercase tracking-wider mb-3">画面效果</div>
+ <div className="text-primary text-11 uppercase tracking-wider mb-3">画面效果</div>
  {([
  ['particles', '粒子特效'],
  ['bloom', '后处理 Bloom'],
  ['vignette', '暗角遮罩'],
  ] as const).map(([key, label]) => (
  <div key={key} className="flex items-center justify-between mb-3">
- <span className=" text-13">{label}</span>
+ <span className="text-primary text-13">{label}</span>
  <button
  className={`w-10 h-22 rounded-full relative transition-colors
  ${effects[key] ? '' : 'bg-white-8'}`}

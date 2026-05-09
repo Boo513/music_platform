@@ -23,8 +23,8 @@ export function SongCard({ song, onClick }: SongCardProps) {
  ? <img src={song.coverUrl} className="w-full h-full rounded-full object-cover" alt="" />
  : styleInfo?.emoji ?? '🎵'}
  </div>
- <div className=" text-13 font-semibold truncate">{song.title}</div>
- <div className=" text-11 mt-0.5">{song.artist}</div>
+ <div className="text-primary text-13 font-semibold truncate">{song.title}</div>
+ <div className="text-primary text-11 mt-0.5">{song.artist}</div>
  <div className="flex justify-center gap-1 mt-2">
  <span className="text-10 px-2 py-0.5 rounded-lg bg-accent-15">
  {styleInfo?.label ?? song.style}

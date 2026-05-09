@@ -59,11 +59,11 @@ export default function ProfilePage() {
  </div>
  <div className="flex-1">
  <div className="text-[22px] font-bold">{user.nickname}</div>
- <div className=" text-xs mt-1">@{user.username}</div>
+ <div className="text-primary text-xs mt-1">@{user.username}</div>
  <div className="flex gap-7 mt-3">
- <div><span className=" font-bold text-lg">{uploads.length}</span> <span className=" text-11">上传</span></div>
- <div><span className=" font-bold text-lg">{favorites.length}</span> <span className=" text-11">收藏</span></div>
- <div><span className=" font-bold text-lg">{playlists.length}</span> <span className=" text-11">歌单</span></div>
+ <div><span className=" font-bold text-lg">{uploads.length}</span> <span className="text-primary text-11">上传</span></div>
+ <div><span className=" font-bold text-lg">{favorites.length}</span> <span className="text-primary text-11">收藏</span></div>
+ <div><span className=" font-bold text-lg">{playlists.length}</span> <span className="text-primary text-11">歌单</span></div>
  </div>
  </div>
  <button className="px-5 py-2 rounded-2xl border border-white-10 text-xs"
@@ -84,13 +84,13 @@ export default function ProfilePage() {
  <div className="flex gap-3.5 overflow-x-auto pb-4">
  {playlists.map((pl) => (
  <div key={pl.id}
- className="min-w-[175px] glass-panel rounded-2xl overflow-hidden cursor-pointer">
+ className=" glass-panel rounded-2xl overflow-hidden cursor-pointer">
  <div className="h-20 flex items-center justify-center text-3xl">🎸</div>
- <div className="p-3"><div className=" text-13 font-semibold">{pl.name}</div>
- <div className=" text-11">{pl.songCount} 首 · {pl.isPublic ? '公开' : '私密 🔒'}</div></div>
+ <div className="p-3"><div className="text-primary text-13 font-semibold">{pl.name}</div>
+ <div className="text-primary text-11">{pl.songCount} 首 · {pl.isPublic ? '公开' : '私密 🔒'}</div></div>
  </div>
  ))}
- <div className="min-w-[175px] border-2 border-dashed border-white-8 rounded-2xl
+ <div className=" border-2 border-dashed border-white-8 rounded-2xl
  flex flex-col items-center justify-center text-white-30 text-2xl cursor-pointer"
  onClick={() => setShowCreatePlaylist(true)}>+<div className="text-11 mt-1">新建歌单</div></div>
  </div>
@@ -116,9 +116,9 @@ export default function ProfilePage() {
  });
  return Array.from(groups.entries()).map(([label, items]) => (
  <div key={label}>
- <div className=" text-11 px-1 py-2">{label}</div>
+ <div className="text-primary text-11 px-1 py-2">{label}</div>
  {items.map((h) => <SongRow key={h.id} song={h.song} onClick={(s) => handlePlay(s, items.map((i) => i.song))}
- extra={<span className=" text-10 w-12 text-right">{new Date(h.playedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>} />)}
+ extra={<span className="text-primary text-10 w-12 text-right">{new Date(h.playedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>} />)}
  </div>
  ));
  })()}

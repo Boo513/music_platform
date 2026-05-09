@@ -23,8 +23,8 @@ export function SongRow({ song, onClick, extra }: SongRowProps) {
  {styleEmoji}
  </div>
  <div className="flex-1 min-w-0">
- <div className=" text-13 font-semibold truncate">{song.title}</div>
- <div className=" text-11">{song.artist}</div>
+ <div className="text-primary text-13 font-semibold truncate">{song.title}</div>
+ <div className="text-primary text-11">{song.artist}</div>
  </div>
  <div className="flex gap-1">
  <span className="text-10 px-1.5 py-0.5 rounded-md bg-accent-15">
@@ -34,7 +34,7 @@ export function SongRow({ song, onClick, extra }: SongRowProps) {
  {moodEmoji} {song.mood}
  </span>
  </div>
- <span className=" text-11 w-16 text-right">{song.playCount.toLocaleString()} 次</span>
+ <span className="text-primary text-11 w-16 text-right">{song.playCount.toLocaleString()} 次</span>
  {extra}
  </div>
  );

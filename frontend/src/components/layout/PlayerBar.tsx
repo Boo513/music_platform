@@ -22,9 +22,9 @@ export function PlayerBar() {
  <div className="fixed bottom-0 left-0 right-0 z-50 h-72 flex items-center gap-3.5 px-5
  bg-dark-80 border-t border-white/6">
  <div
- className="w-46 h-46 rounded-full
+ className="w-46 h-46 rounded-full bg-cover-disc
  border-2 border-orange-20 flex items-center justify-center text-lg flex-shrink-0
- cursor-pointer"
+ cursor-pointer shadow-neon-sm"
  onClick={() => navigate(`/play/${song.id}`)}
  style={{ animation: isPlaying ? 'spin 8s linear infinite' : 'none' }}
  >
@@ -32,11 +32,11 @@ export function PlayerBar() {
  </div>
 
  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/play/${song.id}`)}>
- <div className=" text-13 font-semibold truncate">{song.title}</div>
- <div className=" text-10 truncate">{song.artist}</div>
+ <div className="text-primary text-13 font-semibold truncate">{song.title}</div>
+ <div className="text-secondary text-10 truncate">{song.artist}</div>
  </div>
 
- <div className="w-200 hidden  items-center gap-2">
+ <div className="w-200 hidden-mobile flex items-center gap-2">
  <span className="text-10 tabular-nums w-10 text-right">{formatTime(currentTime)}</span>
  <div
  className="flex-1 h-1 bg-white-6 rounded cursor-pointer relative"
@@ -51,20 +51,21 @@ export function PlayerBar() {
  </div>
 
  <div className="flex items-center gap-2.5">
- <span className=" text-sm">🔊</span>
+ <span className="text-primary text-sm">🔊</span>
  <div className="w-60 h-0.5 bg-white-8 rounded cursor-pointer relative"
  onClick={(e) => {
  const r = e.currentTarget.getBoundingClientRect();
  setVolume((e.clientX - r.left) / r.width);
  }}>
- <div className=" h-full rounded absolute left-0 top-0" style={{ width: `${volume * 100}%` }} />
+ <div className="h-full rounded absolute left-0 top-0" style={{ width: `${volume * 100}%`, background: '#c0b0a0' }} />
  </div>
  <div
  className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer
- hover-scale-110 transition-transform"
+ hover-scale-110 transition-transform shadow-btn"
+ style={{ background: '#f0e6e0' }}
  onClick={() => isPlaying ? pause() : resume()}
  >
- <span className="text-[#1a1428] text-xs ml-0.5">{isPlaying ? '⏸' : '▶'}</span>
+ <span className="text-xs ml-0.5" style={{ color: '#1a1428' }}>{isPlaying ? '⏸' : '▶'}</span>
  </div>
  </div>
  </div>
