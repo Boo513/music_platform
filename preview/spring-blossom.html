@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>樱花晴空山脉 — 3D 沉浸式场景</title>
+<style>
+  :root {
+    --panel-bg: rgba(255, 255, 255, 0.15);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.7);
+    --accent: #ffb7c5;
+    --accent-gold: #ffc0cb;
+    --accent-warm: #FF9B55;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #0d0f18;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #three-container {
+    position: fixed; inset: 0; z-index: 0;
+  }
+  #three-container canvas { display: block; }
+
+  /* ===== TOP-LEFT ICONS ===== */
+  .top-left-icons {
+    position: fixed; top: 28px; left: 28px; z-index: 10;
+    display: flex; gap: 10px;
+  }
+  .top-left-icons .icon-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(20, 16, 28, 0.45);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 180, 130, 0.08);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.3s;
+    color: #b0a090; font-size: 17px;
+  }
+  .top-left-icons .icon-btn:hover {
+    background: rgba(35, 28, 45, 0.6);
+    border-color: rgba(255, 155, 85, 0.2);
+    color: #ffe0c8;
+    box-shadow: 0 0 20px rgba(255, 140, 66, 0.1);
+  }
+
+  /* ===== TOP-RIGHT BRAND ===== */
+  .top-right-brand {
+    position: fixed; top: 30px; right: 90px; z-index: 10;
+    font-size: 13px; font-weight: 600; letter-spacing: 1.5px;
+    color: rgba(255, 220, 180, 0.75);
+    text-shadow: 0 0 30px rgba(255, 155, 85, 0.3);
+  }
+
+  /* ===== RIGHT CONTROLS ===== */
+  .right-controls {
+    position: fixed; right: 18px; top: 50%; transform: translateY(-50%);
+    z-index: 10; display: flex; flex-direction: column; gap: 8px;
+  }
+  .right-controls .ctrl-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(20, 16, 28, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 180, 130, 0.08);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.3s;
+    color: #908070; font-size: 14px;
+  }
+  .right-controls .ctrl-btn:hover {
+    background: rgba(40, 30, 50, 0.55);
+    border-color: rgba(255, 155, 85, 0.2);
+    color: #ffe0c8;
+  }
+
+  /* ===== LEFT RADIO PANEL ===== */
+  .radio-panel {
+    position: fixed; left: 28px; top: 50%; transform: translateY(-55%);
+    z-index: 10; width: 310px;
+    background: var(--panel-bg);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,200,150,0.04);
+    transition: transform 0.3s ease;
+  }
+  .radio-panel:hover {
+    transform: translateY(-56%);
+  }
+
+  .panel-thumb {
+    position: relative; width: 100%; height: 160px; overflow: hidden;
+    background: linear-gradient(160deg, #3a2218 0%, #1e1830 40%, #141828 100%);
+  }
+  .panel-thumb::before {
+    content: ''; position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(180deg, transparent 40%, rgba(18,14,22,0.8) 100%);
+  }
+  .panel-thumb::after {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 25% 55%, rgba(255,155,80,0.2) 0%, transparent 55%),
+      radial-gradient(ellipse at 70% 35%, rgba(255,140,66,0.15) 0%, transparent 45%),
+      radial-gradient(ellipse at 50% 80%, rgba(255,180,100,0.12) 0%, transparent 35%);
+  }
+  .thumb-buildings {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
+    display: flex; align-items: flex-end; gap: 3px; padding: 0 4px;
+  }
+  .thumb-buildings span {
+    flex: 1; background: rgba(10,8,18,0.75);
+    border-radius: 2px 2px 0 0;
+  }
+  .live-badge {
+    position: absolute; top: 12px; right: 12px; z-index: 3;
+    background: #d42a2a; color: #fff; font-size: 10px; font-weight: 700;
+    padding: 4px 10px; border-radius: 5px; letter-spacing: 0.5px;
+    animation: livePulse 1.5s ease-in-out infinite;
+    box-shadow: 0 0 12px rgba(220,40,40,0.4);
+  }
+  @keyframes livePulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+  .close-btn {
+    position: absolute; top: 12px; left: 12px; z-index: 3;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(0,0,0,0.45); border: none; color: #fff;
+    font-size: 13px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .close-btn:hover { background: rgba(0,0,0,0.7); transform: scale(1.05); }
+
+  .panel-body { padding: 18px 18px 16px; }
+  .panel-title-row { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+  .panel-title {
+    font-size: 20px; font-weight: 700; color: var(--text-primary);
+    letter-spacing: -0.2px;
+  }
+  .panel-location {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;
+  }
+  .panel-desc {
+    font-size: 12px; color: rgba(160,144,128,0.7);
+    line-height: 1.6; margin-bottom: 16px;
+    font-style: italic;
+  }
+  .panel-stats {
+    display: flex; align-items: center; gap: 18px;
+    margin-bottom: 18px; font-size: 12px; color: var(--text-secondary);
+  }
+  .panel-stats .listeners {
+    color: #d0c0b0; font-weight: 600;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .panel-stats .stat-icon {
+    cursor: pointer; transition: all 0.2s; font-size: 16px;
+    opacity: 0.7;
+  }
+  .panel-stats .stat-icon:hover { opacity: 1; color: var(--accent-warm); transform: scale(1.1); }
+
+  .stop-btn {
+    width: 100%; padding: 13px;
+    background: linear-gradient(135deg, #c0392b, #a01d1d);
+    border: none; border-radius: 12px;
+    color: #fff; font-size: 14px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; gap: 10px;
+    transition: all 0.3s; letter-spacing: 0.5px;
+    box-shadow: 0 4px 20px rgba(180,30,30,0.3);
+  }
+  .stop-btn:hover {
+    background: linear-gradient(135deg, #d94444, #b82828);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(200,40,40,0.4);
+  }
+  .stop-icon {
+    width: 12px; height: 12px; background: #fff; border-radius: 3px;
+  }
+
+  /* ===== BOTTOM PLAYER BAR ===== */
+  .player-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
+    height: 84px;
+    background: rgba(14, 12, 20, 0.72);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid rgba(255, 180, 130, 0.06);
+    display: flex; align-items: center; padding: 0 24px;
+    gap: 16px;
+  }
+  .player-cover {
+    width: 54px; height: 54px; border-radius: 50%;
+    background: linear-gradient(145deg, #1e1830, #141020);
+    border: 2px solid rgba(255, 180, 130, 0.12);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 10px; font-weight: 800; color: #c0b0a0;
+    letter-spacing: 2px; text-align: center; line-height: 1.2;
+    position: relative; overflow: hidden;
+    box-shadow: 0 0 20px rgba(255, 140, 66, 0.08);
+  }
+  .player-cover::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 40%;
+    background: linear-gradient(180deg, rgba(255,220,180,0.08), transparent);
+    border-radius: 50% 50% 0 0;
+  }
+
+  .player-info { flex: 1; min-width: 0; }
+  .player-song-row { display: flex; align-items: center; gap: 8px; }
+  .player-song {
+    font-size: 14px; font-weight: 700; color: #f0e6e0; white-space: nowrap;
+  }
+  .vip-badge {
+    font-size: 10px; color: #FFB366; font-weight: 700;
+    background: rgba(255,179,102,0.1); padding: 2px 6px; border-radius: 4px;
+  }
+  .player-artist {
+    font-size: 11px; color: var(--text-secondary); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; margin-top: 2px;
+  }
+  .player-source {
+    font-size: 10px; color: rgba(160,144,128,0.6); margin-top: 3px;
+  }
+
+  .player-controls-area {
+    display: flex; flex-direction: column; align-items: flex-end;
+    gap: 8px; flex-shrink: 0;
+  }
+  .progress-row {
+    display: flex; align-items: center; gap: 10px; width: 280px;
+  }
+  .progress-time {
+    font-size: 10px; color: var(--text-secondary);
+    font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono', 'Consolas', monospace;
+    min-width: 34px;
+  }
+  .progress-bar-track {
+    flex: 1; height: 4px; background: rgba(255,255,255,0.06);
+    border-radius: 2px; position: relative; cursor: pointer;
+  }
+  .progress-bar-fill {
+    position: absolute; left: 0; top: 0; height: 100%;
+    background: linear-gradient(90deg, #FF8C42, #FFB366, #FFE0C0);
+    border-radius: 2px; width: 0%;
+    box-shadow: 0 0 12px rgba(255,140,66,0.5);
+  }
+  .volume-row {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .volume-icon { font-size: 13px; color: #908070; }
+  .volume-slider {
+    width: 90px; height: 3px; background: rgba(255,255,255,0.08);
+    border-radius: 2px; position: relative; cursor: pointer;
+  }
+  .volume-fill {
+    position: absolute; left: 0; top: 0; height: 100%;
+    background: #c0b0a0; border-radius: 2px; width: 60%;
+  }
+  .play-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #f0e6e0; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s; margin-left: 14px;
+    box-shadow: 0 0 18px rgba(255,200,150,0.25);
+  }
+  .play-btn:hover { transform: scale(1.1); background: #fff; }
+  .play-btn::after {
+    content: ''; width: 0; height: 0;
+    border-left: 11px solid #1a1428;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    margin-left: 2px;
+  }
+  .trial-text {
+    font-size: 9px; color: rgba(255,220,180,0.2);
+    position: absolute; right: 24px; bottom: 8px;
+    letter-spacing: 1px;
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 768px) {
+    .radio-panel { width: 260px; left: 10px; }
+    .top-right-brand { right: 55px; font-size: 11px; }
+    .player-bar { height: 68px; padding: 0 12px; gap: 10px; }
+    .player-cover { width: 42px; height: 42px; font-size: 8px; }
+    .player-song { font-size: 12px; }
+    .progress-row { width: 150px; }
+    .volume-slider { width: 55px; }
+  }
+  @media (max-width: 480px) {
+    .radio-panel { width: 230px; left: 6px; top: 42%; }
+    .panel-thumb { height: 110px; }
+    .panel-title { font-size: 16px; }
+    .right-controls { right: 6px; gap: 5px; }
+    .right-controls .ctrl-btn { width: 28px; height: 28px; font-size: 11px; }
+    .top-left-icons { gap: 6px; }
+    .top-left-icons .icon-btn { width: 32px; height: 32px; font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 3D Canvas Container -->
+<div id="three-container"></div>
+
+<!-- Top-Left Icon Bar -->
+<div class="top-left-icons">
+  <div class="icon-btn" title="音量">&#x1F50A;</div>
+  <div class="icon-btn" title="喜欢">&#x2661;</div>
+  <div class="icon-btn" title="设置">&#x2699;</div>
+</div>
+
+<!-- Top-Right Brand -->
+<div class="top-right-brand">HEAR THE &#x1F30D;</div>
+
+<!-- Right Controls -->
+<div class="right-controls">
+  <div class="ctrl-btn" title="展开">&#x25A1;</div>
+  <div class="ctrl-btn" title="放大">+</div>
+  <div class="ctrl-btn" title="缩小">&minus;</div>
+  <div class="ctrl-btn" title="全屏">&#x26F6;</div>
+</div>
+
+<!-- Left Radio Panel -->
+<div class="radio-panel" id="radioPanel">
+  <div class="panel-thumb">
+    <button class="close-btn">&times;</button>
+    <span class="live-badge">LIVE</span>
+    <div class="thumb-buildings" id="thumbBuildings"></div>
+  </div>
+  <div class="panel-body">
+    <div class="panel-title-row">
+      <span class="panel-title">樱花晴空</span>
+    </div>
+    <div class="panel-location">
+      <span class="india-flag-icon">&#x1F1EE;&#x1F1F3;</span>
+      <span>Sakura Sky</span>
+    </div>
+    <div class="panel-desc">晴空万里，远山层叠，樱花纷飞</div>
+    <div class="panel-stats">
+      <span class="listeners">&#x1F441; 0</span>
+      <span class="stat-icon">&#x1F44D;</span>
+      <span class="stat-icon">&#x1F4AC;</span>
+      <span class="stat-icon">&#x2B50;</span>
+    </div>
+    <button class="stop-btn">
+      <span class="stop-icon"></span> 停止收听
+    </button>
+  </div>
+</div>
+
+<!-- Bottom Player Bar -->
+<div class="player-bar">
+  <div class="player-cover">POLICE</div>
+  <div class="player-info">
+    <div class="player-song-row">
+      <span class="player-song">Sakura Breeze</span>
+      <span class="vip-badge">&#x1F48E; VIP</span>
+    </div>
+    <div class="player-artist">晴空山脉 · 樱花飘落</div>
+    <div class="player-source">来自 &#x1F4FB; India TOP 100</div>
+  </div>
+  <div class="player-controls-area">
+    <div class="progress-row">
+      <span class="progress-time">0:00</span>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+      <span class="progress-time">3:42</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="volume-row">
+        <span class="volume-icon">&#x1F50A;</span>
+        <div class="volume-slider">
+          <div class="volume-fill"></div>
+        </div>
+      </div>
+      <button class="play-btn"></button>
+    </div>
+  </div>
+  <span class="trial-text">标准音效试听</span>
+</div>
+
+<!-- Three.js Import Map -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const container = document.getElementById('three-container');
+
+// ===== SIMPLEX 2D NOISE =====
+// Compact implementation for standalone use
+class SimplexNoise {
+  constructor(seed) {
+    this.grad3 = [[1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],[1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],[0,1,1],[0,-1,1],[0,1,-1],[0,-1,-1]];
+    this.perm = new Uint8Array(512);
+    const p = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) p[i] = i;
+    // Fisher-Yates shuffle with seed
+    let s = seed * 1274126177 + 668265263;
+    for (let i = 255; i > 0; i--) {
+      s = ((s ^ (s >> 13)) * 1274126177) >>> 0;
+      const j = s % (i + 1);
+      [p[i], p[j]] = [p[j], p[i]];
+    }
+    for (let i = 0; i < 512; i++) this.perm[i] = p[i & 255];
+    this.permMod12 = new Uint8Array(512);
+    for (let i = 0; i < 512; i++) this.permMod12[i] = this.perm[i] % 12;
+  }
+
+  dot(g, x, y) { return g[0]*x + g[1]*y; }
+
+  noise2D(xin, yin) {
+    const F2 = 0.5*(Math.sqrt(3)-1), G2 = (3-Math.sqrt(3))/6;
+    const s = (xin+yin)*F2, i = Math.floor(xin+s), j = Math.floor(yin+s);
+    const t = (i+j)*G2, X0 = i-t, Y0 = j-t, x0 = xin-X0, y0 = yin-Y0;
+    let i1, j1;
+    if (x0 > y0) { i1 = 1; j1 = 0; } else { i1 = 0; j1 = 1; }
+    const x1 = x0 - i1 + G2, y1 = y0 - j1 + G2, x2 = x0 - 1 + 2*G2, y2 = y0 - 1 + 2*G2;
+    const ii = i & 255, jj = j & 255;
+    let n0=0, n1=0, n2=0;
+    let t0 = 0.5 - x0*x0 - y0*y0;
+    if (t0 >= 0) { t0 *= t0; n0 = t0 * t0 * this.dot(this.grad3[this.permMod12[ii+this.perm[jj]]], x0, y0); }
+    let t1 = 0.5 - x1*x1 - y1*y1;
+    if (t1 >= 0) { t1 *= t1; n1 = t1 * t1 * this.dot(this.grad3[this.permMod12[ii+i1+this.perm[jj+j1]]], x1, y1); }
+    let t2 = 0.5 - x2*x2 - y2*y2;
+    if (t2 >= 0) { t2 *= t2; n2 = t2 * t2 * this.dot(this.grad3[this.permMod12[ii+1+this.perm[jj+1]]], x2, y2); }
+    return 70 * (n0 + n1 + n2);
+  }
+}
+
+// ===== RENDERER =====
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+container.appendChild(renderer.domElement);
+
+// ===== SCENE =====
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#87ceeb');
+
+// ===== FOG =====
+scene.fog = new THREE.Fog('#b0e0e6', 50, 250);
+
+// ===== LIGHTING =====
+const ambientLight = new THREE.AmbientLight('#e0f7fa', 0.5);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight('#fff9c4', 0.8);
+dirLight.position.set(50, 80, 50);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width = 1024;
+dirLight.shadow.mapSize.height = 1024;
+dirLight.shadow.camera.near = 0.5;
+dirLight.shadow.camera.far = 400;
+dirLight.shadow.camera.left = -100; dirLight.shadow.camera.right = 100;
+dirLight.shadow.camera.top = 80; dirLight.shadow.camera.bottom = -20;
+dirLight.shadow.bias = -0.0004;
+scene.add(dirLight);
+
+const hemiLight = new THREE.HemisphereLight('#87ceeb', '#7cb342', 0.4);
+scene.add(hemiLight);
+
+// ===== CAMERA — pulled back for full mountain panorama =====
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.5, 800);
+camera.position.set(0, 14, 70);
+camera.lookAt(0, 10, -60);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 10, -60);
+controls.minDistance = 15; controls.maxDistance = 200;
+controls.maxPolarAngle = Math.PI * 0.48; controls.minPolarAngle = 0.05;
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.rotateSpeed = 0.2; controls.zoomSpeed = 0.6;
+controls.update();
+
+// ===== CREATE MOUNTAIN LAYER (PlaneGeometry + vertex displacement) =====
+function createMountainLayer(width, depth, height, seed, color, zPosition) {
+  const geometry = new THREE.PlaneGeometry(width, depth, 80, 64);
+  const positions = geometry.attributes.position;
+  const noise = new SimplexNoise(seed);
+
+  for (let i = 0; i < positions.count; i++) {
+    const x = positions.getX(i);
+    const z = positions.getY(i);
+
+    const nx = (x / width) + 0.5;
+    const nz = (z / depth) + 0.5;
+
+    let y = 0;
+    y += noise.noise2D(nx * 1.5, nz * 1.5) * height * 0.5;
+    y += noise.noise2D(nx * 3.0, nz * 3.0) * height * 0.25;
+    y += noise.noise2D(nx * 6.0, nz * 6.0) * height * 0.125;
+
+    // Main peak (left-biased)
+    const peakX = 0.3 + seed * 0.2;
+    const peakZ = 0.5;
+    const distToPeak = Math.sqrt((nx - peakX) ** 2 + (nz - peakZ) ** 2);
+    const peakFactor = Math.max(0, 1 - distToPeak / 0.35);
+    y += peakFactor * height * 0.4;
+
+    // Side peak (right, lower)
+    const sidePeakX = 0.7;
+    const sideDist = Math.sqrt((nx - sidePeakX) ** 2 + (nz - peakZ) ** 2);
+    const sideFactor = Math.max(0, 1 - sideDist / 0.25);
+    y += sideFactor * height * 0.25;
+
+    y = Math.max(-height * 0.1, y);
+    positions.setZ(i, y);
+  }
+
+  geometry.computeVertexNormals();
+  geometry.rotateX(-Math.PI / 2);
+
+  const material = new THREE.MeshStandardMaterial({
+    color, roughness: 0.95, metalness: 0.0, flatShading: false, side: THREE.DoubleSide,
+  });
+
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.y = -5;
+  mesh.position.z = zPosition;
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  return mesh;
+}
+
+// 4 mountain layers — wider, further back for full panorama
+const mountainLayers = [
+  { w: 500, d: 200, h: 35, seed: 0.1, color: '#c5d5e0', z: -250 },
+  { w: 460, d: 180, h: 48, seed: 0.3, color: '#a8c4d9', z: -200 },
+  { w: 420, d: 160, h: 60, seed: 0.5, color: '#8fb0cc', z: -150 },
+  { w: 380, d: 140, h: 70, seed: 0.7, color: '#6b9ac4', z: -100 },
+];
+mountainLayers.forEach(l => scene.add(createMountainLayer(l.w, l.d, l.h, l.seed, l.color, l.z)));
+
+// ===== FUJI-STYLE SAKURA TREES =====
+
+// Bark texture via canvas
+function createBarkTexture() {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#3d2817'; ctx.fillRect(0, 0, 128, 256);
+  // Vertical bark lines
+  for (let i = 0; i < 60; i++) {
+    ctx.strokeStyle = `rgba(30,15,5,${0.3 + Math.random() * 0.4})`;
+    ctx.lineWidth = 0.5 + Math.random() * 2;
+    const x = 5 + Math.random() * 118;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + (Math.random() - 0.5) * 15, 256); ctx.stroke();
+  }
+  // Horizontal cracks
+  for (let i = 0; i < 20; i++) {
+    ctx.strokeStyle = `rgba(20,10,2,${0.2 + Math.random() * 0.3})`;
+    ctx.lineWidth = 0.3 + Math.random() * 1;
+    const y = Math.random() * 256;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(128, y + (Math.random() - 0.5) * 10); ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c); tex.wrapS = THREE.RepeatWrapping; tex.wrapU = THREE.RepeatWrapping;
+  return tex;
+}
+const barkTex = createBarkTexture();
+
+function createFujiSakuraTree(scale) {
+  const group = new THREE.Group();
+  const s = scale;
+
+  // 1. Trunk — tapered, bark-textured
+  const trunkH = 5 * s;
+  const trunkGeom = new THREE.CylinderGeometry(0.3 * s, 0.7 * s, trunkH, 12);
+  const trunk = new THREE.Mesh(trunkGeom, new THREE.MeshStandardMaterial({ map: barkTex, color: 0x4a3728, roughness: 0.95 }));
+  trunk.position.y = trunkH / 2;
+  trunk.castShadow = true;
+  group.add(trunk);
+
+  // 2. Main branches — CatmullRom curves radiating from trunk top
+  const nMain = 6 + Math.floor(Math.random() * 3);
+  const branchDefs = [];
+  for (let b = 0; b < nMain; b++) {
+    branchDefs.push({
+      angle: (b / nMain) * Math.PI * 2 + (Math.random() - 0.5) * 0.5,
+      length: (2 + Math.random() * 2.5) * s,
+      startY: trunkH * (0.75 + Math.random() * 0.2),
+      tilt: 0.2 + Math.random() * 0.35,
+    });
+  }
+
+  const allBranchTips = []; // collect tips for flower placement
+
+  branchDefs.forEach(def => {
+    const startPt = new THREE.Vector3(0, def.startY, 0);
+    const midPt = new THREE.Vector3(
+      Math.cos(def.angle) * def.length * 0.5,
+      def.startY + def.length * 0.3,
+      Math.sin(def.angle) * def.length * 0.5
+    );
+    const endPt = new THREE.Vector3(
+      Math.cos(def.angle) * def.length,
+      def.startY + def.length * Math.cos(def.tilt) * 0.4,
+      Math.sin(def.angle) * def.length
+    );
+    const curve = new THREE.CatmullRomCurve3([startPt, midPt, endPt]);
+    const tubeGeom = new THREE.TubeGeometry(curve, 10, 0.1 * s, 6, false);
+    const branch = new THREE.Mesh(tubeGeom, new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.9 }));
+    branch.castShadow = true;
+    group.add(branch);
+
+    // Sub-branches
+    const nSub = 2 + Math.floor(Math.random() * 3);
+    for (let sb = 0; sb < nSub; sb++) {
+      const t = 0.3 + Math.random() * 0.6;
+      const pt = curve.getPointAt(t);
+      const subAngle = def.angle + (Math.random() - 0.5) * 1.2;
+      const subLen = def.length * (0.3 + Math.random() * 0.4);
+      const subEnd = new THREE.Vector3(
+        pt.x + Math.cos(subAngle) * subLen * 0.6,
+        pt.y + subLen * 0.3,
+        pt.z + Math.sin(subAngle) * subLen * 0.6
+      );
+      const subCurve = new THREE.CatmullRomCurve3([pt, subEnd]);
+      const subGeom = new THREE.TubeGeometry(subCurve, 6, 0.04 * s, 4, false);
+      const subBranch = new THREE.Mesh(subGeom, new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 }));
+      group.add(subBranch);
+      allBranchTips.push({ pt: subEnd, spread: 0.6 * s });
+    }
+    allBranchTips.push({ pt: endPt, spread: 0.8 * s });
+  });
+
+  // 3. Cloud-like flower clusters (overlapping spheres)
+  const clusterMats = [
+    new THREE.MeshStandardMaterial({ color: 0xffb7c5, roughness: 0.55, emissive: 0xffb7c5, emissiveIntensity: 0.12 }),
+    new THREE.MeshStandardMaterial({ color: 0xffc0cb, roughness: 0.55, emissive: 0xffc0cb, emissiveIntensity: 0.1 }),
+    new THREE.MeshStandardMaterial({ color: 0xffe4e1, roughness: 0.55, emissive: 0xffe4e1, emissiveIntensity: 0.08 }),
+    new THREE.MeshStandardMaterial({ color: 0xff69b4, roughness: 0.55, emissive: 0xff69b4, emissiveIntensity: 0.1 }),
+    new THREE.MeshStandardMaterial({ color: 0xf8bbd0, roughness: 0.55, emissive: 0xf8bbd0, emissiveIntensity: 0.09 }),
+  ];
+
+  const nClusters = 14 + Math.floor(Math.random() * 8);
+  const clusterCenters = [];
+
+  for (let c = 0; c < nClusters; c++) {
+    // Pick a random branch tip as anchor
+    const anchor = allBranchTips[Math.floor(Math.random() * allBranchTips.length)];
+    const cr = (0.6 + Math.random() * 0.9) * s;
+    const cx = anchor.pt.x + (Math.random() - 0.5) * anchor.spread * 2;
+    const cy = anchor.pt.y + (Math.random() - 0.3) * anchor.spread * 1.5;
+    const cz = anchor.pt.z + (Math.random() - 0.5) * anchor.spread * 2;
+
+    const ballGeom = new THREE.SphereGeometry(cr, 8, 6);
+    const ball = new THREE.Mesh(ballGeom, clusterMats[Math.floor(Math.random() * clusterMats.length)]);
+    ball.position.set(cx, cy, cz);
+    ball.scale.set(1, 0.55 + Math.random() * 0.3, 1);
+    ball.castShadow = true;
+    group.add(ball);
+  }
+  // Detail flowers removed for performance — cluster spheres provide enough visual density
+
+  return group;
+}
+
+// Cached noise instances per mountain layer
+const noiseCache = {};
+function getNoiseForLayer(seed) {
+  if (!noiseCache[seed]) noiseCache[seed] = new SimplexNoise(seed);
+  return noiseCache[seed];
+}
+
+// Compute mountain surface height with cached noise
+function getMountainHeight(wx, wz) {
+  let bestLayer = null, bestDist = Infinity;
+  for (const l of mountainLayers) {
+    const dz = Math.abs(wz - l.z);
+    if (dz < l.d / 2 + 10 && dz < bestDist) { bestDist = dz; bestLayer = l; }
+  }
+  if (!bestLayer) return -4.5; // grass level
+
+  const l = bestLayer;
+  const nx = (wx / l.w) + 0.5;
+  const nz = ((wz - l.z) / l.d) + 0.5;
+  const noise = getNoiseForLayer(l.seed);
+
+  let y = -5;
+  y += noise.noise2D(nx * 1.5, nz * 1.5) * l.h * 0.5;
+  y += noise.noise2D(nx * 3.0, nz * 3.0) * l.h * 0.25;
+  y += noise.noise2D(nx * 6.0, nz * 6.0) * l.h * 0.125;
+  const dp = Math.sqrt((nx - (0.3 + l.seed * 0.2)) ** 2 + (nz - 0.5) ** 2);
+  y += Math.max(0, 1 - dp / 0.35) * l.h * 0.4;
+  const sd = Math.sqrt((nx - 0.7) ** 2 + (nz - 0.5) ** 2);
+  y += Math.max(0, 1 - sd / 0.25) * l.h * 0.25;
+  return y - 0.2; // slight embed to prevent floating
+}
+
+// Place trees on visible mountain faces
+const treeGroup = new THREE.Group();
+
+// Nearest mountain (z=-100): spread across the camera-visible ridge
+for (let i = 0; i < 6; i++) {
+  const wx = -65 + i * 26;
+  const wz = -96 + Math.sin(i * 0.7) * 6;
+  const h = getMountainHeight(wx, wz);
+  const tree = createFujiSakuraTree(0.7 + Math.random() * 0.6);
+  tree.position.set(wx, h, wz);
+  treeGroup.add(tree);
+}
+
+// Mid mountain (z=-150): fewer, smaller
+for (let i = 0; i < 3; i++) {
+  const wx = -50 + i * 50;
+  const wz = -148;
+  const h = getMountainHeight(wx, wz);
+  const tree = createFujiSakuraTree(0.45 + Math.random() * 0.3);
+  tree.position.set(wx, h, wz);
+  treeGroup.add(tree);
+}
+
+// Foreground on grass
+for (let i = 0; i < 2; i++) {
+  const tree = createFujiSakuraTree(0.8 + Math.random() * 0.4);
+  tree.position.set(-25 + i * 50, -4.7, -5 - i * 10);
+  treeGroup.add(tree);
+}
+
+scene.add(treeGroup);
+
+// ===== FLUFFY CLOUDS =====
+function createCloud(cx, cy, cz, scale) {
+  const g = new THREE.Group();
+  const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, metalness: 0, transparent: true, opacity: 0.85 });
+  const n = 5 + Math.floor(Math.random() * 8);
+  for (let i = 0; i < n; i++) {
+    const r = (0.6 + Math.random() * 1.4) * scale;
+    const geom = new THREE.SphereGeometry(r, 8, 6);
+    const puff = new THREE.Mesh(geom, cloudMat);
+    puff.position.set((Math.random() - 0.5) * 4 * scale, Math.random() * 1.5 * scale, (Math.random() - 0.5) * 3 * scale);
+    puff.scale.set(1, 0.4 + Math.random() * 0.3, 1);
+    g.add(puff);
+  }
+  g.position.set(cx, cy, cz);
+  g.userData = { speed: 0.008 + Math.random() * 0.02, maxX: 120 };
+  return g;
+}
+
+const clouds = [];
+for (let i = 0; i < 8; i++) {
+  const cloud = createCloud(-100 + i * 30 + Math.random() * 20, 25 + Math.random() * 20, -180 - Math.random() * 120, 1.5 + Math.random() * 2.5);
+  clouds.push(cloud);
+  scene.add(cloud);
+}
+
+// ===== DISTANT BIRDS (V-shaped flocks) =====
+function createBirdFlocks() {
+  const flockGroup = new THREE.Group();
+  const birdMat = new THREE.MeshBasicMaterial({ color: 0x334455, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+
+  // 3 flocks at different positions
+  for (let f = 0; f < 3; f++) {
+    const flock = new THREE.Group();
+    const nBirds = 3 + Math.floor(Math.random() * 4);
+    for (let b = 0; b < nBirds; b++) {
+      const birdG = new THREE.Group();
+      // Left wing
+      const lwGeom = new THREE.PlaneGeometry(0.25, 0.08);
+      const lw = new THREE.Mesh(lwGeom, birdMat);
+      lw.position.set(-0.1, 0, 0); lw.rotation.z = 0.4;
+      birdG.add(lw);
+      // Right wing
+      const rw = new THREE.Mesh(lwGeom, birdMat);
+      rw.position.set(0.1, 0, 0); rw.rotation.z = -0.4;
+      birdG.add(rw);
+
+      birdG.position.set(b * 0.6 + Math.random() * 0.3, Math.random() * 0.8, Math.random() * 0.5);
+      birdG.rotation.y = Math.random() * 0.3;
+      flock.add(birdG);
+    }
+    flock.position.set(-60 + f * 60 + Math.random() * 30, 30 + Math.random() * 15, -200 - Math.random() * 60);
+    flock.userData = { speed: 0.015 + Math.random() * 0.03, radius: 80 + Math.random() * 80, phase: Math.random() * Math.PI * 2 };
+    flockGroup.add(flock);
+  }
+  return flockGroup;
+}
+const birdFlocks = createBirdFlocks();
+scene.add(birdFlocks);
+
+// ===== GRASS FIELD =====
+function createGrassField() {
+  const geometry = new THREE.PlaneGeometry(1000, 700, 140, 110);
+  const positions = geometry.attributes.position;
+  const noise = new SimplexNoise(0.9);
+
+  for (let i = 0; i < positions.count; i++) {
+    const x = positions.getX(i);
+    const z = positions.getY(i);
+    const h = noise.noise2D(x * 0.02, z * 0.02) * 1.5
+            + noise.noise2D(x * 0.05, z * 0.05) * 0.5;
+    positions.setZ(i, h);
+  }
+
+  geometry.computeVertexNormals();
+  geometry.rotateX(-Math.PI / 2);
+
+  const material = new THREE.MeshStandardMaterial({
+    color: '#7cb342', roughness: 0.95, metalness: 0.0, flatShading: false,
+  });
+
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.y = -5;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+const grass = createGrassField();
+scene.add(grass);
+
+// ===== CHERRY BLOSSOM PETALS =====
+const r = (a, b) => a + Math.random() * (b - a);
+
+// Pink petals
+const MAX_P = 100;
+const pGeom = new THREE.BufferGeometry();
+const pPos = new Float32Array(MAX_P * 3), pVel = new Float32Array(MAX_P * 3), pPh = new Float32Array(MAX_P);
+
+function spawnP(i) {
+  pPos[i*3]=r(-50,50); pPos[i*3+1]=r(15,35); pPos[i*3+2]=r(-80,20);
+  pVel[i*3]=r(-0.015,0.015); pVel[i*3+1]=-r(0.008,0.035); pVel[i*3+2]=r(-0.008,0.008);
+  pPh[i]=Math.random()*Math.PI*2;
+}
+for(let i=0;i<MAX_P;i++){spawnP(i);pPos[i*3+1]=r(-5,22);}
+pGeom.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+
+const pCanv=document.createElement('canvas');pCanv.width=32;pCanv.height=32;
+const pctx=pCanv.getContext('2d');
+pctx.fillStyle='#ffb7c5';pctx.beginPath();pctx.ellipse(16,12,10,16,0,0,Math.PI*2);pctx.fill();
+pctx.fillStyle='#ffc0cb';pctx.beginPath();pctx.ellipse(16,8,6,12,0,0,Math.PI*2);pctx.fill();
+const pTex=new THREE.CanvasTexture(pCanv);
+const petals=new THREE.Points(pGeom,new THREE.PointsMaterial({map:pTex,size:0.8,transparent:true,opacity:0.8,depthWrite:false,blending:THREE.NormalBlending,sizeAttenuation:true}));
+scene.add(petals);
+
+// White/pale petals
+const MAX_W=50;
+const wGeom=new THREE.BufferGeometry();
+const wPos=new Float32Array(MAX_W*3),wVel=new Float32Array(MAX_W*3),wPh=new Float32Array(MAX_W);
+function spawnW(i){wPos[i*3]=r(-50,50);wPos[i*3+1]=r(15,35);wPos[i*3+2]=r(-80,20);wVel[i*3]=r(-0.012,0.012);wVel[i*3+1]=-r(0.006,0.028);wVel[i*3+2]=r(-0.006,0.006);wPh[i]=Math.random()*Math.PI*2;}
+for(let i=0;i<MAX_W;i++){spawnW(i);wPos[i*3+1]=r(-5,22);}
+wGeom.setAttribute('position',new THREE.BufferAttribute(wPos,3));
+const wCanv=document.createElement('canvas');wCanv.width=32;wCanv.height=32;
+const wctx=wCanv.getContext('2d');
+wctx.fillStyle='#fff0f5';wctx.beginPath();wctx.ellipse(16,12,8,14,0,0,Math.PI*2);wctx.fill();
+const wTex=new THREE.CanvasTexture(wCanv);
+const wPetals=new THREE.Points(wGeom,new THREE.PointsMaterial({map:wTex,size:0.55,transparent:true,opacity:0.65,depthWrite:false,blending:THREE.NormalBlending,sizeAttenuation:true}));
+scene.add(wPetals);
+
+// ===== ANIMATION =====
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const t=clock.getElapsedTime();
+  const dt=Math.min(t-(animate._lastT||t),0.1);animate._lastT=t;
+  controls.update();
+
+  // Pink petals
+  const pa=pGeom.attributes.position.array;
+  for(let i=0;i<MAX_P;i++){
+    pVel[i*3+1]-=0.00015;
+    pVel[i*3]+=Math.sin(t*0.4+pPh[i])*0.003;
+    pa[i*3]+=pVel[i*3]+Math.sin(t*0.5+pPh[i])*0.012;
+    pa[i*3+1]+=pVel[i*3+1];
+    pa[i*3+2]+=pVel[i*3+2]+Math.cos(t*0.4+pPh[i])*0.008;
+    if(pa[i*3+1]<-10||Math.abs(pa[i*3])>55||pa[i*3+2]<-90)spawnP(i);
+  }
+  pGeom.attributes.position.needsUpdate=true;
+
+  // White petals
+  const wa=wGeom.attributes.position.array;
+  for(let i=0;i<MAX_W;i++){
+    wVel[i*3+1]-=0.0001;
+    wVel[i*3]+=Math.sin(t*0.35+wPh[i])*0.002;
+    wa[i*3]+=wVel[i*3]+Math.sin(t*0.45+wPh[i])*0.01;
+    wa[i*3+1]+=wVel[i*3+1];
+    wa[i*3+2]+=wVel[i*3+2]+Math.cos(t*0.35+wPh[i])*0.006;
+    if(wa[i*3+1]<-10||Math.abs(wa[i*3])>55||wa[i*3+2]<-90)spawnW(i);
+  }
+  wGeom.attributes.position.needsUpdate=true;
+
+  // Clouds drift
+  clouds.forEach(c => {
+    c.position.x += c.userData.speed;
+    if (c.position.x > c.userData.maxX) c.position.x = -c.userData.maxX;
+  });
+
+  // Birds circular flight
+  birdFlocks.children.forEach(flock => {
+    flock.position.x += Math.cos(t * 0.15 + flock.userData.phase) * flock.userData.speed;
+    flock.position.z += Math.sin(t * 0.15 + flock.userData.phase) * flock.userData.speed * 0.5;
+    flock.position.y += Math.sin(t * 0.2 + flock.userData.phase) * 0.02;
+  });
+
+  renderer.render(scene,camera);
+}
+animate._lastT=0;
+
+// ===== RESIZE =====
+window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
+
+// ===== UI =====
+document.querySelector('.right-controls .ctrl-btn:last-child').addEventListener('click',()=>{document.fullscreenElement?document.exitFullscreen():document.body.requestFullscreen();});
+const cBtn=document.querySelectorAll('.right-controls .ctrl-btn');
+cBtn[1].addEventListener('click',()=>camera.position.multiplyScalar(0.85));
+cBtn[2].addEventListener('click',()=>camera.position.multiplyScalar(1.15));
+document.querySelector('.stop-btn').addEventListener('click',function(){
+  if(this.textContent.includes('停止收听')){this.innerHTML='<span class="stop-icon"></span> 继续收听';this.style.background='linear-gradient(135deg,#33aa55,#228844)';document.querySelector('.play-btn').style.opacity='0.5'}
+  else{this.innerHTML='<span class="stop-icon"></span> 停止收听';this.style.background='linear-gradient(135deg,#e04040,#c02020)';document.querySelector('.play-btn').style.opacity='1'}
+});
+
+animate();
+console.log('Sakura mountain scene ready');
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
