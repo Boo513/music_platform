@@ -272,7 +272,7 @@ function Lighthouse() {
       <pointLight position={[0, 1.5, 0]} color="#FFB366" intensity={0.6} distance={40} decay={2} />
 
       {/* Beam */}
-      <group ref={beamRef} position={[0, 29.5, 0]} rotation={[THREE.MathUtils.degToRad(5), 0, 0]}>
+      <group ref={beamRef} position={[0, 29.5, 0]} rotation={[(5 * Math.PI) / 180, 0, 0]}>
         {[[1, 0.1], [0.5, 0.06]].map(([r, o], i) => (
           <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 50]}>
             <coneGeometry args={[r as number, 100, 32, 8, true]} />
@@ -351,10 +351,11 @@ function Particles() {
     return { starsGeom: sGeom, dustGeom: dGeom, dustVel: dVel, ffGeom: fGeom, ffPhase: fPhase, bpGeom: bGeom, bpProgress: bProg };
   }, []);
 
+  const lastTRef = useRef(0);
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
-    const dt = Math.min(t - ((useFrame as any)._lastT || t), 0.1);
-    (useFrame as any)._lastT = t;
+    const dt = Math.min(t - (lastTRef.current || t), 0.1);
+    lastTRef.current = t;
 
     if (starsRef.current) {
       starsRef.current.material.opacity = 0.6 + Math.sin(t * 2.3) * 0.25 + Math.sin(t * 5.1) * 0.15;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Component } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { usePlayerStore } from '@/stores/playerStore';
@@ -10,6 +10,15 @@ import { RadioPanel } from '@/components/layout/RadioPanel';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
 import { SceneEngine } from '@/components/scenes/SceneEngine';
 import type { Song } from '@/types';
+
+class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: any) { super(props); this.state = { hasError: false }; }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) return <div className="flex items-center justify-center h-screen text-secondary text-sm">3D 场景加载失败</div>;
+    return this.props.children;
+  }
+}
 
 const DEMO_SONG: Song = {
   id: 0, title: 'India TOP 100', artist: 'Cheema Y, Gur Sidhu & Jasmeen Akhtar',
@@ -61,6 +70,7 @@ export default function PlayPage() {
  <div className="fixed inset-0">
  {/* 3D scene layer */}
  <div className="absolute inset-0 z-0">
+ <ErrorBoundary>
  <Canvas
  style={{ background: '#0d0f18' }}
  camera={{ position: [0, 80, 150], fov: 60, near: 1, far: 800 }}
@@ -71,6 +81,7 @@ export default function PlayPage() {
  lockedScene={selectedScene !== 'auto' ? selectedScene : null}
  />
  </Canvas>
+ </ErrorBoundary>
  </div>
 
  {/* UI overlay */}
