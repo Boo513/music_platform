@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Stars, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { usePlayerStore } from '@/stores/playerStore';
@@ -483,7 +483,16 @@ function SnowParticles() {
   );
 }
 
-function Scene3D() {
+function ZoomController({ zoomLevel }: { zoomLevel: number }) {
+  const { camera } = useThree();
+  useFrame(() => {
+    const targetZ = -55 - zoomLevel * 15;
+    camera.position.z += (targetZ - camera.position.z) * 0.08;
+  });
+  return null;
+}
+
+function Scene3D({ zoomLevel }: { zoomLevel: number }) {
   return (
     <>
       <SkyDome />
@@ -491,9 +500,10 @@ function Scene3D() {
       <ambientLight intensity={0.8} color="#5a7090" />
       <hemisphereLight intensity={0.7} color="#6a80a0" groundColor="#FF8C42" />
       <directionalLight position={[50, 100, 50]} intensity={0.25} color="#8899aa" />
+      <ZoomController zoomLevel={zoomLevel} />
       <OrbitControls
         target={[-30, -5, -20]}
-        minDistance={50} maxDistance={350}
+        minDistance={30} maxDistance={350}
         maxPolarAngle={Math.PI * 0.42} minPolarAngle={0.15}
         enableDamping dampingFactor={0.08}
         rotateSpeed={0.4} zoomSpeed={1.0}
@@ -539,13 +549,11 @@ export default function PlayPage() {
     else document.body.requestFullscreen();
   };
 
-  const cameraZ = -55 - zoomLevel * 10;
-
   return (
     <div className="fixed inset-0" style={{ background: '#0a0a18' }}>
       <div className="absolute inset-0 z-0">
-        <Canvas camera={{ position: [80, 55, cameraZ], fov: 55 }}>
-          <Scene3D />
+        <Canvas camera={{ position: [80, 55, -100], fov: 55 }}>
+          <Scene3D zoomLevel={zoomLevel} />
         </Canvas>
       </div>
 
