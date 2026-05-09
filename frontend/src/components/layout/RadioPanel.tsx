@@ -13,11 +13,11 @@ export function RadioPanel({ song, isPlaying, onTogglePlay, onClose }: RadioPane
  const moodInfo = MOOD_OPTIONS.find((m) => m.value === song.mood);
 
  return (
- <div className="fixed left-7 top-45 -translate-y-[55%] z-10 w-310
+ <div className="fixed left-7 top-45 -translate-y-55 z-10 w-310
  bg-dark-55 border border-white-8
  rounded-2xl overflow-hidden">
- <div className="relative h-40 via-[#1e1830]">
- <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent" />
+ <div className="relative h-40 grad-panel-thumb">
+ <div className="absolute inset-0" style={{background:'linear-gradient(180deg, transparent 40%, rgba(18,14,22,0.8) 100%)'}} />
  <button className="absolute top-3 left-3 w-26 h-26 rounded-full bg-black-45
  flex items-center justify-center text-white text-xs z-10 hover:bg-black-70" onClick={onClose}>×</button>
  <span className="absolute top-3 right-3 z-10 text-white text-10 font-bold
@@ -34,7 +34,7 @@ export function RadioPanel({ song, isPlaying, onTogglePlay, onClose }: RadioPane
  <div className="flex items-center gap-1.5 text-xs mt-1">
  {styleInfo?.emoji} {styleInfo?.label} · {moodInfo?.emoji} {moodInfo?.label}
  </div>
- <div className="text-xs text-white/40 mt-2 italic">{song.artist}</div>
+ <div className="text-xs mt-2 italic" style={{color:'rgba(255,255,255,0.4)'}}>{song.artist}</div>
  <div className="flex gap-4 mt-3 text-xs">
  <span>👁 <span className="">{song.playCount.toLocaleString()}</span></span>
  <span>👍 48</span><span>💬 12</span><span>⭐</span>
