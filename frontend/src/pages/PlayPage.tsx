@@ -437,6 +437,52 @@ function Buildings() {
 }
 
 // ===== MAIN SCENE =====
+// ===== SNOW PARTICLES =====
+function SnowParticles() {
+  const snowRef = useRef<THREE.Points>(null);
+  const { snowGeom, snowVel } = useMemo(() => {
+    const count = 400;
+    const geom = new THREE.BufferGeometry();
+    const pos = new Float32Array(count * 3);
+    const vel = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 300;
+      pos[i * 3 + 1] = Math.random() * 120;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 300;
+      vel[i * 3] = (Math.random() - 0.5) * 0.3;
+      vel[i * 3 + 1] = -(0.3 + Math.random() * 0.8);
+      vel[i * 3 + 2] = (Math.random() - 0.5) * 0.3;
+    }
+    geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    return { snowGeom: geom, snowVel: vel };
+  }, []);
+
+  useFrame((_, delta) => {
+    if (!snowRef.current) return;
+    const pos = snowGeom.attributes.position.array as Float32Array;
+    const wind = Math.sin(useFrame as any) * 0.5;
+    for (let i = 0; i < 400; i++) {
+      pos[i * 3] += (snowVel[i * 3] + (Math.sin(Date.now() * 0.001 + i * 0.1) * 0.15)) * delta * 8;
+      pos[i * 3 + 1] += snowVel[i * 3 + 1] * delta * 8;
+      pos[i * 3 + 2] += (snowVel[i * 3 + 2] + (Math.cos(Date.now() * 0.001 + i * 0.1) * 0.15)) * delta * 8;
+      if (pos[i * 3 + 1] < -10) {
+        pos[i * 3 + 1] = 110;
+        pos[i * 3] = (Math.random() - 0.5) * 300;
+        pos[i * 3 + 2] = (Math.random() - 0.5) * 300;
+      }
+      if (Math.abs(pos[i * 3]) > 180) pos[i * 3] = (Math.random() - 0.5) * 300;
+      if (Math.abs(pos[i * 3 + 2]) > 180) pos[i * 3 + 2] = (Math.random() - 0.5) * 300;
+    }
+    snowGeom.attributes.position.needsUpdate = true;
+  });
+
+  return (
+    <points ref={snowRef} geometry={snowGeom}>
+      <pointsMaterial color="#ffffff" size={0.4} transparent opacity={0.7} depthWrite={false} blending={THREE.NormalBlending} sizeAttenuation />
+    </points>
+  );
+}
+
 function Scene3D() {
   return (
     <>
@@ -457,6 +503,7 @@ function Scene3D() {
       <Buildings />
       <Lighthouse />
       <Particles />
+      <SnowParticles />
     </>
   );
 }

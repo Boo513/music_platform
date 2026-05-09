@@ -63,7 +63,7 @@ export default function UploadPage() {
         borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}>
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/')}
           style={{ background: 'none', border: 'none', color: '#a09080', fontSize: 18, cursor: 'pointer' }}
         >←</button>
         <span style={{ fontSize: 16, fontWeight: 600 }}>上传音乐</span>
