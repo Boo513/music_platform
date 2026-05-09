@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Stars } from '@react-three/drei';
+import { Stars, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { usePlayerStore } from '@/stores/playerStore';
 import { songsApi } from '@/api/songs';
@@ -274,6 +274,13 @@ function Scene3D() {
       <ambientLight intensity={0.55} color="#3a5070" />
       <hemisphereLight intensity={0.55} color="#4a6080" groundColor="#FF8C42" />
       <directionalLight position={[50, 100, 50]} intensity={0.25} color="#8899aa" />
+      <OrbitControls
+        target={[0, -5, 0]}
+        minDistance={50} maxDistance={350}
+        maxPolarAngle={Math.PI * 0.42} minPolarAngle={0.15}
+        enableDamping dampingFactor={0.08}
+        rotateSpeed={0.4} zoomSpeed={1.0}
+      />
       <Stars radius={150} depth={80} count={300} factor={3} saturation={0.2} fade speed={0.5} />
       <Ground />
       <Buildings />
