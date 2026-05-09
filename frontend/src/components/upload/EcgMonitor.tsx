@@ -23,44 +23,49 @@ export function EcgMonitor() {
     resize();
     window.addEventListener('resize', resize);
 
+    // Varying R-wave amplitude per beat for realistic ECG look
+    const beatHeights: number[] = [];
+    function getBeatHeight(beatIndex: number): number {
+      if (beatHeights[beatIndex] !== undefined) return beatHeights[beatIndex];
+      // Random variation: 55-95, some beats taller than others
+      const h = 55 + Math.random() * 40;
+      beatHeights[beatIndex] = h;
+      return h;
+    }
+
     function generateEcgPoint(globalCycle: number): number {
-      // 120 points = 1 heartbeat
-      const c = ((globalCycle % 120) + 120) % 120;
+      const cycleLen = 120;
+      const c = ((globalCycle % cycleLen) + cycleLen) % cycleLen;
+      const beatIdx = Math.floor(globalCycle / cycleLen);
+      const R = getBeatHeight(beatIdx); // varying R amplitude
+      const S = R * 0.3;  // S depth proportional to R
+      const P = R * 0.1;  // P proportional
+      const T = R * 0.13; // T proportional
       let y = 0;
 
-      // --- BASELINE: most of the cycle is flat ---
-      // P wave (5% of cycle): gentle bump, points 24-30
+      // P wave: gentle bump (24-30)
       if (c >= 24 && c < 30) {
-        const t = (c - 24) / 6;
-        y = 8 * Math.sin(t * Math.PI);
+        y = P * Math.sin(((c - 24) / 6) * Math.PI);
       }
-      // PR segment: flat (30-48)
-
-      // Q dip: points 48-50, small downward notch
+      // Q dip: (48-50)
       if (c >= 48 && c < 50) {
-        y = -(c - 48) * 6; // goes 0 → -6 → -12 (but only 2 points)
+        y = -(c - 48) * (R * 0.08);
       }
-      // R SPIKE: points 50-54, MASSIVE up-down needle
+      // R SPIKE: (50-54)
       if (c >= 50 && c < 54) {
-        const t = c - 50; // 0, 1, 2, 3
-        // Parabolic spike: r = 80 at t=1.5, roughly
-        y = 80 * Math.sin(t / 4 * Math.PI);
+        const t = c - 50;
+        y = R * Math.sin((t / 4) * Math.PI);
       }
-      // S dip: points 54-58, deep recovery dip
+      // S dip: (54-58)
       if (c >= 54 && c < 58) {
-        const t = c - 54; // 0,1,2,3
-        y = -25 * Math.sin(t / 4 * Math.PI);
+        const t = c - 54;
+        y = -S * Math.sin((t / 4) * Math.PI);
       }
-      // ST segment: flat (58-70)
-
-      // T wave: points 70-90, wide gentle bump
+      // T wave: (70-90)
       if (c >= 70 && c < 90) {
-        const t = (c - 70) / 20;
-        y = 10 * Math.sin(t * Math.PI);
+        y = T * Math.sin(((c - 70) / 20) * Math.PI);
       }
-      // Return to baseline
 
-      // Micro noise
       y += (Math.random() - 0.5) * 0.6;
       return y;
     }
