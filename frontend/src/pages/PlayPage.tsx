@@ -1,24 +1,14 @@
-import { useState, useEffect, Component } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
+import { Stars } from '@react-three/drei';
 import { usePlayerStore } from '@/stores/playerStore';
 import { songsApi } from '@/api/songs';
-import { favoritesApi } from '@/api/favorites';
 import { TopIcons } from '@/components/layout/TopIcons';
 import { RightControls } from '@/components/layout/RightControls';
 import { RadioPanel } from '@/components/layout/RadioPanel';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
-import { SceneEngine } from '@/components/scenes/SceneEngine';
 import type { Song } from '@/types';
-
-class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
-  constructor(props: any) { super(props); this.state = { hasError: false }; }
-  static getDerivedStateFromError() { return { hasError: true }; }
-  render() {
-    if (this.state.hasError) return <div className="flex items-center justify-center h-screen text-secondary text-sm">3D 场景加载失败</div>;
-    return this.props.children;
-  }
-}
 
 const DEMO_SONG: Song = {
   id: 0, title: 'India TOP 100', artist: 'Cheema Y, Gur Sidhu & Jasmeen Akhtar',
@@ -26,113 +16,74 @@ const DEMO_SONG: Song = {
   isFavorited: false, uploader: { id: 1, nickname: 'Demo' }, createdAt: new Date().toISOString(),
 };
 
+function Scene3D() {
+  return (
+    <>
+      <color attach="background" args={['#0a0a18']} />
+      <Stars radius={150} depth={80} count={600} factor={4} saturation={0.2} fade speed={0.3} />
+      <ambientLight intensity={0.5} color="#3a3060" />
+      <pointLight position={[30, 20, -40]} intensity={2} color="#FF8C42" distance={200} />
+    </>
+  );
+}
+
 export default function PlayPage() {
- const { songId } = useParams<{ songId: string }>();
- const navigate = useNavigate();
- const { currentSong, isPlaying, play, pause, resume } = usePlayerStore();
- const song = currentSong();
+  const { songId } = useParams<{ songId: string }>();
+  const { isPlaying, pause, resume } = usePlayerStore();
+  const [demoSong, setDemoSong] = useState<Song | null>(null);
 
- const [showPanel, setShowPanel] = useState(true);
- const [showSettings, setShowSettings] = useState(false);
- const [isFavorited, setIsFavorited] = useState(false);
- const [isMuted, setIsMuted] = useState(false);
- const [selectedScene, setSelectedScene] = useState('auto');
- const [effects, setEffects] = useState({ particles: true, bloom: false, vignette: true });
+  useEffect(() => {
+    if (songId) {
+      songsApi.getById(Number(songId)).then(() => {}).catch(() => setDemoSong(DEMO_SONG));
+    }
+  }, [songId]);
 
- const [fallbackSong, setFallbackSong] = useState<Song | null>(null);
+  const song = demoSong;
+  if (!song) return <div className="flex items-center justify-center h-screen text-secondary text-sm">加载中...</div>;
 
- useEffect(() => {
- if (songId) {
- songsApi.getById(Number(songId)).then((res) => {
- play(res.data);
- }).catch(() => {
- setFallbackSong(DEMO_SONG);
- });
- }
- }, [songId]);
+  return (
+    <div className="fixed inset-0" style={{ background: '#0a0a18' }}>
+      <div className="absolute inset-0 z-0">
+        <Canvas camera={{ position: [0, 5, 50], fov: 60 }}>
+          <Scene3D />
+        </Canvas>
+      </div>
 
- useEffect(() => {
- if (song && song.id > 0) {
- favoritesApi.check(song.id).then((res) => setIsFavorited(res.data.favorited)).catch(() => {});
- }
- }, [song?.id]);
+      <div className="absolute inset-0 z-10 pointer-events-none">
+        <div className="pointer-events-auto">
+          <TopIcons
+            isFavorited={false}
+            onToggleFavorite={() => {}}
+            onOpenSettings={() => {}}
+            isMuted={false}
+            onToggleMute={() => {}}
+          />
+          <RightControls
+            onTogglePanel={() => {}}
+            onZoomIn={() => {}}
+            onZoomOut={() => {}}
+            onToggleFullscreen={() => {}}
+          />
+          <RadioPanel
+            song={song}
+            isPlaying={isPlaying}
+            onTogglePlay={() => isPlaying ? pause() : resume()}
+            onClose={() => {}}
+          />
+        </div>
+        <div className="absolute inset-0 vignette pointer-events-none" />
+      </div>
 
- const displaySong = song || fallbackSong;
+      <SettingsPanel
+        open={false} onClose={() => {}}
+        selectedScene="auto" onSelectScene={() => {}}
+        effects={{ particles: true, bloom: false, vignette: true }}
+        onToggleEffect={() => {}}
+      />
 
- const handleToggleFavorite = async () => {
- if (!displaySong || displaySong.id === 0) return;
- try {
- if (isFavorited) { await favoritesApi.remove(displaySong.id); setIsFavorited(false); }
- else { await favoritesApi.add(displaySong.id); setIsFavorited(true); }
- } catch {}
- };
-
- if (!displaySong) return <div className="flex items-center justify-center h-screen text-secondary">加载中...</div>;
-
- return (
- <div className="fixed inset-0">
- {/* 3D scene layer */}
- <div className="absolute inset-0 z-0">
- <ErrorBoundary>
- <Canvas
- style={{ background: '#0d0f18' }}
- camera={{ position: [0, 80, 150], fov: 60, near: 1, far: 800 }}
- >
- <SceneEngine
- style={displaySong.style}
- mood={displaySong.mood}
- lockedScene={selectedScene !== 'auto' ? selectedScene : null}
- />
- </Canvas>
- </ErrorBoundary>
- </div>
-
- {/* UI overlay */}
- <div className="absolute inset-0 z-10 pointer-events-none">
- <div className="pointer-events-auto">
- <TopIcons
- isFavorited={isFavorited}
- onToggleFavorite={handleToggleFavorite}
- onOpenSettings={() => setShowSettings(true)}
- isMuted={isMuted}
- onToggleMute={() => setIsMuted(!isMuted)}
- />
-
- <RightControls
- onTogglePanel={() => setShowPanel(!showPanel)}
- onZoomIn={() => {}}
- onZoomOut={() => {}}
- onToggleFullscreen={() => {
- if (document.fullscreenElement) document.exitFullscreen();
- else document.body.requestFullscreen();
- }}
- />
-
- {showPanel && (
- <RadioPanel
- song={displaySong}
- isPlaying={isPlaying}
- onTogglePlay={() => isPlaying ? pause() : resume()}
- onClose={() => setShowPanel(false)}
- />
- )}
- </div>
-
- {/* Vignette */}
- <div className="absolute inset-0 vignette pointer-events-none" />
- </div>
-
- <SettingsPanel
- open={showSettings} onClose={() => setShowSettings(false)}
- selectedScene={selectedScene} onSelectScene={setSelectedScene}
- effects={effects}
- onToggleEffect={(key) => setEffects((prev) => ({ ...prev, [key]: !prev[key] }))}
- />
-
- {/* Brand text */}
- <div className="fixed top-30 right-90 z-10 text-13 font-semibold tracking-[1.5px] text-white-30">
- HEAR THE 🌍
- </div>
- </div>
- );
+      <div className="fixed top-30 right-90 z-10 text-13 font-semibold tracking-wider text-white-30">
+        HEAR THE 🌍
+      </div>
+    </div>
+  );
 }
