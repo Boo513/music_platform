@@ -9,9 +9,8 @@ export function RightControls({ onTogglePanel, onZoomIn, onZoomOut, onToggleFull
  const btn = (text: string, onClick: () => void) => (
  <button
  className="w-34 h-34 rounded-full flex items-center justify-center cursor-pointer
- transition-all duration-300 text-sm
- bg-dark-40 border border-white-6
- hover:bg-dark-55h hover:border-white-15 hover-text-white"
+ transition-all duration-300 text-sm border-0"
+ style={{ background: '#f0e6e0', color: '#1a1428', fontSize: 14 }}
  onClick={onClick}
  >{text}</button>
  );
