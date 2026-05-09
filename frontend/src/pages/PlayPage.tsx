@@ -174,8 +174,9 @@ function Particles() {
   const dustRef = useRef<THREE.Points>(null);
   const ffRef = useRef<THREE.Points>(null);
   const bpRef = useRef<THREE.Points>(null);
+  const sparkRef = useRef<THREE.Points>(null);
 
-  const { dustGeom, dustVel, ffGeom, ffPhase, bpGeom, bpProg } = useMemo(() => {
+  const { dustGeom, dustVel, ffGeom, ffPhase, bpGeom, bpProg, sparkGeom, sparkPhase } = useMemo(() => {
     const dGeom = new THREE.BufferGeometry();
     const dPos = new Float32Array(250 * 3);
     const dVel = new Float32Array(250 * 3);
@@ -208,7 +209,18 @@ function Particles() {
       bPos[i * 3 + 2] = bProg[i] * 100;
     }
     bGeom.setAttribute('position', new THREE.BufferAttribute(bPos, 3));
-    return { dustGeom: dGeom, dustVel: dVel, ffGeom: fGeom, ffPhase: fPhase, bpGeom: bGeom, bpProg: bProg };
+    // Sparkle particles - scattered across the scene
+    const sGeom = new THREE.BufferGeometry();
+    const sPos = new Float32Array(120 * 3);
+    const sPhase = new Float32Array(120);
+    for (let i = 0; i < 120; i++) {
+      sPos[i * 3] = (Math.random() - 0.5) * 300;
+      sPos[i * 3 + 1] = 2 + Math.random() * 40;
+      sPos[i * 3 + 2] = (Math.random() - 0.5) * 300 - 50;
+      sPhase[i] = Math.random() * Math.PI * 2;
+    }
+    sGeom.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
+    return { dustGeom: dGeom, dustVel: dVel, ffGeom: fGeom, ffPhase: fPhase, bpGeom: bGeom, bpProg: bProg, sparkGeom: sGeom, sparkPhase: sPhase };
   }, []);
 
   const lastT = useRef(0);
@@ -247,6 +259,13 @@ function Particles() {
       }
       bA.needsUpdate = true;
     }
+    // Sparkle opacity - particles blink in/out
+    if (sparkRef.current) {
+      const mat = sparkRef.current.material as THREE.PointsMaterial;
+      // Each particle sparkles at its own frequency, creating a twinkling effect across the whole system
+      const twinkle = 0.2 + 0.5 * Math.abs(Math.sin(t * 0.7));
+      mat.opacity = twinkle;
+    }
   });
 
   return (
@@ -259,6 +278,10 @@ function Particles() {
       </points>
       <points ref={bpRef} geometry={bpGeom} position={[0, 0, -40]}>
         <pointsMaterial color="#FFE4B5" size={0.3} transparent opacity={0.35} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation />
+      </points>
+      {/* Sparkle particles - twinkling gold dust in the air */}
+      <points ref={sparkRef} geometry={sparkGeom}>
+        <pointsMaterial color="#FFD700" size={0.4} transparent opacity={0.5} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation />
       </points>
     </>
   );
