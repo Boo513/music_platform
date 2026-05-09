@@ -11,8 +11,9 @@ function formatTime(sec: number): string {
 export function PlayerBar() {
  const navigate = useNavigate();
  useAudioPlayer();
- const { currentSong, isPlaying, currentTime, duration, volume,
- pause, resume, setVolume, seek } = usePlayerStore();
+ const { currentSong, isPlaying, currentTime, duration, volume, playMode,
+ pause, resume, next, prev, setVolume, seek, togglePlayMode } = usePlayerStore();
+ const modeIcon = playMode === 'sequential' ? '🔁' : playMode === 'shuffle' ? '🔀' : '🔂';
  const song = currentSong();
  if (!song) return null;
 
@@ -59,6 +60,16 @@ export function PlayerBar() {
  }}>
  <div className="h-full rounded absolute left-0 top-0" style={{ width: `${volume * 100}%`, background: '#c0b0a0' }} />
  </div>
+ <button
+ className="rounded-full flex items-center justify-center cursor-pointer border-0"
+ style={{ width: 34, height: 34, background: 'transparent', color: '#b0a090', fontSize: 16 }}
+ onClick={prev}
+ >⏮</button>
+ <button
+ className="rounded-full flex items-center justify-center cursor-pointer border-0"
+ style={{ width: 34, height: 34, background: 'transparent', color: '#b0a090', fontSize: 14 }}
+ onClick={togglePlayMode}
+ >{modeIcon}</button>
  <div
  className="rounded-full flex items-center justify-center cursor-pointer
  hover-scale-110 transition-transform shadow-btn"
@@ -67,6 +78,11 @@ export function PlayerBar() {
  >
  <span style={{ color: '#1a1428', fontSize: 16, marginLeft: 2 }}>{isPlaying ? '⏸' : '▶'}</span>
  </div>
+ <button
+ className="rounded-full flex items-center justify-center cursor-pointer border-0"
+ style={{ width: 34, height: 34, background: 'transparent', color: '#b0a090', fontSize: 16 }}
+ onClick={next}
+ >⏭</button>
  </div>
  </div>
  );
