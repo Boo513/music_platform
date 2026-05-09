@@ -37,7 +37,7 @@ export function PlayerBar() {
  </div>
 
  <div className="w-200 hidden-mobile flex items-center gap-2">
- <span className="text-10 tabular-nums w-10 text-right">{formatTime(currentTime)}</span>
+ <span className="text-secondary text-10 tabular-nums w-10 text-right">{formatTime(currentTime)}</span>
  <div
  className="flex-1 h-1 bg-white-6 rounded cursor-pointer relative"
  onClick={(e) => {
@@ -47,7 +47,7 @@ export function PlayerBar() {
  >
  <div className="neon-progress h-full rounded absolute left-0 top-0" style={{ width: `${progress}%` }} />
  </div>
- <span className="text-10 tabular-nums w-10">{formatTime(duration)}</span>
+ <span className="text-secondary text-10 tabular-nums w-10">{formatTime(duration)}</span>
  </div>
 
  <div className="flex items-center gap-2.5">

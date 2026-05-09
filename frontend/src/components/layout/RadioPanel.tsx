@@ -35,7 +35,7 @@ export function RadioPanel({ song, isPlaying, onTogglePlay, onClose }: RadioPane
  {styleInfo?.emoji} {styleInfo?.label} · {moodInfo?.emoji} {moodInfo?.label}
  </div>
  <div className="text-xs mt-2 italic" style={{color:'rgba(255,255,255,0.4)'}}>{song.artist}</div>
- <div className="flex gap-4 mt-3 text-xs">
+ <div className="flex gap-4 mt-3 text-secondary text-xs">
  <span>👁 <span className="">{song.playCount.toLocaleString()}</span></span>
  <span>👍 48</span><span>💬 12</span><span>⭐</span>
  </div>
