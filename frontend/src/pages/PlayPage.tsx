@@ -47,23 +47,23 @@ function Ground() {
     const GROUND_SZ = 2000, ppu = 2048 / GROUND_SZ;
     const ROAD_MAJOR = 24, ROAD_MINOR = 12;
 
-    // Base ground
-    ctx.fillStyle = '#2d3a4f'; ctx.fillRect(0, 0, 2048, 2048);
+    // Base ground - lighter dark blue-gray
+    ctx.fillStyle = '#3a4a5e'; ctx.fillRect(0, 0, 2048, 2048);
     // Noise
     for (let i = 0; i < 12000; i++) {
-      ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.04})`;
+      ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.06})`;
       ctx.fillRect(Math.random() * 2048, Math.random() * 2048, 2, 2);
     }
 
-    // Major roads - wide asphalt
+    // Major roads - medium gray asphalt (lighter)
     const mOff = Math.round(ROAD_MAJOR * ppu);
-    ctx.fillStyle = '#1a2230'; ctx.lineWidth = 5 * ppu;
+    ctx.fillStyle = '#3d4a5c'; ctx.lineWidth = 5 * ppu;
     for (let x = 1024 % mOff; x < 2048; x += mOff) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 2048); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(0, x); ctx.lineTo(2048, x); ctx.stroke();
     }
-    // Major road center dashes
-    ctx.strokeStyle = '#FFB366'; ctx.lineWidth = 0.6 * ppu;
+    // Major road center dashes - bright orange
+    ctx.strokeStyle = '#FFB366'; ctx.lineWidth = 0.8 * ppu;
     ctx.setLineDash([4 * ppu, 6 * ppu]);
     for (let x = 1024 % mOff; x < 2048; x += mOff) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 2048); ctx.stroke();
@@ -71,8 +71,8 @@ function Ground() {
     }
     ctx.setLineDash([]);
 
-    // Sidewalks - light gray
-    ctx.strokeStyle = '#475569'; ctx.lineWidth = 1.2 * ppu;
+    // Sidewalks - bright concrete
+    ctx.strokeStyle = '#6b7280'; ctx.lineWidth = 1.5 * ppu;
     for (let x = 1024 % mOff; x < 2048; x += mOff) {
       ctx.beginPath(); ctx.moveTo(x - 2.8 * ppu, 0); ctx.lineTo(x - 2.8 * ppu, 2048); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(x + 2.8 * ppu, 0); ctx.lineTo(x + 2.8 * ppu, 2048); ctx.stroke();
@@ -80,9 +80,9 @@ function Ground() {
       ctx.beginPath(); ctx.moveTo(0, x + 2.8 * ppu); ctx.lineTo(2048, x + 2.8 * ppu); ctx.stroke();
     }
 
-    // Minor roads
+    // Minor roads - lighter
     const mnOff = Math.round(ROAD_MINOR * ppu);
-    ctx.fillStyle = '#1e293b'; ctx.lineWidth = 2.2 * ppu;
+    ctx.fillStyle = '#334050'; ctx.lineWidth = 2.2 * ppu;
     for (let x = 1024 % mnOff; x < 2048; x += mnOff) {
       if (Math.abs((x - (1024 % mOff)) % mOff) < 3 * ppu) continue;
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 2048); ctx.stroke();
@@ -105,7 +105,7 @@ function Ground() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow>
       <planeGeometry args={[2000, 2000]} />
-      <meshStandardMaterial map={texture} roughness={0.7} metalness={0.05} color="#ffffff" />
+      <meshStandardMaterial map={texture} roughness={0.6} metalness={0.05} color="#e0e8f0" emissive="#1a2530" emissiveIntensity={0.15} />
     </mesh>
   );
 }
@@ -419,8 +419,8 @@ function Scene3D() {
     <>
       <SkyDome />
       <fog attach="fog" args={['#e07840', 120, 550]} />
-      <ambientLight intensity={0.55} color="#3a5070" />
-      <hemisphereLight intensity={0.55} color="#4a6080" groundColor="#FF8C42" />
+      <ambientLight intensity={0.8} color="#5a7090" />
+      <hemisphereLight intensity={0.7} color="#6a80a0" groundColor="#FF8C42" />
       <directionalLight position={[50, 100, 50]} intensity={0.25} color="#8899aa" />
       <OrbitControls
         target={[0, -5, 0]}
