@@ -60,12 +60,12 @@ export function PlayerBar() {
  <div className="h-full rounded absolute left-0 top-0" style={{ width: `${volume * 100}%`, background: '#c0b0a0' }} />
  </div>
  <div
- className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer
+ className="rounded-full flex items-center justify-center cursor-pointer
  hover-scale-110 transition-transform shadow-btn"
- style={{ background: '#f0e6e0' }}
+ style={{ width: 44, height: 44, background: '#f0e6e0' }}
  onClick={() => isPlaying ? pause() : resume()}
  >
- <span className="text-xs ml-0.5" style={{ color: '#1a1428' }}>{isPlaying ? '⏸' : '▶'}</span>
+ <span style={{ color: '#1a1428', fontSize: 16, marginLeft: 2 }}>{isPlaying ? '⏸' : '▶'}</span>
  </div>
  </div>
  </div>
