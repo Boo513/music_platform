@@ -512,6 +512,11 @@ export default function PlayPage() {
   const { songId } = useParams<{ songId: string }>();
   const { isPlaying, currentSong, play, pause, resume } = usePlayerStore();
   const [demoSong, setDemoSong] = useState<Song | null>(null);
+  const [showPanel, setShowPanel] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(5);
 
   useEffect(() => {
     if (songId) {
@@ -527,10 +532,19 @@ export default function PlayPage() {
   const storeSong = currentSong();
   const song = storeSong || demoSong || DEMO_SONG;
 
+  const handleZoomIn = () => setZoomLevel((z) => Math.max(1, z - 1));
+  const handleZoomOut = () => setZoomLevel((z) => Math.min(10, z + 1));
+  const handleToggleFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.body.requestFullscreen();
+  };
+
+  const cameraZ = -55 - zoomLevel * 10;
+
   return (
     <div className="fixed inset-0" style={{ background: '#0a0a18' }}>
       <div className="absolute inset-0 z-0">
-        <Canvas camera={{ position: [80, 55, -100], fov: 55 }}>
+        <Canvas camera={{ position: [80, 55, cameraZ], fov: 55 }}>
           <Scene3D />
         </Canvas>
       </div>
@@ -538,30 +552,32 @@ export default function PlayPage() {
       <div className="absolute inset-0 z-10 pointer-events-none">
         <div className="pointer-events-auto">
           <TopIcons
-            isFavorited={false}
-            onToggleFavorite={() => {}}
-            onOpenSettings={() => {}}
-            isMuted={false}
-            onToggleMute={() => {}}
+            isFavorited={isFavorited}
+            onToggleFavorite={() => setIsFavorited(!isFavorited)}
+            onOpenSettings={() => setShowSettings(true)}
+            isMuted={isMuted}
+            onToggleMute={() => setIsMuted(!isMuted)}
           />
           <RightControls
-            onTogglePanel={() => {}}
-            onZoomIn={() => {}}
-            onZoomOut={() => {}}
-            onToggleFullscreen={() => {}}
+            onTogglePanel={() => setShowPanel(!showPanel)}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onToggleFullscreen={handleToggleFullscreen}
           />
-          <RadioPanel
-            song={song}
-            isPlaying={isPlaying}
-            onTogglePlay={() => isPlaying ? pause() : resume()}
-            onClose={() => {}}
-          />
+          {showPanel && (
+            <RadioPanel
+              song={song}
+              isPlaying={isPlaying}
+              onTogglePlay={() => isPlaying ? pause() : resume()}
+              onClose={() => setShowPanel(false)}
+            />
+          )}
         </div>
         <div className="absolute inset-0 vignette pointer-events-none" />
       </div>
 
       <SettingsPanel
-        open={false} onClose={() => {}}
+        open={showSettings} onClose={() => setShowSettings(false)}
         selectedScene="auto" onSelectScene={() => {}}
         effects={{ particles: true, bloom: false, vignette: true }}
         onToggleEffect={() => {}}
