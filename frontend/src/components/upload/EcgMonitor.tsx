@@ -12,125 +12,142 @@ export function EcgMonitor() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
-    const W = canvas.width = canvas.clientWidth * 2;
-    const H = canvas.height = canvas.clientHeight * 2;
-    ctx.scale(2, 2);
-    const cw = W / 2, ch = H / 2;
+    const dpr = window.devicePixelRatio || 1;
 
-    // --- ECG generator: real waveform shape ---
-    function ecgY(x: number, cycle: number): number {
-      // Normalize x within the cycle (80px per beat - wider waveform)
-      const p = ((x % 80) + 80) % 80;
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // --- REAL ECG WAVEFORM GENERATOR ---
+    function generateEcgPoint(cycle: number): number {
+      // 120 points per heartbeat cycle
+      const c = ((cycle % 120) + 120) % 120;
       let y = 0;
 
-      // P wave: small bump at start (~8px)
-      if (p > 4 && p < 16) {
-        const t = (p - 4) / 12;
-        y = 10 * Math.sin(t * Math.PI) * Math.exp(-t * 1.5);
+      // P wave: small bump (20-30)
+      if (c > 20 && c < 30) {
+        y = Math.sin(((c - 20) / 10) * Math.PI) * 4;
       }
-      // PR segment: flat
-      // Q wave: small dip (~-8px)
-      if (p > 18 && p < 22) {
-        y = -8 * Math.sin(((p - 18) / 4) * Math.PI * 0.5);
+      // Q wave: micro dip (45-48)
+      else if (c >= 45 && c < 48) {
+        y = -6;
       }
-      // R wave: TALL spike (~65px peak)
-      if (p >= 22 && p <= 26) {
-        const t = (p - 22) / 4;
-        y = 65 * Math.sin(t * Math.PI) * (1 - t * 0.8);
+      // R wave: EXTREME spike up then down (48-53)
+      else if (c >= 48 && c < 53) {
+        y = 60 - (c - 48) * 24;
       }
-      // S wave: deep dip (~-25px)
-      if (p > 26 && p < 32) {
-        const t = (p - 26) / 6;
-        y = -25 * Math.sin(t * Math.PI * 0.5);
+      // S wave: deep dip then recover (53-57)
+      else if (c >= 53 && c < 57) {
+        y = -20 + (c - 53) * 5;
       }
-      // T wave: medium bump (~15px)
-      if (p > 35 && p < 52) {
-        const t = (p - 35) / 17;
-        y = 15 * Math.sin(t * Math.PI) * Math.exp(-t * 0.8);
+      // T wave: wide gentle bump (65-85)
+      else if (c > 65 && c < 85) {
+        y = Math.sin(((c - 65) / 20) * Math.PI) * 8;
       }
-      // Micro noise for realism
-      y += (Math.sin(cycle * 0.7 + p * 0.3) * 0.8) + (Math.random() - 0.5) * 0.6;
+      // Baseline: mostly flat (micro noise only)
+
+      // Tiny random noise for realism
+      y += (Math.random() - 0.5) * 0.8;
       return y;
     }
 
     function draw() {
       frameRef.current = requestAnimationFrame(draw);
-      const { isUploading, uploadProgress } = useUploadStore.getState();
+      const { isUploading } = useUploadStore.getState();
+
+      const W = canvas.width;
+      const H = canvas.height;
+      const cw = W / dpr;
+      const ch = H / dpr;
+      const midY = ch / 2;
+
+      ctx.save();
+      ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, cw, ch);
 
-      // Grid lines
-      ctx.strokeStyle = 'rgba(0,255,157,0.05)';
+      // --- 1. Background grid (20x20) ---
+      ctx.strokeStyle = 'rgba(0, 255, 157, 0.05)';
       ctx.lineWidth = 0.5;
-      for (let gx = 0; gx < cw; gx += 80) {
+      for (let gx = 0; gx < cw; gx += 20) {
         ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, ch); ctx.stroke();
       }
-      for (let gy = 0; gy < ch; gy += 30) {
+      for (let gy = 0; gy < ch; gy += 20) {
         ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(cw, gy); ctx.stroke();
       }
-      ctx.strokeStyle = 'rgba(0,255,157,0.15)';
+      // Center baseline (slightly brighter)
+      ctx.strokeStyle = 'rgba(0, 255, 157, 0.12)';
       ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(0, ch / 2); ctx.lineTo(cw, ch / 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, midY); ctx.lineTo(cw, midY); ctx.stroke();
 
-      // Push new points
+      // --- 2. Generate new point ---
       let newY: number;
       if (isUploading) {
-        const cycle = pointsRef.current.length;
-        newY = ecgY(pointsRef.current.length, cycle);
+        newY = generateEcgPoint(pointsRef.current.length);
       } else {
-        newY = (Math.random() - 0.5) * 1.5;
+        // Flatline with tiny noise when idle
+        newY = (Math.random() - 0.5) * 0.4;
       }
       pointsRef.current.push(newY);
-      if (pointsRef.current.length > cw) pointsRef.current.shift();
+      if (pointsRef.current.length > cw) {
+        pointsRef.current.shift();
+      }
 
-      // Draw glow layer
+      // --- 3. Double-layer glow rendering ---
+      // Layer 1: Glow halo
       ctx.save();
       ctx.beginPath();
       for (let i = 0; i < pointsRef.current.length; i++) {
         const px = i;
-        const py = ch / 2 - pointsRef.current[i];
+        const py = midY - pointsRef.current[i];
         if (i === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
       }
-      ctx.strokeStyle = '#00ff9d';
-      ctx.lineWidth = 8;
+      ctx.strokeStyle = 'rgba(0, 255, 157, 0.3)';
+      ctx.lineWidth = 6;
       ctx.shadowColor = '#00ff9d';
-      ctx.shadowBlur = 25;
-      ctx.globalAlpha = 0.25;
+      ctx.shadowBlur = 15;
       ctx.stroke();
       ctx.restore();
 
-      // Draw core layer
+      // Layer 2: Sharp core line
       ctx.beginPath();
       for (let i = 0; i < pointsRef.current.length; i++) {
         const px = i;
-        const py = ch / 2 - pointsRef.current[i];
+        const py = midY - pointsRef.current[i];
         if (i === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
       }
       ctx.strokeStyle = '#00ff9d';
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = '#00ff9d';
-      ctx.shadowBlur = 10;
-      ctx.globalAlpha = 1;
-      ctx.stroke();
+      ctx.lineWidth = 1.5;
       ctx.shadowBlur = 0;
+      ctx.stroke();
 
-      // Scanning dot at front
+      // --- 4. Scanning dot at waveform front ---
       if (pointsRef.current.length > 0) {
-        const lastX = pointsRef.current.length - 1;
-        const lastY = ch / 2 - pointsRef.current[pointsRef.current.length - 1];
+        const lastIdx = pointsRef.current.length - 1;
+        const lx = lastIdx;
+        const ly = midY - pointsRef.current[lastIdx];
         ctx.beginPath();
-        ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
-        ctx.fillStyle = '#fff';
+        ctx.arc(lx, ly, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
         ctx.shadowColor = '#00ff9d';
-        ctx.shadowBlur = 18;
+        ctx.shadowBlur = 14;
         ctx.fill();
         ctx.shadowBlur = 0;
       }
+
+      ctx.restore();
     }
 
     draw();
-    return () => cancelAnimationFrame(frameRef.current);
+    return () => {
+      cancelAnimationFrame(frameRef.current);
+      window.removeEventListener('resize', resize);
+    };
   }, []);
 
   return (
