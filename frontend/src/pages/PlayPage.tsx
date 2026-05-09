@@ -44,22 +44,57 @@ function Ground() {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = 2048;
     const ctx = canvas.getContext('2d')!;
+    const GROUND_SZ = 2000, ppu = 2048 / GROUND_SZ;
+    const ROAD_MAJOR = 24, ROAD_MINOR = 12;
+
+    // Base ground
     ctx.fillStyle = '#2d3a4f'; ctx.fillRect(0, 0, 2048, 2048);
-    for (let i = 0; i < 8000; i++) {
-      ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.03})`;
+    // Noise
+    for (let i = 0; i < 12000; i++) {
+      ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.04})`;
       ctx.fillRect(Math.random() * 2048, Math.random() * 2048, 2, 2);
     }
-    const ppu = 2048 / 2000;
-    ctx.strokeStyle = '#334155'; ctx.lineWidth = 5 * ppu;
-    for (let x = 1024 % Math.round(24 * ppu); x < 2048; x += 24 * ppu) {
+
+    // Major roads - wide asphalt
+    const mOff = Math.round(ROAD_MAJOR * ppu);
+    ctx.fillStyle = '#1a2230'; ctx.lineWidth = 5 * ppu;
+    for (let x = 1024 % mOff; x < 2048; x += mOff) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 2048); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(0, x); ctx.lineTo(2048, x); ctx.stroke();
     }
-    ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2.2 * ppu;
-    for (let x = 1024 % Math.round(12 * ppu); x < 2048; x += 12 * ppu) {
+    // Major road center dashes
+    ctx.strokeStyle = '#FFB366'; ctx.lineWidth = 0.6 * ppu;
+    ctx.setLineDash([4 * ppu, 6 * ppu]);
+    for (let x = 1024 % mOff; x < 2048; x += mOff) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 2048); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(0, x); ctx.lineTo(2048, x); ctx.stroke();
     }
+    ctx.setLineDash([]);
+
+    // Sidewalks - light gray
+    ctx.strokeStyle = '#475569'; ctx.lineWidth = 1.2 * ppu;
+    for (let x = 1024 % mOff; x < 2048; x += mOff) {
+      ctx.beginPath(); ctx.moveTo(x - 2.8 * ppu, 0); ctx.lineTo(x - 2.8 * ppu, 2048); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + 2.8 * ppu, 0); ctx.lineTo(x + 2.8 * ppu, 2048); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, x - 2.8 * ppu); ctx.lineTo(2048, x - 2.8 * ppu); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, x + 2.8 * ppu); ctx.lineTo(2048, x + 2.8 * ppu); ctx.stroke();
+    }
+
+    // Minor roads
+    const mnOff = Math.round(ROAD_MINOR * ppu);
+    ctx.fillStyle = '#1e293b'; ctx.lineWidth = 2.2 * ppu;
+    for (let x = 1024 % mnOff; x < 2048; x += mnOff) {
+      if (Math.abs((x - (1024 % mOff)) % mOff) < 3 * ppu) continue;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 2048); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, x); ctx.lineTo(2048, x); ctx.stroke();
+    }
+
+    // Radial fade at edges
+    const grad = ctx.createRadialGradient(1024, 1024, 800 * ppu, 1024, 1024, 1024 * ppu);
+    grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(0.85, 'rgba(0,0,0,0)');
+    grad.addColorStop(0.95, 'rgba(255,140,66,0.25)'); grad.addColorStop(1, 'rgba(255,140,66,0.55)');
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, 2048, 2048);
+
     const tex = new THREE.CanvasTexture(canvas);
     tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
     tex.minFilter = THREE.LinearMipmapLinearFilter;
@@ -235,31 +270,144 @@ function Buildings() {
   useEffect(() => {
     if (!instancedRef.current) return;
     const group = instancedRef.current;
-    const hash = (x: number, z: number) => Math.sin(x * 12.9898 + z * 78.233) * 43758.5453 - Math.floor(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453);
-    const isRoad = (x: number, z: number) => {
-      const mx = ((x % 24) + 24) % 24, mz = ((z % 24) + 24) % 24;
-      if (mx < 2.5 || mx > 21.5 || mz < 2.5 || mz > 21.5) return true;
-      const nx = ((x % 12) + 12) % 12, nz = ((z % 12) + 12) % 12;
-      return nx < 1.2 || nx > 10.8 || nz < 1.2 || nz > 10.8;
+    const hash = (x: number, z: number) => {
+      const n = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453;
+      return n - Math.floor(n);
     };
-    const matDark = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.85 });
-    const matMid = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
-    const matGlass = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3, emissive: 0xFFE4B5, emissiveIntensity: 0.08 });
-    for (let x = -200; x <= 200; x += 3) {
-      for (let z = -200; z <= 200; z += 3) {
-        if (Math.sqrt(x * x + z * z) > 200) continue;
+    const isRoad = (x: number, z: number) => {
+      const hm = 2.5;
+      const mx = ((x % 24) + 24) % 24, mz = ((z % 24) + 24) % 24;
+      if (mx < hm || mx > 24 - hm || mz < hm || mz > 24 - hm) return true;
+      const nx = ((x % 12) + 12) % 12, nz = ((z % 12) + 12) % 12;
+      return nx < 1.2 || nx > 12 - 1.2 || nz < 1.2 || nz > 12 - 1.2;
+    };
+
+    const bGeom = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
+    const MATS = {
+      dark: new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.85, metalness: 0.05 }),
+      mid: new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8, metalness: 0.08 }),
+      light: new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.75, metalness: 0.1 }),
+      dark2: new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.85, metalness: 0.05 }),
+      glass: new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3, metalness: 0.2, emissive: 0xFFE4B5, emissiveIntensity: 0.1 }),
+      roof: new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7, metalness: 0.1 }),
+      window: new THREE.MeshStandardMaterial({ color: 0xFFE4B5, emissive: 0xFFE4B5, emissiveIntensity: 0.4, roughness: 0.2 }),
+      park: new THREE.MeshStandardMaterial({ color: 0x2d5016, roughness: 0.9 }),
+      treeTrunk: new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.9 }),
+      treeLeaf: new THREE.MeshStandardMaterial({ color: 0x1a4a10, roughness: 0.8 }),
+    };
+
+    const addWindows = (x: number, z: number, w: number, h: number, d: number, floors: number, odds: number) => {
+      for (let fy = 0; fy < floors; fy++) {
+        for (let face = 0; face < 4; face++) {
+          if (hash(x * 7 + fy * 3 + face, z * 5) > odds) continue;
+          const angle = face * Math.PI / 2;
+          const wx = x + Math.cos(angle) * (w / 2 + 0.03);
+          const wy = fy * 1.15 - h / 2 + 0.7;
+          const wz = z + Math.sin(angle) * (d / 2 + 0.03);
+          const wg = new THREE.BoxGeometry(0.3, 0.4, 0.04);
+          const wm = new THREE.Mesh(wg, MATS.window);
+          wm.position.set(wx, wy, wz);
+          group.add(wm);
+        }
+      }
+    };
+
+    const placed: { x: number; z: number }[] = [];
+    const CITY_R = 200, BLDG_STEP = 3, MIN_SPACING = 5;
+
+    for (let x = -CITY_R; x <= CITY_R; x += BLDG_STEP) {
+      for (let z = -CITY_R; z <= CITY_R; z += BLDG_STEP) {
+        const dist = Math.sqrt(x * x + z * z);
+        if (dist > CITY_R) continue;
         if (isRoad(x, z)) continue;
+        if (placed.some(p => Math.sqrt((x - p.x) ** 2 + (z - p.z) ** 2) < MIN_SPACING)) continue;
         if (hash(x * 0.05, z * 0.05) > 0.65) continue;
-        if (Math.sqrt(x * x + (z + 40) * (z + 40)) < 22) continue;
+        const dxL = x, dzL = z + 40;
+        if (Math.sqrt(dxL * dxL + dzL * dzL) < 22) continue;
+
         const n = hash(x * 0.03, z * 0.03);
-        const bh = 1 + n * 4, bw = 1.5 + n * 3, bd = 1.5 + hash(z * 0.05, x * 0.05) * 3;
-        const mat = n < 0.3 ? matDark : n < 0.6 ? matMid : matGlass;
-        const mesh = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), mat);
-        mesh.position.set(x, bh / 2, z);
-        mesh.castShadow = true;
-        group.add(mesh);
+        const n2 = hash(z * 0.05, x * 0.05);
+        const typeRoll = n2;
+        let mesh: THREE.Mesh | null = null;
+
+        if (typeRoll < 0.40) {
+          // Type A: Low flat house
+          const bh = 0.8 + n * 0.8, bw = 2 + n * 2.5, bd = 2 + hash(z * 0.07, x * 0.07) * 2;
+          const mat = [MATS.dark, MATS.mid, MATS.light, MATS.dark2][Math.floor(n * 4)];
+          mesh = new THREE.Mesh(bGeom(bw, bh, bd), mat);
+          mesh.position.set(x, bh / 2, z);
+          if (bh > 1) addWindows(x, z, bw, bh, bd, Math.floor(bh * 0.7), 0.92);
+        } else if (typeRoll < 0.65) {
+          // Type B: Multi-story residential
+          const bh = 2 + n * 2.5, bw = 1.8 + n * 2, bd = 1.8 + n2 * 2;
+          const mat = [MATS.mid, MATS.light, MATS.dark][Math.floor(n * 3)];
+          mesh = new THREE.Mesh(bGeom(bw, bh, bd), mat);
+          mesh.position.set(x, bh / 2, z);
+          const rf = new THREE.Mesh(new THREE.BoxGeometry(bw - 0.4, 0.2, bd - 0.4), MATS.roof);
+          rf.position.set(x, bh + 0.1, z); group.add(rf);
+          addWindows(x, z, bw, bh, bd, Math.floor(bh * 0.8), 0.88);
+        } else if (typeRoll < 0.80) {
+          // Type C: Commercial/glass
+          const bh = 1.5 + n * 2, bw = 3 + n * 3, bd = 2.5 + n2 * 2.5;
+          mesh = new THREE.Mesh(bGeom(bw, bh, bd), MATS.glass);
+          mesh.position.set(x, bh / 2, z);
+          const eq = new THREE.Mesh(new THREE.BoxGeometry(1, 0.5, 0.8), MATS.roof);
+          eq.position.set(x, bh + 0.25, z); group.add(eq);
+          addWindows(x, z, bw, bh, bd, Math.floor(bh * 0.6), 0.88);
+        } else if (typeRoll < 0.92) {
+          // Type D: Tower
+          const bh = 5 + n * 4, bw = 1.5 + n * 1.5, bd = 1.5 + n2 * 1.5;
+          const mat = [MATS.dark, MATS.mid][Math.floor(n * 2)];
+          mesh = new THREE.Mesh(bGeom(bw, bh, bd), mat);
+          mesh.position.set(x, bh / 2, z);
+          addWindows(x, z, bw, bh, bd, Math.floor(bh * 0.8), 0.9);
+          const topH = 0.8, topW = bw - 0.6;
+          const topM = new THREE.Mesh(new THREE.BoxGeometry(topW, topH, topW), MATS.roof);
+          topM.position.set(x, bh + topH / 2, z); group.add(topM);
+        } else {
+          // Type E: Park
+          const pr = 3 + n * 4;
+          mesh = new THREE.Mesh(new THREE.CylinderGeometry(pr, pr, 0.15, 16), MATS.park);
+          mesh.position.set(x, 0.075, z);
+          for (let ti = 0; ti < Math.floor(3 + n * 5); ti++) {
+            const ta = Math.random() * Math.PI * 2, td = Math.random() * pr * 0.8;
+            const tx = x + Math.cos(ta) * td, tz = z + Math.sin(ta) * td;
+            const th = 0.8 + Math.random() * 1.5;
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, th, 6), MATS.treeTrunk);
+            trunk.position.set(tx, th / 2, tz); group.add(trunk);
+            const crownR = 0.3 + Math.random() * 0.5;
+            const crown = new THREE.Mesh(new THREE.ConeGeometry(crownR, 0.8 + Math.random() * 0.6, 8), MATS.treeLeaf);
+            crown.position.set(tx, th + crownR * 0.6, tz); group.add(crown);
+          }
+        }
+
+        if (mesh) {
+          mesh.castShadow = true; mesh.receiveShadow = true;
+          group.add(mesh);
+          placed.push({ x, z });
+        }
       }
     }
+
+    // Street lamps along major roads
+    const lampBase = new THREE.CylinderGeometry(0.1, 0.15, 4, 8);
+    const lampPole = new THREE.CylinderGeometry(0.06, 0.06, 0.5, 8);
+    const lampMat = new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.6 });
+    for (let rx = -200; rx <= 200; rx += 24) {
+      if (Math.abs(rx) > 200) continue;
+      for (let z = -200; z <= 200; z += 8) {
+        if (Math.abs(z) > 200) continue;
+        if (Math.sqrt(rx * rx + (z + 40) * (z + 40)) < 25) continue;
+        const lampG = new THREE.Group();
+        const pole = new THREE.Mesh(lampBase, lampMat);
+        pole.position.set(rx + 3.5, 2, z); lampG.add(pole);
+        const light = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8),
+          new THREE.MeshBasicMaterial({ color: 0xFFE4B5 }));
+        light.position.set(rx + 3.5, 4.2, z); lampG.add(light);
+        group.add(lampG);
+      }
+    }
+
     return () => { while (group.children.length) group.remove(group.children[0]); };
   }, []);
   return <group ref={instancedRef} />;
