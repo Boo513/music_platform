@@ -3,88 +3,89 @@ import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useNavigate } from 'react-router-dom';
 
 function formatTime(sec: number): string {
- if (!sec || !isFinite(sec)) return '0:00';
- const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
- return `${m}:${s.toString().padStart(2, '0')}`;
+  if (!sec || !isFinite(sec)) return '0:00';
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 export function PlayerBar() {
- const navigate = useNavigate();
- useAudioPlayer();
- const { currentSong, isPlaying, currentTime, duration, volume, playMode,
- pause, resume, next, prev, setVolume, seek, togglePlayMode } = usePlayerStore();
- const modeIcon = playMode === 'sequential' ? '🔁' : playMode === 'shuffle' ? '🔀' : '🔂';
- const song = currentSong();
- if (!song) return null;
+  const navigate = useNavigate();
+  useAudioPlayer();
+  const { currentSong, isPlaying, currentTime, duration, volume, playMode,
+    pause, resume, next, prev, setVolume, seek, togglePlayMode } = usePlayerStore();
+  const modeIcon = playMode === 'sequential' ? '🔁' : playMode === 'shuffle' ? '🔀' : '🔂';
+  const song = currentSong();
+  if (!song) return null;
 
- const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    seek(((e.clientX - rect.left) / rect.width) * duration);
+  };
+  const handleVolume = (e: React.MouseEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    setVolume((e.clientX - r.left) / r.width);
+  };
 
- return (
- <div className="fixed bottom-0 left-0 right-0 z-50 h-72 flex items-center gap-3.5 px-5
- bg-dark-80 border-t border-white/6">
- <div
- className="w-46 h-46 rounded-full bg-cover-disc
- border-2 border-orange-20 flex items-center justify-center text-lg flex-shrink-0
- cursor-pointer shadow-neon-sm"
- onClick={() => navigate(`/play/${song.id}`)}
- style={{ animation: isPlaying ? 'spin 8s linear infinite' : 'none' }}
- >
- 💿
- </div>
+  const s = {
+    bar: {
+      position: 'fixed' as const, bottom: 0, left: 0, right: 0, zIndex: 50,
+      height: 72, display: 'flex', alignItems: 'center', gap: 14, padding: '0 20px',
+      background: 'rgba(14,12,20,0.8)', backdropFilter: 'blur(24px)',
+      borderTop: '1px solid rgba(255,255,255,0.06)',
+    },
+    disc: {
+      width: 46, height: 46, borderRadius: '50%',
+      background: 'linear-gradient(145deg, #1e1830, #141020)',
+      border: '2px solid rgba(255,180,130,0.12)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: 18, flexShrink: 0, cursor: 'pointer',
+      boxShadow: '0 0 20px rgba(255,140,66,0.08)',
+      animation: isPlaying ? 'spin 8s linear infinite' : 'none',
+    },
+    info: { flex: 1, minWidth: 0, cursor: 'pointer' },
+    title: { color: '#f0e6e0', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
+    artist: { color: '#a09080', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
+    progressWrap: { display: 'flex', alignItems: 'center', gap: 8, width: 220 },
+    time: { fontSize: 10, color: '#a09080', fontFamily: 'monospace', minWidth: 32 },
+    timeR: { fontSize: 10, color: '#a09080', fontFamily: 'monospace', minWidth: 32, textAlign: 'right' as const },
+    track: { flex: 1, height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2, cursor: 'pointer', position: 'relative' as const },
+    fill: (pct: number) => ({ width: `${pct}%`, height: '100%', borderRadius: 2, position: 'absolute' as const, left: 0, top: 0 }),
+    volWrap: { display: 'flex', alignItems: 'center', gap: 8 },
+    volIcon: { fontSize: 14, color: '#908070' },
+    volTrack: { width: 80, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, cursor: 'pointer', position: 'relative' as const },
+    volFill: (v: number) => ({ width: `${v * 100}%`, height: '100%', borderRadius: 2, position: 'absolute' as const, left: 0, top: 0, background: '#c0b0a0' }),
+    ctrlBtn: { width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: 'none', background: 'transparent', color: '#b0a090', fontSize: 16 },
+    playBtn: { width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#f0e6e0', boxShadow: '0 0 18px rgba(255,200,150,0.25)' },
+    playIcon: { color: '#1a1428', fontSize: 16, marginLeft: 2 },
+  };
 
- <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/play/${song.id}`)}>
- <div className="text-primary text-13 font-semibold truncate">{song.title}</div>
- <div className="text-secondary text-10 truncate">{song.artist}</div>
- </div>
-
- <div className="flex items-center gap-2" style={{ width: 220 }}>
- <span style={{ fontSize: 10, color: '#a09080', fontFamily: 'monospace', minWidth: 32, textAlign: 'right' }}>{formatTime(currentTime)}</span>
- <div
- style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2, cursor: 'pointer', position: 'relative' }}
- onClick={(e) => {
- const rect = e.currentTarget.getBoundingClientRect();
- seek(((e.clientX - rect.left) / rect.width) * duration);
- }}
- >
- <div className="neon-progress" style={{ width: `${progress}%`, height: '100%', borderRadius: 2, position: 'absolute', left: 0, top: 0 }} />
- </div>
- <span style={{ fontSize: 10, color: '#a09080', fontFamily: 'monospace', minWidth: 32 }}>{formatTime(duration)}</span>
- </div>
-
- <div className="flex items-center gap-2">
- <span style={{ fontSize: 14, color: '#908070' }}>🔊</span>
- <div style={{ width: 80, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, cursor: 'pointer', position: 'relative' }}
- onClick={(e) => {
- const r = e.currentTarget.getBoundingClientRect();
- setVolume((e.clientX - r.left) / r.width);
- }}>
- <div style={{ width: `${volume * 100}%`, height: '100%', borderRadius: 2, position: 'absolute', left: 0, top: 0, background: '#c0b0a0' }} />
- </div>
- </div>
- <button
- className="rounded-full flex items-center justify-center cursor-pointer border-0"
- style={{ width: 34, height: 34, background: 'transparent', color: '#b0a090', fontSize: 16 }}
- onClick={prev}
- >⏮</button>
- <button
- className="rounded-full flex items-center justify-center cursor-pointer border-0"
- style={{ width: 34, height: 34, background: 'transparent', color: '#b0a090', fontSize: 14 }}
- onClick={togglePlayMode}
- >{modeIcon}</button>
- <div
- className="rounded-full flex items-center justify-center cursor-pointer
- hover-scale-110 transition-transform shadow-btn"
- style={{ width: 44, height: 44, background: '#f0e6e0' }}
- onClick={() => isPlaying ? pause() : resume()}
- >
- <span style={{ color: '#1a1428', fontSize: 16, marginLeft: 2 }}>{isPlaying ? '⏸' : '▶'}</span>
- </div>
- <button
- className="rounded-full flex items-center justify-center cursor-pointer border-0"
- style={{ width: 34, height: 34, background: 'transparent', color: '#b0a090', fontSize: 16 }}
- onClick={next}
- >⏭</button>
- </div>
- </div>
- );
+  return (
+    <div style={s.bar}>
+      <div style={s.disc} onClick={() => navigate(`/play/${song.id}`)}>💿</div>
+      <div style={s.info} onClick={() => navigate(`/play/${song.id}`)}>
+        <div style={s.title}>{song.title}</div>
+        <div style={s.artist}>{song.artist}</div>
+      </div>
+      <div style={s.progressWrap}>
+        <span style={s.timeR}>{formatTime(currentTime)}</span>
+        <div style={s.track} onClick={handleSeek}>
+          <div className="neon-progress" style={s.fill(progress)} />
+        </div>
+        <span style={s.time}>{formatTime(duration)}</span>
+      </div>
+      <div style={s.volWrap}>
+        <span style={s.volIcon}>🔊</span>
+        <div style={s.volTrack} onClick={handleVolume}>
+          <div style={s.volFill(volume)} />
+        </div>
+      </div>
+      <button style={s.ctrlBtn} onClick={prev}>⏮</button>
+      <button style={{ ...s.ctrlBtn, fontSize: 14 }} onClick={togglePlayMode}>{modeIcon}</button>
+      <div style={s.playBtn} onClick={() => isPlaying ? pause() : resume()}>
+        <span style={s.playIcon}>{isPlaying ? '⏸' : '▶'}</span>
+      </div>
+      <button style={s.ctrlBtn} onClick={next}>⏭</button>
+    </div>
+  );
 }
