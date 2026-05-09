@@ -61,13 +61,15 @@ export default function PlayPage() {
  <div className="fixed inset-0">
  {/* 3D scene layer */}
  <div className="absolute inset-0 z-0">
- <Canvas camera={{ position: [0, -5, 20], fov: 60 }}>
+ <Canvas
+ style={{ background: '#0d0f18' }}
+ camera={{ position: [0, 80, 150], fov: 60, near: 1, far: 800 }}
+ >
  <SceneEngine
  style={song.style}
  mood={song.mood}
  lockedScene={selectedScene !== 'auto' ? selectedScene : null}
  />
- <fog attach="fog" args={['#0d0f18', 50, 200]} />
  </Canvas>
  </div>
 

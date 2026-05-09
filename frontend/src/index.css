@@ -385,8 +385,12 @@ body {
 .shadow-settings { box-shadow: -20px 0 60px rgba(0,0,0,0.5); }
 
 /* ===== LAYOUT HELPERS ===== */
-.-translate-y-1\\/2 { transform: translateY(-50%); }
-.-translate-x-1\\/2 { transform: translateX(-50%); }
+.translate-y-50 { transform: translateY(-50%); }
+.translate-x-50 { transform: translateX(-50%); }
+.-translate-y-50 { transform: translateY(-50%); }
+.-translate-x-50 { transform: translateX(-50%); }
+.top-50 { top: 50%; }
+.left-50 { left: 50%; }
 .-translate-y-55 { transform: translateY(-55%); }
 
 /* ===== HOVER LIFT ===== */

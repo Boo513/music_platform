@@ -17,7 +17,7 @@ export function RightControls({ onTogglePanel, onZoomIn, onZoomOut, onToggleFull
  );
 
  return (
- <div className="fixed right-18 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-2">
+ <div className="fixed right-18 top-50 translate-y-50 z-10 flex flex-col gap-2">
  {btn('□', onTogglePanel)}
  {btn('+', onZoomIn)}
  {btn('−', onZoomOut)}

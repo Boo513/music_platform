@@ -1,5 +1,5 @@
 import { useRef, useMemo, useEffect } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 // ===== SKY DOME =====
@@ -418,13 +418,6 @@ function Particles() {
 
 // ===== MAIN SCENE =====
 export function CityScene() {
-  const { camera } = useThree();
-
-  useEffect(() => {
-    camera.position.set(0, 80, 150);
-    camera.lookAt(0, -5, 0);
-  }, [camera]);
-
   return (
     <>
       <SkyDome />

@@ -15,7 +15,7 @@ export function EditProfileModal({ open, onClose, initialNickname, onSave }: Pro
  return (
  <>
  <div className="fixed inset-0 bg-black-50 z-50" onClick={onClose} />
- <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50
+ <div className="fixed left-50 top-50 translate-x-50 translate-y-50 z-50
  glass-panel p-6 w-360 duration-200">
  <h3 className="text-primary text-lg font-bold mb-4">✎ 编辑资料</h3>
  <label className="text-primary text-11 uppercase tracking-wider mb-1.5 block">昵称</label>
