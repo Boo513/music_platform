@@ -423,7 +423,7 @@ function Scene3D() {
       <hemisphereLight intensity={0.7} color="#6a80a0" groundColor="#FF8C42" />
       <directionalLight position={[50, 100, 50]} intensity={0.25} color="#8899aa" />
       <OrbitControls
-        target={[0, -5, 0]}
+        target={[0, 10, -40]}
         minDistance={50} maxDistance={350}
         maxPolarAngle={Math.PI * 0.42} minPolarAngle={0.15}
         enableDamping dampingFactor={0.08}
@@ -454,7 +454,7 @@ export default function PlayPage() {
   return (
     <div className="fixed inset-0" style={{ background: '#0a0a18' }}>
       <div className="absolute inset-0 z-0">
-        <Canvas camera={{ position: [0, 5, 50], fov: 60 }}>
+        <Canvas camera={{ position: [120, 100, 80], fov: 55 }}>
           <Scene3D />
         </Canvas>
       </div>
