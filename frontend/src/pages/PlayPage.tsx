@@ -9,6 +9,13 @@ import { RightControls } from '@/components/layout/RightControls';
 import { RadioPanel } from '@/components/layout/RadioPanel';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
 import { SceneEngine } from '@/components/scenes/SceneEngine';
+import type { Song } from '@/types';
+
+const DEMO_SONG: Song = {
+  id: 0, title: 'India TOP 100', artist: 'Cheema Y, Gur Sidhu & Jasmeen Akhtar',
+  coverUrl: null, duration: 222, style: 'electronic', mood: 'excited', playCount: 12801,
+  isFavorited: false, uploader: { id: 1, nickname: 'Demo' }, createdAt: new Date().toISOString(),
+};
 
 export default function PlayPage() {
  const { songId } = useParams<{ songId: string }>();
@@ -27,12 +34,17 @@ export default function PlayPage() {
  if (songId) {
  songsApi.getById(Number(songId)).then((res) => {
  play(res.data);
- }).catch(() => navigate('/'));
+ }).catch(() => {
+ // API not available — use demo song
+ play(DEMO_SONG);
+ });
  }
  }, [songId]);
 
  useEffect(() => {
- if (song) favoritesApi.check(song.id).then((res) => setIsFavorited(res.data.favorited)).catch(() => {});
+ if (song && song.id > 0) {
+ favoritesApi.check(song.id).then((res) => setIsFavorited(res.data.favorited)).catch(() => {});
+ }
  }, [song?.id]);
 
  const handleToggleFavorite = async () => {
