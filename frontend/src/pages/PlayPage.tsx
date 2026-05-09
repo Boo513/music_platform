@@ -199,14 +199,12 @@ function Particles() {
     }
     fGeom.setAttribute('position', new THREE.BufferAttribute(fPos, 3));
     const bGeom = new THREE.BufferGeometry();
-    const bCnt = 200;
-    const bPos = new Float32Array(bCnt * 3);
-    const bProg = new Float32Array(bCnt);
-    for (let i = 0; i < bCnt; i++) {
+    const bPos = new Float32Array(70 * 3);
+    const bProg = new Float32Array(70);
+    for (let i = 0; i < 70; i++) {
       bProg[i] = Math.random();
-      const spread = 0.5 + bProg[i] * 2.5;
-      bPos[i * 3] = (Math.random() - 0.5) * spread;
-      bPos[i * 3 + 1] = 29.5 + (Math.random() - 0.5) * 2;
+      bPos[i * 3] = (Math.random() - 0.5) * 2;
+      bPos[i * 3 + 1] = 29.5;
       bPos[i * 3 + 2] = bProg[i] * 100;
     }
     bGeom.setAttribute('position', new THREE.BufferAttribute(bPos, 3));
@@ -242,11 +240,10 @@ function Particles() {
     }
     if (bpRef.current) {
       const bA = bpGeom.attributes.position;
-      for (let i = 0; i < 200; i++) {
-        bpProg[i] = (bpProg[i] + dt * 0.06) % 1;
+      for (let i = 0; i < 70; i++) {
+        bpProg[i] = (bpProg[i] + dt * 0.08) % 1;
         bA.setZ(i, bpProg[i] * 100);
         bA.setY(i, 29.5 + bpProg[i] * 4);
-        bA.setX(i, (Math.random() - 0.5) * (0.5 + bpProg[i] * 2.5));
       }
       bA.needsUpdate = true;
     }
@@ -261,7 +258,7 @@ function Particles() {
         <pointsMaterial color="#bfdbfe" size={0.35} transparent opacity={0.45} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation />
       </points>
       <points ref={bpRef} geometry={bpGeom} position={[0, 0, -40]}>
-        <pointsMaterial color="#FFE4B5" size={0.8} transparent opacity={0.5} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation />
+        <pointsMaterial color="#FFE4B5" size={0.3} transparent opacity={0.35} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation />
       </points>
     </>
   );
@@ -432,7 +429,7 @@ function Scene3D() {
         enableDamping dampingFactor={0.08}
         rotateSpeed={0.4} zoomSpeed={1.0}
       />
-      <Stars radius={200} depth={100} count={800} factor={6} saturation={0.3} fade speed={0.4} />
+      <Stars radius={150} depth={80} count={300} factor={3} saturation={0.2} fade speed={0.5} />
       <Ground />
       <Buildings />
       <Lighthouse />
