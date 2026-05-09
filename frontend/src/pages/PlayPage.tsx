@@ -39,13 +39,14 @@ export default function PlayPage() {
  const [selectedScene, setSelectedScene] = useState('auto');
  const [effects, setEffects] = useState({ particles: true, bloom: false, vignette: true });
 
+ const [fallbackSong, setFallbackSong] = useState<Song | null>(null);
+
  useEffect(() => {
  if (songId) {
  songsApi.getById(Number(songId)).then((res) => {
  play(res.data);
  }).catch(() => {
- // API not available — use demo song
- play(DEMO_SONG);
+ setFallbackSong(DEMO_SONG);
  });
  }
  }, [songId]);
@@ -56,15 +57,17 @@ export default function PlayPage() {
  }
  }, [song?.id]);
 
+ const displaySong = song || fallbackSong;
+
  const handleToggleFavorite = async () => {
- if (!song) return;
+ if (!displaySong || displaySong.id === 0) return;
  try {
- if (isFavorited) { await favoritesApi.remove(song.id); setIsFavorited(false); }
- else { await favoritesApi.add(song.id); setIsFavorited(true); }
+ if (isFavorited) { await favoritesApi.remove(displaySong.id); setIsFavorited(false); }
+ else { await favoritesApi.add(displaySong.id); setIsFavorited(true); }
  } catch {}
  };
 
- if (!song) return <div className="flex items-center justify-center h-screen">加载中...</div>;
+ if (!displaySong) return <div className="flex items-center justify-center h-screen text-secondary">加载中...</div>;
 
  return (
  <div className="fixed inset-0">
@@ -76,8 +79,8 @@ export default function PlayPage() {
  camera={{ position: [0, 80, 150], fov: 60, near: 1, far: 800 }}
  >
  <SceneEngine
- style={song.style}
- mood={song.mood}
+ style={displaySong.style}
+ mood={displaySong.mood}
  lockedScene={selectedScene !== 'auto' ? selectedScene : null}
  />
  </Canvas>
@@ -107,7 +110,7 @@ export default function PlayPage() {
 
  {showPanel && (
  <RadioPanel
- song={song}
+ song={displaySong}
  isPlaying={isPlaying}
  onTogglePlay={() => isPlaying ? pause() : resume()}
  onClose={() => setShowPanel(false)}
