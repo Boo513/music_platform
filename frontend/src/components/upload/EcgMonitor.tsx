@@ -8,6 +8,7 @@ export function EcgMonitor() {
   const counterRef = useRef(0);
 
   const { isUploading, uploadProgress, selectedFile } = useUploadStore();
+  const wasUploading = useRef(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -23,11 +24,10 @@ export function EcgMonitor() {
     resize();
     window.addEventListener('resize', resize);
 
-    // Varying R-wave amplitude per beat for realistic ECG look
+    // Varying R-wave amplitude per beat
     const beatHeights: number[] = [];
     function getBeatHeight(beatIndex: number): number {
       if (beatHeights[beatIndex] !== undefined) return beatHeights[beatIndex];
-      // Random variation: 55-95, some beats taller than others
       const h = 55 + Math.random() * 40;
       beatHeights[beatIndex] = h;
       return h;
@@ -37,35 +37,27 @@ export function EcgMonitor() {
       const cycleLen = 120;
       const c = ((globalCycle % cycleLen) + cycleLen) % cycleLen;
       const beatIdx = Math.floor(globalCycle / cycleLen);
-      const R = getBeatHeight(beatIdx); // varying R amplitude
-      const S = R * 0.3;  // S depth proportional to R
-      const P = R * 0.1;  // P proportional
-      const T = R * 0.13; // T proportional
+      const R = getBeatHeight(beatIdx);
+      const S = R * 0.3;
+      const P = R * 0.1;
+      const T = R * 0.13;
       let y = 0;
 
-      // P wave: gentle bump (24-30)
       if (c >= 24 && c < 30) {
         y = P * Math.sin(((c - 24) / 6) * Math.PI);
       }
-      // Q dip: (48-50)
       if (c >= 48 && c < 50) {
         y = -(c - 48) * (R * 0.08);
       }
-      // R SPIKE: (50-54)
       if (c >= 50 && c < 54) {
-        const t = c - 50;
-        y = R * Math.sin((t / 4) * Math.PI);
+        y = R * Math.sin(((c - 50) / 4) * Math.PI);
       }
-      // S dip: (54-58)
       if (c >= 54 && c < 58) {
-        const t = c - 54;
-        y = -S * Math.sin((t / 4) * Math.PI);
+        y = -S * Math.sin(((c - 54) / 4) * Math.PI);
       }
-      // T wave: (70-90)
       if (c >= 70 && c < 90) {
         y = T * Math.sin(((c - 70) / 20) * Math.PI);
       }
-
       y += (Math.random() - 0.5) * 0.6;
       return y;
     }
@@ -84,7 +76,7 @@ export function EcgMonitor() {
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, cw, ch);
 
-      // === BACKGROUND GRID (20×20 medical paper) ===
+      // Grid
       ctx.strokeStyle = 'rgba(0, 255, 157, 0.06)';
       ctx.lineWidth = 0.5;
       for (let gx = 0; gx < cw; gx += 20) {
@@ -93,23 +85,29 @@ export function EcgMonitor() {
       for (let gy = 0; gy < ch; gy += 20) {
         ctx.beginPath(); ctx.moveTo(0, Math.round(gy) + 0.5); ctx.lineTo(cw, Math.round(gy) + 0.5); ctx.stroke();
       }
-
-      // Center baseline
       ctx.strokeStyle = 'rgba(0, 255, 157, 0.15)';
       ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(0, midY + 0.5); ctx.lineTo(cw, midY + 0.5); ctx.stroke();
 
-      // === GENERATE NEW DATA POINT ===
-      let newY: number;
+      // === DETECT UPLOAD START: clear history ===
       const uploading = useUploadStore.getState().isUploading;
-      if (uploading) {
-        newY = generateEcgPoint(pointsRef.current.length);
-      } else {
-        // Tiny idle noise
-        newY = (Math.random() - 0.5) * 0.4;
+      if (uploading && !wasUploading.current) {
+        pointsRef.current = [];
+        beatHeights.length = 0;
       }
+      wasUploading.current = uploading;
 
-      pointsRef.current.push(newY);
+      // === GENERATE POINTS (2x speed during upload) ===
+      const speed = uploading ? 3 : 1;
+      for (let s = 0; s < speed; s++) {
+        let newY: number;
+        if (uploading) {
+          newY = generateEcgPoint(pointsRef.current.length);
+        } else {
+          newY = (Math.random() - 0.5) * 0.3;
+        }
+        pointsRef.current.push(newY);
+      }
       while (pointsRef.current.length > cw) {
         pointsRef.current.shift();
       }
