@@ -22,9 +22,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 cd frontend
 npm run dev          # 启动开发服务器 → localhost:5173
 npx tsc --noEmit     # TypeScript 类型检查
+npm run build        # 生产构建（仅 vite build，无 tsc，兼容 Netlify）
 ```
 
 Vite 代理配置：`/api` 和 `/uploads` 代理到 `localhost:8080`。
+`vite.config.ts` 中 `allowedHosts` 允许了 `localhost`、`*.ngrok-free.dev`、`*.netlify.app`。
 
 ### 后端 (Spring Boot 3.5.14 + MyBatis)
 
@@ -54,7 +56,10 @@ Client: "C:/Program Files/MySQL/MySQL Server 8.0/bin/mysql.exe" -u root -p123456
 ### 测试
 
 ```bash
-# 后端 API 测试（curl）
+# 后端 API 测试脚本
+bash backend/test.sh
+
+# 或手动 curl
 TOK=$(curl -s -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" -d '{"username":"testuser1","password":"Abc123456"}' | sed 's/.*"token":"\([^"]*\)".*/\1/')
 
 # 上传歌曲（字段名必须为 audio，不能是 file）
@@ -62,6 +67,13 @@ curl -X POST http://localhost:8080/api/songs/upload -H "Authorization: Bearer $T
   -F "title=歌名" -F "artist=歌手" -F "style=pop" -F "mood=happy" \
   -F "audio=@path/to/file.mp3"
 ```
+
+### 常用 API 端点
+
+- `GET /api/songs/{id}/stream` — 音频流（支持 Range）
+- `GET /api/songs/{id}/cover` — 封面图
+- `GET /api/favorites/{songId}/count` — 歌曲收藏数（公开，无需认证）
+- `GET /api/favorites/check/{songId}` — 当前用户是否已收藏
 
 ## 数据库
 
@@ -73,9 +85,9 @@ curl -X POST http://localhost:8080/api/songs/upload -H "Authorization: Bearer $T
 
 ### 前端路由与布局
 
-5 个页面（lazy-loaded）：`/` HomePage、`/play/:songId` PlayPage、`/upload` UploadPage、`/profile` ProfilePage、`/login` LoginPage。另有 `/playlist/:id` PlaylistPage。
+5 个页面（lazy-loaded）：`/` HomePage、`/play/:songId` PlayPage、`/upload` UploadPage、`/profile` ProfilePage、`/login` LoginPage。另有 `/playlist/:id` PlaylistPage（P5R风格）。
 
-`AppLayout` 包裹除登录页外的所有页面，渲染 `<Outlet />` + 全局 `<PlayerBar />`。PlayPage 用 `paddingBottom: 72` 避免被 PlayerBar 遮挡。
+`AppLayout` 包裹除登录页外的所有页面，渲染 `<Outlet />` + 全局 `<PlayerBar />`。
 
 ### 状态管理
 
@@ -86,11 +98,15 @@ curl -X POST http://localhost:8080/api/songs/upload -H "Authorization: Bearer $T
 - `useUploadStore` — 上传表单 + 进度
 - `useMouseStore` — 登录页 3D 视差
 
+### 播放栏 (PlayerBar)
+
+**当前设计**：左下角嵌入 3/4 黑胶唱片（260px），圆心为旋转封面图，外环为 SVG 圆形进度条（可点击/拖拽跳转）。音量控制独立置于唱片右侧底部。播放控制按钮（切歌、循环模式、收藏）移到了 PlayPage 的 `RadioPanel` 中。
+
 ### 音频播放
 
-全局单一 `<audio>` 元素由 `useAudioPlayer` hook 管理（在 `PlayerBar.tsx` 中调用）。使用浏览器原生 `HTMLAudioElement`，**不是** Web Audio API。
+全局单一 `<audio>` 元素由 `useAudioPlayer` hook 管理（在 `PlayerBar.tsx` 中调用）。`startAudioPlayback(songId)` 在点击事件中直接调用以符合 Chrome 自动播放策略。
 
-**关键**：后端流式端点 `/api/songs/{id}/stream` 必须直接返回文件字节并正确处理 HTTP Range 请求（206 Partial Content + Content-Range header），**绝对不能**返回 302 重定向 — 浏览器 `<audio>` 元素不会在重定向时携带 Range 头，会导致每次请求全文件、解码异常、播放听起来像慢速。
+**关键**：后端流式端点 `/api/songs/{id}/stream` 必须直接返回文件字节并正确处理 HTTP Range 请求（206 Partial Content + Content-Range header），**绝对不能**返回 302 重定向。
 
 ### 上传接口字段名
 
@@ -120,6 +136,13 @@ react-three-fiber + Three.js。可用场景组件：`CityScene`、`StarryGalaxy`
 远程仓库地址：`https://github.com/Boo513/music_platform`
 
 每次完成代码修改并测试通过后，必须执行 git commit 并 push 到远程仓库。
+
+**注意**：GitHub 默认分支为 `main`，本地工作在 `master`。Push 后需同步两个分支：
+
+```bash
+git push origin master
+git checkout main && git merge master -m "同步" && git push origin main && git checkout master
+```
 
 ## 任务完成后的行为
 
