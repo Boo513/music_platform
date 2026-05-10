@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.musicplatform.mapper.PlaylistSongMapper">
+
+    <select id="selectSongsByPlaylistId" resultType="com.musicplatform.entity.Song">
+        SELECT s.* FROM songs s
+        INNER JOIN playlist_songs ps ON s.id = ps.song_id
+        WHERE ps.playlist_id = #{playlistId}
+        ORDER BY ps.sort_order ASC
+    </select>
+
+    <insert id="insert">
+        INSERT INTO playlist_songs (playlist_id, song_id, sort_order)
+        VALUES (#{playlistId}, #{songId}, #{sortOrder})
+    </insert>
+
+    <delete id="deleteByPlaylistAndSong">
+        DELETE FROM playlist_songs WHERE playlist_id = #{playlistId} AND song_id = #{songId}
+    </delete>
+
+    <delete id="deleteByPlaylistId">
+        DELETE FROM playlist_songs WHERE playlist_id = #{playlistId}
+    </delete>
+
+    <select id="existsByPlaylistAndSong" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM playlist_songs
+        WHERE playlist_id = #{playlistId} AND song_id = #{songId}
+    </select>
+
+    <select id="maxSortOrder" resultType="int">
+        SELECT COALESCE(MAX(sort_order), 0) FROM playlist_songs WHERE playlist_id = #{playlistId}
+    </select>
+
+</mapper>
