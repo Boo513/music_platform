@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>India TOP 100 — 3D 沉浸式音乐电台</title>
+<style>
+  :root {
+    --panel-bg: rgba(18, 14, 24, 0.55);
+    --glass-border: rgba(255, 180, 130, 0.1);
+    --text-primary: #f0e6e0;
+    --text-secondary: #a09080;
+    --accent: #FF8C42;
+    --accent-gold: #FFB366;
+    --accent-warm: #FF9B55;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #0d0f18;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #three-container {
+    position: fixed; inset: 0; z-index: 0;
+  }
+  #three-container canvas { display: block; }
+
+  /* ===== TOP-LEFT ICONS ===== */
+  .top-left-icons {
+    position: fixed; top: 28px; left: 28px; z-index: 10;
+    display: flex; gap: 10px;
+  }
+  .top-left-icons .icon-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(20, 16, 28, 0.45);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 180, 130, 0.08);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.3s;
+    color: #b0a090; font-size: 17px;
+  }
+  .top-left-icons .icon-btn:hover {
+    background: rgba(35, 28, 45, 0.6);
+    border-color: rgba(255, 155, 85, 0.2);
+    color: #ffe0c8;
+    box-shadow: 0 0 20px rgba(255, 140, 66, 0.1);
+  }
+
+  /* ===== TOP-RIGHT BRAND ===== */
+  .top-right-brand {
+    position: fixed; top: 30px; right: 90px; z-index: 10;
+    font-size: 13px; font-weight: 600; letter-spacing: 1.5px;
+    color: rgba(255, 220, 180, 0.75);
+    text-shadow: 0 0 30px rgba(255, 155, 85, 0.3);
+  }
+
+  /* ===== RIGHT CONTROLS ===== */
+  .right-controls {
+    position: fixed; right: 18px; top: 50%; transform: translateY(-50%);
+    z-index: 10; display: flex; flex-direction: column; gap: 8px;
+  }
+  .right-controls .ctrl-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(20, 16, 28, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 180, 130, 0.08);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.3s;
+    color: #908070; font-size: 14px;
+  }
+  .right-controls .ctrl-btn:hover {
+    background: rgba(40, 30, 50, 0.55);
+    border-color: rgba(255, 155, 85, 0.2);
+    color: #ffe0c8;
+  }
+
+  /* ===== LEFT RADIO PANEL ===== */
+  .radio-panel {
+    position: fixed; left: 28px; top: 50%; transform: translateY(-55%);
+    z-index: 10; width: 310px;
+    background: var(--panel-bg);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,200,150,0.04);
+    transition: transform 0.3s ease;
+  }
+  .radio-panel:hover {
+    transform: translateY(-56%);
+  }
+
+  .panel-thumb {
+    position: relative; width: 100%; height: 160px; overflow: hidden;
+    background: linear-gradient(160deg, #3a2218 0%, #1e1830 40%, #141828 100%);
+  }
+  .panel-thumb::before {
+    content: ''; position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(180deg, transparent 40%, rgba(18,14,22,0.8) 100%);
+  }
+  .panel-thumb::after {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 25% 55%, rgba(255,155,80,0.2) 0%, transparent 55%),
+      radial-gradient(ellipse at 70% 35%, rgba(255,140,66,0.15) 0%, transparent 45%),
+      radial-gradient(ellipse at 50% 80%, rgba(255,180,100,0.12) 0%, transparent 35%);
+  }
+  .thumb-buildings {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
+    display: flex; align-items: flex-end; gap: 3px; padding: 0 4px;
+  }
+  .thumb-buildings span {
+    flex: 1; background: rgba(10,8,18,0.75);
+    border-radius: 2px 2px 0 0;
+  }
+  .live-badge {
+    position: absolute; top: 12px; right: 12px; z-index: 3;
+    background: #d42a2a; color: #fff; font-size: 10px; font-weight: 700;
+    padding: 4px 10px; border-radius: 5px; letter-spacing: 0.5px;
+    animation: livePulse 1.5s ease-in-out infinite;
+    box-shadow: 0 0 12px rgba(220,40,40,0.4);
+  }
+  @keyframes livePulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+  .close-btn {
+    position: absolute; top: 12px; left: 12px; z-index: 3;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(0,0,0,0.45); border: none; color: #fff;
+    font-size: 13px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .close-btn:hover { background: rgba(0,0,0,0.7); transform: scale(1.05); }
+
+  .panel-body { padding: 18px 18px 16px; }
+  .panel-title-row { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+  .panel-title {
+    font-size: 20px; font-weight: 700; color: var(--text-primary);
+    letter-spacing: -0.2px;
+  }
+  .panel-location {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;
+  }
+  .panel-desc {
+    font-size: 12px; color: rgba(160,144,128,0.7);
+    line-height: 1.6; margin-bottom: 16px;
+    font-style: italic;
+  }
+  .panel-stats {
+    display: flex; align-items: center; gap: 18px;
+    margin-bottom: 18px; font-size: 12px; color: var(--text-secondary);
+  }
+  .panel-stats .listeners {
+    color: #d0c0b0; font-weight: 600;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .panel-stats .stat-icon {
+    cursor: pointer; transition: all 0.2s; font-size: 16px;
+    opacity: 0.7;
+  }
+  .panel-stats .stat-icon:hover { opacity: 1; color: var(--accent-warm); transform: scale(1.1); }
+
+  .stop-btn {
+    width: 100%; padding: 13px;
+    background: linear-gradient(135deg, #c0392b, #a01d1d);
+    border: none; border-radius: 12px;
+    color: #fff; font-size: 14px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; gap: 10px;
+    transition: all 0.3s; letter-spacing: 0.5px;
+    box-shadow: 0 4px 20px rgba(180,30,30,0.3);
+  }
+  .stop-btn:hover {
+    background: linear-gradient(135deg, #d94444, #b82828);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(200,40,40,0.4);
+  }
+  .stop-icon {
+    width: 12px; height: 12px; background: #fff; border-radius: 3px;
+  }
+
+  /* ===== BOTTOM PLAYER BAR ===== */
+  .player-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
+    height: 84px;
+    background: rgba(14, 12, 20, 0.72);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid rgba(255, 180, 130, 0.06);
+    display: flex; align-items: center; padding: 0 24px;
+    gap: 16px;
+  }
+  .player-cover {
+    width: 54px; height: 54px; border-radius: 50%;
+    background: linear-gradient(145deg, #1e1830, #141020);
+    border: 2px solid rgba(255, 180, 130, 0.12);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 10px; font-weight: 800; color: #c0b0a0;
+    letter-spacing: 2px; text-align: center; line-height: 1.2;
+    position: relative; overflow: hidden;
+    box-shadow: 0 0 20px rgba(255, 140, 66, 0.08);
+  }
+  .player-cover::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 40%;
+    background: linear-gradient(180deg, rgba(255,220,180,0.08), transparent);
+    border-radius: 50% 50% 0 0;
+  }
+
+  .player-info { flex: 1; min-width: 0; }
+  .player-song-row { display: flex; align-items: center; gap: 8px; }
+  .player-song {
+    font-size: 14px; font-weight: 700; color: #f0e6e0; white-space: nowrap;
+  }
+  .vip-badge {
+    font-size: 10px; color: #FFB366; font-weight: 700;
+    background: rgba(255,179,102,0.1); padding: 2px 6px; border-radius: 4px;
+  }
+  .player-artist {
+    font-size: 11px; color: var(--text-secondary); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; margin-top: 2px;
+  }
+  .player-source {
+    font-size: 10px; color: rgba(160,144,128,0.6); margin-top: 3px;
+  }
+
+  .player-controls-area {
+    display: flex; flex-direction: column; align-items: flex-end;
+    gap: 8px; flex-shrink: 0;
+  }
+  .progress-row {
+    display: flex; align-items: center; gap: 10px; width: 280px;
+  }
+  .progress-time {
+    font-size: 10px; color: var(--text-secondary);
+    font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono', 'Consolas', monospace;
+    min-width: 34px;
+  }
+  .progress-bar-track {
+    flex: 1; height: 4px; background: rgba(255,255,255,0.06);
+    border-radius: 2px; position: relative; cursor: pointer;
+  }
+  .progress-bar-fill {
+    position: absolute; left: 0; top: 0; height: 100%;
+    background: linear-gradient(90deg, #FF8C42, #FFB366, #FFE0C0);
+    border-radius: 2px; width: 0%;
+    box-shadow: 0 0 12px rgba(255,140,66,0.5);
+  }
+  .volume-row {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .volume-icon { font-size: 13px; color: #908070; }
+  .volume-slider {
+    width: 90px; height: 3px; background: rgba(255,255,255,0.08);
+    border-radius: 2px; position: relative; cursor: pointer;
+  }
+  .volume-fill {
+    position: absolute; left: 0; top: 0; height: 100%;
+    background: #c0b0a0; border-radius: 2px; width: 60%;
+  }
+  .play-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #f0e6e0; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s; margin-left: 14px;
+    box-shadow: 0 0 18px rgba(255,200,150,0.25);
+  }
+  .play-btn:hover { transform: scale(1.1); background: #fff; }
+  .play-btn::after {
+    content: ''; width: 0; height: 0;
+    border-left: 11px solid #1a1428;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    margin-left: 2px;
+  }
+  .trial-text {
+    font-size: 9px; color: rgba(255,220,180,0.2);
+    position: absolute; right: 24px; bottom: 8px;
+    letter-spacing: 1px;
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 768px) {
+    .radio-panel { width: 260px; left: 10px; }
+    .top-right-brand { right: 55px; font-size: 11px; }
+    .player-bar { height: 68px; padding: 0 12px; gap: 10px; }
+    .player-cover { width: 42px; height: 42px; font-size: 8px; }
+    .player-song { font-size: 12px; }
+    .progress-row { width: 150px; }
+    .volume-slider { width: 55px; }
+  }
+  @media (max-width: 480px) {
+    .radio-panel { width: 230px; left: 6px; top: 42%; }
+    .panel-thumb { height: 110px; }
+    .panel-title { font-size: 16px; }
+    .right-controls { right: 6px; gap: 5px; }
+    .right-controls .ctrl-btn { width: 28px; height: 28px; font-size: 11px; }
+    .top-left-icons { gap: 6px; }
+    .top-left-icons .icon-btn { width: 32px; height: 32px; font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 3D Canvas Container -->
+<div id="three-container"></div>
+
+<!-- Top-Left Icon Bar -->
+<div class="top-left-icons">
+  <div class="icon-btn" title="音量">&#x1F50A;</div>
+  <div class="icon-btn" title="喜欢">&#x2661;</div>
+  <div class="icon-btn" title="设置">&#x2699;</div>
+</div>
+
+<!-- Top-Right Brand -->
+<div class="top-right-brand">HEAR THE &#x1F30D;</div>
+
+<!-- Right Controls -->
+<div class="right-controls">
+  <div class="ctrl-btn" title="展开">&#x25A1;</div>
+  <div class="ctrl-btn" title="放大">+</div>
+  <div class="ctrl-btn" title="缩小">&minus;</div>
+  <div class="ctrl-btn" title="全屏">&#x26F6;</div>
+</div>
+
+<!-- Left Radio Panel -->
+<div class="radio-panel" id="radioPanel">
+  <div class="panel-thumb">
+    <button class="close-btn">&times;</button>
+    <span class="live-badge">LIVE</span>
+    <div class="thumb-buildings" id="thumbBuildings"></div>
+  </div>
+  <div class="panel-body">
+    <div class="panel-title-row">
+      <span class="panel-title">India TOP 100</span>
+    </div>
+    <div class="panel-location">
+      <span class="india-flag-icon">&#x1F1EE;&#x1F1F3;</span>
+      <span>India</span>
+    </div>
+    <div class="panel-desc">关于这个电台，主播什么也没说</div>
+    <div class="panel-stats">
+      <span class="listeners">&#x1F441; 0</span>
+      <span class="stat-icon">&#x1F44D;</span>
+      <span class="stat-icon">&#x1F4AC;</span>
+      <span class="stat-icon">&#x2B50;</span>
+    </div>
+    <button class="stop-btn">
+      <span class="stop-icon"></span> 停止收听
+    </button>
+  </div>
+</div>
+
+<!-- Bottom Player Bar -->
+<div class="player-bar">
+  <div class="player-cover">POLICE</div>
+  <div class="player-info">
+    <div class="player-song-row">
+      <span class="player-song">Police</span>
+      <span class="vip-badge">&#x1F48E; VIP</span>
+    </div>
+    <div class="player-artist">Cheema Y, Gur Sidhu &amp; Jasmeen Akhtar</div>
+    <div class="player-source">来自 &#x1F4FB; India TOP 100</div>
+  </div>
+  <div class="player-controls-area">
+    <div class="progress-row">
+      <span class="progress-time">0:00</span>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+      <span class="progress-time">3:42</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="volume-row">
+        <span class="volume-icon">&#x1F50A;</span>
+        <div class="volume-slider">
+          <div class="volume-fill"></div>
+        </div>
+      </div>
+      <button class="play-btn"></button>
+    </div>
+  </div>
+  <span class="trial-text">标准音效试听</span>
+</div>
+
+<!-- Three.js Import Map -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const container = document.getElementById('three-container');
+const thumbBuildings = document.getElementById('thumbBuildings');
+for (let i = 0; i < 22; i++) {
+  const s = document.createElement('span');
+  s.style.height = (12 + Math.random() * 50) + 'px';
+  s.style.opacity = (0.4 + Math.random() * 0.5);
+  thumbBuildings.appendChild(s);
+}
+
+// ===== CONSTANTS =====
+const LX = 0, LZ = -40;
+const LH_TOP = 29.5;
+const CITY_R = 200;
+const GROUND_SZ = 2000;
+const ROAD_MAJOR = 24, ROAD_MINOR = 12;
+
+// ===== SCENE + RENDERER =====
+const scene = new THREE.Scene();
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+container.appendChild(renderer.domElement);
+
+// ===== SKY SHADER =====
+const skyVShader = /*glsl*/`
+varying vec3 vWPos;
+void main() {
+  vec4 wp = modelMatrix * vec4(position,1.0);
+  vWPos = wp.xyz;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+}`;
+const skyFShader = /*glsl*/`
+uniform vec3 topC, midC, horC, glowC;
+varying vec3 vWPos;
+void main() {
+  float h = normalize(vWPos + 400.0).y;
+  vec3 c;
+  // Sunrise: warm orange bleeds into lower 35% of visible sky
+  if(h>0.6) c=mix(midC,topC,smoothstep(0.6,1.0,h));
+  else if(h>0.25) c=mix(horC,midC,smoothstep(0.25,0.6,h));
+  else if(h>-0.15) c=mix(glowC,horC,smoothstep(-0.15,0.25,h));
+  else c=glowC;
+  gl_FragColor=vec4(c,1.0);
+}`;
+const skyDome = new THREE.Mesh(
+  new THREE.SphereGeometry(500,64,32),
+  new THREE.ShaderMaterial({
+    vertexShader: skyVShader, fragmentShader: skyFShader,
+    uniforms: {
+      topC: {value:new THREE.Color('#152238')},
+      midC: {value:new THREE.Color('#2a4560')},
+      horC: {value:new THREE.Color('#c47a5a')},
+      glowC: {value:new THREE.Color('#FF9B55')},
+    },
+    side: THREE.BackSide, depthWrite: false,
+  })
+);
+skyDome.renderOrder = -1;
+scene.add(skyDome);
+
+// ===== FOG =====
+scene.fog = new THREE.Fog(0xe07840, 120, 550);
+
+// ===== LIGHTING =====
+scene.add(new THREE.AmbientLight(0x3a5070, 0.55));
+scene.add(new THREE.HemisphereLight(0x4a6080, 0xFF8C42, 0.55));
+const dirLight = new THREE.DirectionalLight(0x8899aa, 0.25);
+dirLight.position.set(50, 100, 50);
+scene.add(dirLight);
+
+const beaconLight = new THREE.PointLight(0xFF8C42, 1.8, 300, 1.5);
+beaconLight.position.set(LX, LH_TOP, LZ);
+scene.add(beaconLight);
+
+const baseGlow = new THREE.PointLight(0xFFB366, 0.6, 40, 2);
+baseGlow.position.set(LX, 1.5, LZ);
+scene.add(baseGlow);
+
+// ===== CAMERA =====
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 1, 800);
+camera.position.set(0, 80, 150);
+camera.lookAt(0, -5, 0);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, -5, 0);
+controls.minDistance = 50; controls.maxDistance = 350;
+controls.maxPolarAngle = Math.PI*0.42; controls.minPolarAngle = 0.15;
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.rotateSpeed = 0.4; controls.zoomSpeed = 1.0;
+controls.update();
+
+// ===== UTILS =====
+function hashFn(x,z) {
+  const n = Math.sin(x*12.9898+z*78.233)*43758.5453;
+  return n - Math.floor(n);
+}
+function isRoad(x,z) {
+  const hwMaj=2.5, hwMin=1.2;
+  const mx=((x%ROAD_MAJOR)+ROAD_MAJOR)%ROAD_MAJOR;
+  const mz=((z%ROAD_MAJOR)+ROAD_MAJOR)%ROAD_MAJOR;
+  if(mx<hwMaj||mx>ROAD_MAJOR-hwMaj||mz<hwMaj||mz>ROAD_MAJOR-hwMaj) return true;
+  const nx=((x%ROAD_MINOR)+ROAD_MINOR)%ROAD_MINOR;
+  const nz=((z%ROAD_MINOR)+ROAD_MINOR)%ROAD_MINOR;
+  if(nx<hwMin||nx>ROAD_MINOR-hwMin||nz<hwMin||nz>ROAD_MINOR-hwMin) return true;
+  return false;
+}
+
+// ===== GROUND TEXTURE =====
+const gTexCanvas = document.createElement('canvas');
+gTexCanvas.width = 2048; gTexCanvas.height = 2048;
+const gtx = gTexCanvas.getContext('2d');
+const ppu = 2048/GROUND_SZ;
+
+gtx.fillStyle = '#2d3a4f';
+gtx.fillRect(0,0,2048,2048);
+
+// Concrete noise
+for(let i=0;i<8000;i++) {
+  gtx.fillStyle = `rgba(255,255,255,${Math.random()*0.03})`;
+  gtx.fillRect(Math.random()*2048,Math.random()*2048,2,2);
+}
+
+// Major roads
+gtx.strokeStyle = '#334155';
+gtx.lineWidth = 5*ppu;
+for(let x=1024%Math.round(ROAD_MAJOR*ppu); x<2048; x+=ROAD_MAJOR*ppu) {
+  gtx.beginPath(); gtx.moveTo(x,0); gtx.lineTo(x,2048); gtx.stroke();
+}
+for(let y=1024%Math.round(ROAD_MAJOR*ppu); y<2048; y+=ROAD_MAJOR*ppu) {
+  gtx.beginPath(); gtx.moveTo(0,y); gtx.lineTo(2048,y); gtx.stroke();
+}
+
+// Sidewalks
+gtx.strokeStyle = '#475569';
+gtx.lineWidth = 1.2*ppu;
+for(let x=1024%Math.round(ROAD_MAJOR*ppu); x<2048; x+=ROAD_MAJOR*ppu) {
+  gtx.beginPath(); gtx.moveTo(x-2.8*ppu,0); gtx.lineTo(x-2.8*ppu,2048); gtx.stroke();
+  gtx.beginPath(); gtx.moveTo(x+2.8*ppu,0); gtx.lineTo(x+2.8*ppu,2048); gtx.stroke();
+}
+for(let y=1024%Math.round(ROAD_MAJOR*ppu); y<2048; y+=ROAD_MAJOR*ppu) {
+  gtx.beginPath(); gtx.moveTo(0,y-2.8*ppu); gtx.lineTo(2048,y-2.8*ppu); gtx.stroke();
+  gtx.beginPath(); gtx.moveTo(0,y+2.8*ppu); gtx.lineTo(2048,y+2.8*ppu); gtx.stroke();
+}
+
+// Minor roads
+gtx.strokeStyle = '#1e293b';
+gtx.lineWidth = 2.2*ppu;
+for(let x=1024%Math.round(ROAD_MINOR*ppu); x<2048; x+=ROAD_MINOR*ppu) {
+  if(Math.abs((x-1024%Math.round(ROAD_MAJOR*ppu))%Math.round(ROAD_MAJOR*ppu))<3*ppu) continue;
+  gtx.beginPath(); gtx.moveTo(x,0); gtx.lineTo(x,2048); gtx.stroke();
+}
+for(let y=1024%Math.round(ROAD_MINOR*ppu); y<2048; y+=ROAD_MINOR*ppu) {
+  if(Math.abs((y-1024%Math.round(ROAD_MAJOR*ppu))%Math.round(ROAD_MAJOR*ppu))<3*ppu) continue;
+  gtx.beginPath(); gtx.moveTo(0,y); gtx.lineTo(2048,y); gtx.stroke();
+}
+
+// Radial fade (only at extreme edges, fog handles the rest)
+const rGrad = gtx.createRadialGradient(1024,1024,800*ppu,1024,1024,1024*ppu);
+rGrad.addColorStop(0,'rgba(0,0,0,0)'); rGrad.addColorStop(0.85,'rgba(0,0,0,0)');
+rGrad.addColorStop(0.95,'rgba(255,140,66,0.25)'); rGrad.addColorStop(1,'rgba(255,140,66,0.55)');
+gtx.fillStyle=rGrad; gtx.fillRect(0,0,2048,2048);
+
+const gTex = new THREE.CanvasTexture(gTexCanvas);
+gTex.wrapS=gTex.wrapT=THREE.ClampToEdgeWrapping;
+gTex.minFilter=THREE.LinearMipmapLinearFilter; gTex.magFilter=THREE.LinearFilter;
+gTex.generateMipmaps=true;
+
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(GROUND_SZ,GROUND_SZ),
+  new THREE.MeshStandardMaterial({map:gTex,roughness:0.7,metalness:0.05,color:0xffffff})
+);
+ground.rotation.x=-Math.PI/2; ground.position.y=-0.1; ground.receiveShadow=true;
+scene.add(ground);
+
+// ===== BUILDINGS (5 types) =====
+const buildingGroup = new THREE.Group();
+const bGeomCache = {};
+function bGeom(w,h,d) {
+  const k=`${w.toFixed(1)},${h.toFixed(1)},${d.toFixed(1)}`;
+  if(!bGeomCache[k]) bGeomCache[k]=new THREE.BoxGeometry(w,h,d);
+  return bGeomCache[k];
+}
+
+const BLDG_DARK  = new THREE.MeshStandardMaterial({color:0x1e293b,roughness:0.85,metalness:0.05});
+const BLDG_MID   = new THREE.MeshStandardMaterial({color:0x334155,roughness:0.8,metalness:0.08});
+const BLDG_LIGHT = new THREE.MeshStandardMaterial({color:0x475569,roughness:0.75,metalness:0.1});
+const BLDG_DARK2 = new THREE.MeshStandardMaterial({color:0x0f172a,roughness:0.85,metalness:0.05});
+const BLDG_GLASS = new THREE.MeshStandardMaterial({color:0x334155,roughness:0.3,metalness:0.2,emissive:0xFFE4B5,emissiveIntensity:0.08});
+const ROOF_MAT   = new THREE.MeshStandardMaterial({color:0x0f172a,roughness:0.7,metalness:0.1});
+const WINDOW_MAT = new THREE.MeshStandardMaterial({color:0xFFE4B5,emissive:0xFFE4B5,emissiveIntensity:0.25,roughness:0.2});
+const PARK_MAT   = new THREE.MeshStandardMaterial({color:0x2d5016,roughness:0.9,metalness:0.0});
+const TREE_TRUNK = new THREE.MeshStandardMaterial({color:0x4a3728,roughness:0.9,metalness:0.0});
+const TREE_LEAF  = new THREE.MeshStandardMaterial({color:0x1a4a10,roughness:0.8,metalness:0.0});
+
+const placedBldgs = [];
+const BLDG_STEP = 3;
+const MIN_SPACING = 5;
+
+function tooClose(x,z,list,md) {
+  for(const p of list) {
+    if(Math.sqrt((x-p.x)**2+(z-p.z)**2)<md) return true;
+  }
+  return false;
+}
+
+function addWindows(parent,x,z,w,h,d,floors,odds) {
+  for(let fy=0;fy<floors;fy++) {
+    for(let face=0;face<4;face++) {
+      if(hashFn(x*7+fy*3+face,z*5)>odds) continue;
+      const angle=face*Math.PI/2;
+      const wx=x+Math.cos(angle)*(w/2+0.03);
+      const wy=fy*1.15-h/2+0.7;
+      const wz=z+Math.sin(angle)*(d/2+0.03);
+      const wg=new THREE.BoxGeometry(0.3,0.4,0.04);
+      const wm=new THREE.Mesh(wg,WINDOW_MAT);
+      wm.position.set(wx,wy,wz);
+      parent.add(wm);
+    }
+  }
+}
+
+for(let x=-CITY_R; x<=CITY_R; x+=BLDG_STEP) {
+  for(let z=-CITY_R; z<=CITY_R; z+=BLDG_STEP) {
+    const dist=Math.sqrt(x*x+z*z);
+    if(dist>CITY_R) continue;
+    if(isRoad(x,z)) continue;
+    if(tooClose(x,z,placedBldgs,MIN_SPACING)) continue;
+    if(hashFn(x*0.05,z*0.05)>0.65) continue;
+    const dxL=x-LX, dzL=z-LZ;
+    if(Math.sqrt(dxL*dxL+dzL*dzL)<22) continue;
+
+    const n=hashFn(x*0.03,z*0.03);
+    const n2=hashFn(z*0.05,x*0.05);
+    const typeRoll=n2;
+    let mesh;
+
+    if(typeRoll<0.40) {
+      // TYPE A: Low flat house
+      const bh=0.8+n*0.8;
+      const bw=2+n*2.5, bd=2+hashFn(z*0.07,x*0.07)*2;
+      const mat=[BLDG_DARK,BLDG_MID,BLDG_LIGHT,BLDG_DARK2][Math.floor(n*4)];
+      mesh=new THREE.Mesh(bGeom(bw,bh,bd),mat);
+      mesh.position.set(x,bh/2,z);
+      if(n>0.6) {
+        const ac=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.3,0.4),ROOF_MAT);
+        ac.position.set(x+n*0.4-bw/4,bh+0.15,z+n2*0.4-bd/4);
+        buildingGroup.add(ac);
+      }
+      if(bh>1) addWindows(buildingGroup,x,z,bw,bh,bd,Math.floor(bh*0.7),0.92);
+    } else if(typeRoll<0.65) {
+      // TYPE B: Multi-story residential
+      const bh=2+n*2.5;
+      const bw=1.8+n*2, bd=1.8+n2*2;
+      const mat=[BLDG_MID,BLDG_LIGHT,BLDG_DARK][Math.floor(n*3)];
+      mesh=new THREE.Mesh(bGeom(bw,bh,bd),mat);
+      mesh.position.set(x,bh/2,z);
+      const rf=new THREE.Mesh(new THREE.BoxGeometry(bw-0.4,0.2,bd-0.4),ROOF_MAT);
+      rf.position.set(x,bh+0.1,z); buildingGroup.add(rf);
+      if(n>0.4) {
+        const balc=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.1,0.3),ROOF_MAT);
+        balc.position.set(x+bw/2+0.1,bh*0.6,z); buildingGroup.add(balc);
+      }
+      addWindows(buildingGroup,x,z,bw,bh,bd,Math.floor(bh*0.8),0.88);
+    } else if(typeRoll<0.80) {
+      // TYPE C: Commercial/glass
+      const bh=1.5+n*2;
+      const bw=3+n*3, bd=2.5+n2*2.5;
+      mesh=new THREE.Mesh(bGeom(bw,bh,bd),BLDG_GLASS);
+      mesh.position.set(x,bh/2,z);
+      const eq=new THREE.Mesh(new THREE.BoxGeometry(1,0.5,0.8),ROOF_MAT);
+      eq.position.set(x,bh+0.25,z); buildingGroup.add(eq);
+      addWindows(buildingGroup,x,z,bw,bh,bd,Math.floor(bh*0.6),0.88);
+    } else if(typeRoll<0.92) {
+      // TYPE D: Tower
+      const bh=5+n*4;
+      const bw=1.5+n*1.5, bd=1.5+n2*1.5;
+      const mat=[BLDG_DARK,BLDG_MID][Math.floor(n*2)];
+      mesh=new THREE.Mesh(bGeom(bw,bh,bd),mat);
+      mesh.position.set(x,bh/2,z);
+      const topH=0.8; const topW=bw-0.6;
+      const topM=new THREE.Mesh(new THREE.BoxGeometry(topW,topH,topW),ROOF_MAT);
+      topM.position.set(x,bh+topH/2,z); buildingGroup.add(topM);
+      addWindows(buildingGroup,x,z,bw,bh,bd,Math.floor(bh*0.8),0.9);
+    } else {
+      // TYPE E: Park
+      const pr=3+n*4;
+      mesh=new THREE.Mesh(new THREE.CylinderGeometry(pr,pr,0.15,16),PARK_MAT);
+      mesh.position.set(x,0.075,z);
+      for(let ti=0;ti<Math.floor(3+n*5);ti++) {
+        const ta=Math.random()*Math.PI*2, td=Math.random()*pr*0.8;
+        const tx=x+Math.cos(ta)*td, tz=z+Math.sin(ta)*td;
+        const th=0.8+Math.random()*1.5;
+        const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.12,th,6),TREE_TRUNK);
+        trunk.position.set(tx,th/2,tz); buildingGroup.add(trunk);
+        const crownR=0.3+Math.random()*0.5;
+        const crown=new THREE.Mesh(new THREE.ConeGeometry(crownR,0.8+Math.random()*0.6,8),TREE_LEAF);
+        crown.position.set(tx,th+crownR*0.6,tz); buildingGroup.add(crown);
+      }
+    }
+
+    if(mesh) {
+      mesh.castShadow=true; mesh.receiveShadow=true;
+      buildingGroup.add(mesh);
+      placedBldgs.push({x,z});
+    }
+  }
+}
+scene.add(buildingGroup);
+
+// ===== LIGHTHOUSE — physical glass + internal glow core =====
+const lighthouseGroup = new THREE.Group();
+lighthouseGroup.position.set(LX,0,LZ);
+
+// Stone/concrete base tiers
+const makeBase = (rt,rb,h,y,c) => {
+  const g=new THREE.CylinderGeometry(rt,rb,h,48);
+  const m=new THREE.MeshStandardMaterial({color:c,roughness:0.9,metalness:0.05});
+  const mesh=new THREE.Mesh(g,m);
+  mesh.position.y=y; mesh.castShadow=true; mesh.receiveShadow=true;
+  return mesh;
+};
+lighthouseGroup.add(makeBase(12,14,2,1,0x4a5568));
+lighthouseGroup.add(makeBase(10,12,2,3,0x3d4556));
+lighthouseGroup.add(makeBase(8,10,1.5,4.5,0x5a6578));
+
+// Internal glow core
+const innerCoreGeom = new THREE.CylinderGeometry(1,1.5,25,32);
+const innerCore = new THREE.Mesh(innerCoreGeom, new THREE.MeshBasicMaterial({
+  color:0xFFB366, transparent:true, opacity:0.8, depthWrite:false,
+}));
+innerCore.position.y=15;
+lighthouseGroup.add(innerCore);
+
+// Outer glass shell — MeshPhysicalMaterial
+const towerMat = new THREE.MeshPhysicalMaterial({
+  color:0xFF8C42, roughness:0.1, metalness:0.0,
+  emissive:0xFF6B35, emissiveIntensity:0.15,
+  transparent:true, opacity:0.45,
+  clearcoat:0.05, clearcoatRoughness:0.3,
+});
+
+const makeTower = (rt,rb,h,y) => {
+  const g=new THREE.CylinderGeometry(rt,rb,h,48);
+  const m=new THREE.Mesh(g,towerMat);
+  m.position.y=y; m.castShadow=true;
+  return m;
+};
+lighthouseGroup.add(makeTower(6,8,8,9));
+lighthouseGroup.add(makeTower(4.5,6,6,16));
+lighthouseGroup.add(makeTower(5,4.5,4,21));
+
+// Light chamber base
+const chBase = new THREE.Mesh(
+  new THREE.CylinderGeometry(6,5,1.5,48),
+  new THREE.MeshStandardMaterial({color:0xFFB366,roughness:0.2,metalness:0.05,emissive:0xFFB366,emissiveIntensity:0.8})
+);
+chBase.position.y=23.5; lighthouseGroup.add(chBase);
+
+// Chamber glass body
+const chBody = new THREE.Mesh(
+  new THREE.CylinderGeometry(5,6,3,48),
+  new THREE.MeshPhysicalMaterial({color:0xFFE4B5,roughness:0.05,metalness:0.0,emissive:0xFFB366,emissiveIntensity:0.5,transparent:true,opacity:0.45,clearcoat:0.15})
+);
+chBody.position.y=25.5; lighthouseGroup.add(chBody);
+
+// Internal chamber light core
+const chCore = new THREE.Mesh(
+  new THREE.SphereGeometry(1.8,32,32),
+  new THREE.MeshBasicMaterial({color:0xffffff})
+);
+chCore.position.y=25.8; lighthouseGroup.add(chCore);
+
+// Metal frame around chamber (bronze)
+const frameMat = new THREE.MeshStandardMaterial({color:0x8B7355,roughness:0.3,metalness:0.8});
+for(let i=0;i<8;i++) {
+  const angle=(i/8)*Math.PI*2;
+  const fx=Math.cos(angle)*5.3, fz=Math.sin(angle)*5.3;
+  const frame=new THREE.Mesh(new THREE.BoxGeometry(0.15,3.2,0.15),frameMat);
+  frame.position.set(fx,25.5,fz); lighthouseGroup.add(frame);
+}
+// Horizontal rings on chamber
+for(let ry=24; ry<=27; ry+=1.5) {
+  const r=ry>25.5?4.5:5.3;
+  const hRingMesh = new THREE.Mesh(new THREE.TorusGeometry(r,0.1,8,48),frameMat);
+  hRingMesh.rotation.x=Math.PI/2; hRingMesh.position.y=ry;
+  lighthouseGroup.add(hRingMesh);
+}
+
+// Chamber cone roof
+const chRoof = new THREE.Mesh(
+  new THREE.ConeGeometry(5.5,2,48),
+  new THREE.MeshStandardMaterial({color:0xFF8C42,roughness:0.2,metalness:0.1,emissive:0xFF8C42,emissiveIntensity:0.7})
+);
+chRoof.position.y=28; lighthouseGroup.add(chRoof);
+
+// Top glow sphere + aura
+const topGlow = new THREE.Mesh(new THREE.SphereGeometry(2,32,32), new THREE.MeshBasicMaterial({color:0xffffff}));
+topGlow.position.y=29.5; lighthouseGroup.add(topGlow);
+
+const topAura = new THREE.Mesh(
+  new THREE.SphereGeometry(3,32,32),
+  new THREE.MeshBasicMaterial({color:0xFFB366,transparent:true,opacity:0.3,depthWrite:false})
+);
+topAura.position.y=29.5; lighthouseGroup.add(topAura);
+
+// Base glow ring
+const baseRing = new THREE.Mesh(
+  new THREE.TorusGeometry(15,0.5,16,80),
+  new THREE.MeshBasicMaterial({color:0xFFB366,transparent:true,opacity:0.45,depthWrite:false})
+);
+baseRing.rotation.x=Math.PI/2; baseRing.position.y=0.5;
+lighthouseGroup.add(baseRing);
+
+const ringLight = new THREE.PointLight(0xFFE4B5,0.4,35);
+ringLight.position.y=0.5; lighthouseGroup.add(ringLight);
+
+// Small annex buildings around base
+for(let i=0;i<6;i++) {
+  const angle=(i/6)*Math.PI*2, r=16;
+  const ah=1+Math.random()*1.5;
+  const annex=new THREE.Mesh(
+    new THREE.BoxGeometry(2,ah,2),
+    new THREE.MeshStandardMaterial({color:0x2d3748,roughness:0.6,metalness:0.2})
+  );
+  annex.position.set(Math.cos(angle)*r,ah/2,Math.sin(angle)*r);
+  annex.rotation.y=angle; annex.castShadow=true; annex.receiveShadow=true;
+  lighthouseGroup.add(annex);
+}
+
+scene.add(lighthouseGroup);
+
+// ===== BEAM =====
+const beamGroup = new THREE.Group();
+beamGroup.position.set(LX,29.5,LZ);
+
+const BEAM_LEN=100;
+const beamOuter = new THREE.Mesh(
+  new THREE.ConeGeometry(1,BEAM_LEN,32,8,true),
+  new THREE.MeshBasicMaterial({color:0xFFE4B5,transparent:true,opacity:0.1,side:THREE.DoubleSide,depthWrite:false})
+);
+beamOuter.rotation.x=-Math.PI/2; beamOuter.position.z=BEAM_LEN/2;
+beamGroup.add(beamOuter);
+
+const beamInner = new THREE.Mesh(
+  new THREE.ConeGeometry(0.5,BEAM_LEN,24,8,true),
+  new THREE.MeshBasicMaterial({color:0xFFE4B5,transparent:true,opacity:0.06,side:THREE.DoubleSide,depthWrite:false})
+);
+beamInner.rotation.x=-Math.PI/2; beamInner.position.z=BEAM_LEN/2;
+beamGroup.add(beamInner);
+
+beamGroup.rotation.x=THREE.MathUtils.degToRad(5);
+scene.add(beamGroup);
+
+// ===== PARTICLES =====
+// Dynamic star particles — close, bright, animated twinkle
+const starsGeom = new THREE.BufferGeometry();
+const starsCnt = 350;
+const starsPos = new Float32Array(starsCnt*3);
+const starsBase = new Float32Array(starsCnt); // base brightness per star
+for(let i=0;i<starsCnt;i++) {
+  // Spread across full sky from zenith to near horizon
+  const th=Math.random()*Math.PI*2, ph=Math.random()*Math.PI*0.8;
+  const r=40+Math.random()*100;
+  starsPos[i*3]=Math.cos(th)*Math.sin(ph)*r;
+  starsPos[i*3+1]=60+Math.cos(ph)*r;
+  starsPos[i*3+2]=Math.sin(th)*Math.sin(ph)*r-20;
+  starsBase[i]=Math.random()*Math.PI*2;
+}
+starsGeom.setAttribute('position',new THREE.BufferAttribute(starsPos,3));
+const stars = new THREE.Points(starsGeom, new THREE.PointsMaterial({
+  color:0xffffff, size:1.8, transparent:true, opacity:0.85,
+  depthWrite:false, blending:THREE.AdditiveBlending, sizeAttenuation:false,
+}));
+scene.add(stars);
+
+// Bright star halos — concentrated near horizon for sunrise feel
+const haloGeom = new THREE.BufferGeometry();
+const haloCnt = 60;
+const haloPos = new Float32Array(haloCnt*3);
+for(let i=0;i<haloCnt;i++) {
+  const th=Math.random()*Math.PI*2, ph=0.3+Math.random()*Math.PI*0.6;
+  const r=50+Math.random()*80;
+  haloPos[i*3]=Math.cos(th)*Math.sin(ph)*r;
+  haloPos[i*3+1]=55+Math.cos(ph)*r;
+  haloPos[i*3+2]=Math.sin(th)*Math.sin(ph)*r-15;
+}
+haloGeom.setAttribute('position',new THREE.BufferAttribute(haloPos,3));
+const halos = new THREE.Points(haloGeom, new THREE.PointsMaterial({
+  color:0xffeedd, size:4.5, transparent:true, opacity:0.5,
+  depthWrite:false, blending:THREE.AdditiveBlending, sizeAttenuation:false,
+}));
+scene.add(halos);
+
+// Atmospheric dust (250)
+const dustGeom = new THREE.BufferGeometry();
+const dustCnt = 250;
+const dustPos = new Float32Array(dustCnt*3);
+const dustVel = new Float32Array(dustCnt*3);
+for(let i=0;i<dustCnt;i++) {
+  dustPos[i*3]=(Math.random()-0.5)*400;
+  dustPos[i*3+1]=5+Math.random()*60;
+  dustPos[i*3+2]=(Math.random()-0.5)*400-40;
+  dustVel[i*3]=(Math.random()-0.5)*0.2;
+  dustVel[i*3+1]=-0.05-Math.random()*0.15;
+  dustVel[i*3+2]=(Math.random()-0.5)*0.2;
+}
+dustGeom.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
+const dust = new THREE.Points(dustGeom, new THREE.PointsMaterial({
+  color:0x475569, size:0.25, transparent:true, opacity:0.3,
+  depthWrite:false, blending:THREE.AdditiveBlending, sizeAttenuation:true,
+}));
+scene.add(dust);
+
+// Fireflies (40)
+const ffGeom = new THREE.BufferGeometry();
+const ffCnt = 20;
+const ffPos = new Float32Array(ffCnt*3);
+const ffPhase = new Float32Array(ffCnt);
+for(let i=0;i<ffCnt;i++) {
+  ffPos[i*3]=(Math.random()-0.5)*120;
+  ffPos[i*3+1]=3+Math.random()*20;
+  ffPos[i*3+2]=(Math.random()-0.5)*120-40;
+  ffPhase[i]=Math.random()*Math.PI*2;
+}
+ffGeom.setAttribute('position',new THREE.BufferAttribute(ffPos,3));
+const ff = new THREE.Points(ffGeom, new THREE.PointsMaterial({
+  color:0xbfdbfe, size:0.35, transparent:true, opacity:0.45,
+  depthWrite:false, blending:THREE.AdditiveBlending, sizeAttenuation:true,
+}));
+scene.add(ff);
+
+// Beam particles (70)
+const bpGeom = new THREE.BufferGeometry();
+const bpCnt = 70;
+const bpPos = new Float32Array(bpCnt*3);
+const bpProgress = new Float32Array(bpCnt);
+for(let i=0;i<bpCnt;i++) {
+  bpProgress[i]=Math.random();
+  bpPos[i*3]=LX+(Math.random()-0.5)*2;
+  bpPos[i*3+1]=29.5;
+  bpPos[i*3+2]=LZ+bpProgress[i]*BEAM_LEN;
+}
+bpGeom.setAttribute('position',new THREE.BufferAttribute(bpPos,3));
+const bp = new THREE.Points(bpGeom, new THREE.PointsMaterial({
+  color:0xFFE4B5, size:0.3, transparent:true, opacity:0.35,
+  depthWrite:false, blending:THREE.AdditiveBlending, sizeAttenuation:true,
+}));
+scene.add(bp);
+
+// ===== ANIMATION =====
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t=clock.getElapsedTime();
+  const dt=Math.min(t-(animate._lastT||t),0.1);
+  animate._lastT=t;
+
+  controls.update();
+
+  // Beam sweep + pulse
+  beamGroup.rotation.y+=0.0015;
+  const bp=1+Math.sin(t*1.3)*0.05;
+  beamGroup.scale.set(bp,1,bp);
+
+  // Lighthouse glow
+  const gp=0.7+Math.sin(t*2.0)*0.15;
+  chBody.material.emissiveIntensity=0.5*gp;
+  topAura.material.opacity=0.15+Math.sin(t*2.0)*0.08;
+  topAura.scale.setScalar(0.9+Math.sin(t*1.7)*0.08);
+  beaconLight.intensity=1.8+Math.sin(t*2.0)*0.4;
+
+  // Stars — dynamic twinkle
+  stars.material.opacity=0.6+Math.sin(t*2.3)*0.25+Math.sin(t*5.1)*0.15;
+  stars.material.size=1.5+Math.sin(t*3.1)*0.4;
+  halos.material.opacity=0.35+Math.sin(t*1.8)*0.2+Math.sin(t*3.7)*0.12;
+  halos.material.size=4.0+Math.sin(t*2.5)*0.8;
+
+  // Dust drift (slowly sinking)
+  for(let i=0;i<dustCnt;i++) {
+    dustPos[i*3]+=dustVel[i*3]*dt*10;
+    dustPos[i*3+1]+=dustVel[i*3+1]*dt*10;
+    dustPos[i*3+2]+=dustVel[i*3+2]*dt*10;
+    if(Math.abs(dustPos[i*3])>200) dustPos[i*3]*=-0.9;
+    if(dustPos[i*3+1]<2) dustPos[i*3+1]=55+Math.random()*10;
+    if(dustPos[i*3+1]>60) dustPos[i*3+1]=2;
+    if(Math.abs(dustPos[i*3+2]+40)>200) dustPos[i*3+2]*=-0.9;
+  }
+  dustGeom.attributes.position.needsUpdate=true;
+
+  // Fireflies
+  const ffA=ffGeom.attributes.position;
+  for(let i=0;i<ffCnt;i++) {
+    ffA.setZ(i,ffPos[i*3+2]+Math.sin(t*1.8+ffPhase[i])*3);
+    ffA.setY(i,ffPos[i*3+1]+Math.sin(t*1.2+ffPhase[i])*2);
+    ffA.setX(i,ffPos[i*3]+Math.cos(t*1.5+ffPhase[i])*4);
+  }
+  ffA.needsUpdate=true;
+  ff.material.opacity=0.4+Math.sin(t*2.0)*0.2;
+
+  // Beam particles flow
+  const bpA=bpGeom.attributes.position;
+  for(let i=0;i<bpCnt;i++) {
+    bpProgress[i]=(bpProgress[i]+dt*0.08)%1;
+    bpA.setX(i,LX+(Math.sin(t*2+bpProgress[i]*10))*1.5);
+    bpA.setY(i,29.5+bpProgress[i]*4);
+    bpA.setZ(i,LZ+bpProgress[i]*BEAM_LEN);
+  }
+  bpA.needsUpdate=true;
+
+  renderer.render(scene,camera);
+}
+animate._lastT=0;
+
+// ===== RESIZE =====
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+// ===== UI BUTTONS =====
+document.querySelector('.right-controls .ctrl-btn:last-child').addEventListener('click',()=>{
+  document.fullscreenElement?document.exitFullscreen():document.body.requestFullscreen();
+});
+const ctrlBtns=document.querySelectorAll('.right-controls .ctrl-btn');
+ctrlBtns[1].addEventListener('click',()=>camera.position.multiplyScalar(0.85));
+ctrlBtns[2].addEventListener('click',()=>camera.position.multiplyScalar(1.15));
+document.querySelector('.stop-btn').addEventListener('click',function(){
+  if(this.textContent.includes('停止收听')){
+    this.innerHTML='<span class="stop-icon"></span> 继续收听';
+    this.style.background='linear-gradient(135deg,#33aa55,#228844)';
+    document.querySelector('.play-btn').style.opacity='0.5';
+  }else{
+    this.innerHTML='<span class="stop-icon"></span> 停止收听';
+    this.style.background='linear-gradient(135deg,#e04040,#c02020)';
+    document.querySelector('.play-btn').style.opacity='1';
+  }
+});
+
+// ===== START =====
+animate();
+console.log('India TOP 100 — Realism overhaul ready');
+</script>
+
+
+</body>
+</html>

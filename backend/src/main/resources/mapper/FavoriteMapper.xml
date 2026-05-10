@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.musicplatform.mapper.FavoriteMapper">
+
+    <insert id="insert">
+        INSERT INTO favorites (user_id, song_id) VALUES (#{userId}, #{songId})
+    </insert>
+
+    <delete id="delete">
+        DELETE FROM favorites WHERE user_id = #{userId} AND song_id = #{songId}
+    </delete>
+
+    <select id="exists" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM favorites WHERE user_id = #{userId} AND song_id = #{songId}
+    </select>
+
+    <select id="selectByUserId" resultType="com.musicplatform.entity.Song">
+        SELECT s.* FROM songs s
+        INNER JOIN favorites f ON s.id = f.song_id
+        WHERE f.user_id = #{userId}
+        ORDER BY f.created_at DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countByUserId" resultType="int">
+        SELECT COUNT(*) FROM favorites WHERE user_id = #{userId}
+    </select>
+
+    <delete id="deleteBySongId">
+        DELETE FROM favorites WHERE song_id = #{songId}
+    </delete>
+
+</mapper>

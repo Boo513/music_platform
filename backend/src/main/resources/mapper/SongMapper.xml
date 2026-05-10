@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.musicplatform.mapper.SongMapper">
+
+    <select id="selectById" resultType="com.musicplatform.entity.Song">
+        SELECT * FROM songs WHERE id = #{id}
+    </select>
+
+    <select id="selectAll" resultType="com.musicplatform.entity.Song">
+        SELECT * FROM songs
+        <where>
+            <if test="style != null and style != ''">
+                AND style = #{style}
+            </if>
+            <if test="mood != null and mood != ''">
+                AND mood = #{mood}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') OR artist LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        <choose>
+            <when test="sort == 'plays'">ORDER BY play_count DESC</when>
+            <when test="sort == 'title'">ORDER BY title ASC</when>
+            <otherwise>ORDER BY created_at DESC</otherwise>
+        </choose>
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countAll" resultType="int">
+        SELECT COUNT(*) FROM songs
+        <where>
+            <if test="style != null and style != ''">
+                AND style = #{style}
+            </if>
+            <if test="mood != null and mood != ''">
+                AND mood = #{mood}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') OR artist LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO songs (title, artist, file_path, cover_path, duration, style, mood, uploader_id)
+        VALUES (#{title}, #{artist}, #{filePath}, #{coverPath}, #{duration}, #{style}, #{mood}, #{uploaderId})
+    </insert>
+
+    <delete id="deleteById">
+        DELETE FROM songs WHERE id = #{id}
+    </delete>
+
+    <update id="incrementPlayCount">
+        UPDATE songs SET play_count = play_count + 1 WHERE id = #{id}
+    </update>
+
+    <update id="updateCoverPath">
+        UPDATE songs SET cover_path = #{coverPath} WHERE id = #{id}
+    </update>
+
+</mapper>

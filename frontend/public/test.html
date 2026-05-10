@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSS Test</title>
+<style>
+  body {
+    margin: 0;
+    background: linear-gradient(160deg, #0a0a14 0%, #1a1040 40%, #0d1020 70%, #141830 100%);
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f0e6e0;
+  }
+  .glass-panel {
+    background: rgba(18, 14, 24, 0.55);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(255, 180, 130, 0.1);
+    border-radius: 20px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55),
+                inset 0 1px 0 rgba(255, 200, 150, 0.04);
+    padding: 36px;
+    width: 380px;
+  }
+  input {
+    width: 100%;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    color: #f0e6e0;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+    outline: none;
+  }
+  button.neon {
+    width: 100%;
+    padding: 13px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #FF8C42, #FFB366);
+    color: #fff;
+    border: none;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 24px rgba(255,140,66,0.25);
+  }
+  .brand { position: fixed; top: 24px; left: 28px; color: rgba(255,255,255,0.3); font-size: 13px; letter-spacing: 1.5px; }
+  h1 { text-align: center; margin-bottom: 10px; }
+  .sub { text-align: center; color: #a09080; font-size: 12px; margin-bottom: 24px; }
+  .icon { text-align: center; font-size: 40px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="brand">SOUNDSCAPE</div>
+<div class="glass-panel">
+  <div class="icon">🌌</div>
+  <h1 style="font-size:22px;margin:0 0 4px;">欢迎回来</h1>
+  <div class="sub">登录你的音乐世界</div>
+  <input type="text" placeholder="👤 用户名">
+  <input type="password" placeholder="🔒 密码">
+  <button class="neon">登 录</button>
+  <div class="sub" style="margin-top:16px;">还没有账号？<span style="color:#FFB366;cursor:pointer;">立即注册</span></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蓝调时刻 — 浪漫海滩</title>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #000; }
+        #canvas-container { width: 100vw; height: 100vh; }
+        #info {
+            position: absolute; top: 10px; left: 10px;
+            color: #fff; font-family: sans-serif; font-size: 12px;
+            background: rgba(0,0,0,0.5); padding: 8px; border-radius: 4px;
+            pointer-events: none;
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div id="info">蓝调时刻海滩 - 拖拽旋转，滚轮缩放</div>
+    <div id="canvas-container"></div>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a2a4a);
+
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 15, 50);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2.05;
+        controls.minDistance = 15;
+        controls.maxDistance = 100;
+        controls.target.set(0, 1, -15);
+
+        // ========== 天空 ==========
+        const skyGeo = new THREE.SphereGeometry(400, 32, 32);
+        const skyMat = new THREE.ShaderMaterial({
+            vertexShader: `
+                varying vec3 vWorldPos;
+                void main() {
+                    vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                varying vec3 vWorldPos;
+                void main() {
+                    vec3 dir = normalize(vWorldPos);
+                    float h = dir.y;
+
+                    vec3 bottom = vec3(0.95, 0.60, 0.35);
+                    vec3 mid1 = vec3(0.85, 0.50, 0.55);
+                    vec3 mid2 = vec3(0.50, 0.50, 0.70);
+                    vec3 top = vec3(0.08, 0.15, 0.35);
+
+                    vec3 color = mix(bottom, mid1, smoothstep(-0.3, 0.1, h));
+                    color = mix(color, mid2, smoothstep(0.1, 0.4, h));
+                    color = mix(color, top, smoothstep(0.4, 0.8, h));
+
+                    gl_FragColor = vec4(color, 1.0);
+                }
+            `,
+            side: THREE.BackSide
+        });
+        scene.add(new THREE.Mesh(skyGeo, skyMat));
+
+        // ========== 夕阳 - 深暗橙红色 + 波纹粒子 ==========
+        function createSunset() {
+            const sunGroup = new THREE.Group();
+
+            // 主太阳圆盘 - 更暗的深橙红
+            const sunGeo = new THREE.SphereGeometry(8, 32, 32);
+            const sunMat = new THREE.ShaderMaterial({
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        float dist = length(vUv - vec2(0.5, 0.5));
+
+                        // 深暗橙红色渐变
+                        vec3 core = vec3(0.95, 0.55, 0.15);      // 暗金核心
+                        vec3 mid = vec3(0.85, 0.35, 0.12);       // 深橙
+                        vec3 edge = vec3(0.75, 0.20, 0.08);      // 暗红橙边缘
+
+                        vec3 color;
+                        if(dist < 0.3) {
+                            color = core;
+                        } else if(dist < 0.6) {
+                            color = mix(core, mid, (dist - 0.3) / 0.3);
+                        } else {
+                            color = mix(mid, edge, (dist - 0.6) / 0.4);
+                        }
+
+                        float alpha = 1.0 - smoothstep(0.85, 1.0, dist);
+                        alpha *= 0.92;
+
+                        gl_FragColor = vec4(color, alpha);
+                    }
+                `,
+                transparent: true,
+                depthWrite: false
+            });
+            const sun = new THREE.Mesh(sunGeo, sunMat);
+            sunGroup.add(sun);
+
+            // 暗色光晕
+            for(let i = 0; i < 3; i++) {
+                const glowSize = 12 + i * 8;
+                const glowGeo = new THREE.SphereGeometry(glowSize, 32, 32);
+                const glowMat = new THREE.ShaderMaterial({
+                    vertexShader: `
+                        varying vec2 vUv;
+                        void main() {
+                            vUv = uv;
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }
+                    `,
+                    fragmentShader: `
+                        varying vec2 vUv;
+                        void main() {
+                            float dist = length(vUv - vec2(0.5, 0.5));
+                            float glow = exp(-dist * dist * 4.0) * (0.25 - float(` + i + `) * 0.06);
+                            vec3 color = vec3(0.9, 0.45, 0.15);
+                            gl_FragColor = vec4(color, glow);
+                        }
+                    `,
+                    transparent: true,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending
+                });
+                const glow = new THREE.Mesh(glowGeo, glowMat);
+                sunGroup.add(glow);
+            }
+
+            sunGroup.position.set(0, -2, -180);
+            return sunGroup;
+        }
+
+        scene.add(createSunset());
+
+        // ========== 波纹粒子 - 夕阳周围橙黄色波纹 ==========
+        function createRippleParticles() {
+            const particleCount = 800;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+            const sizes = new Float32Array(particleCount);
+            const phases = new Float32Array(particleCount);
+            const speeds = new Float32Array(particleCount);
+
+            for(let i = 0; i < particleCount; i++) {
+                // 在夕阳周围环形分布
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 10 + Math.random() * 40; // 距离夕阳中心
+                const height = (Math.random() - 0.5) * 8;
+
+                positions[i * 3] = Math.cos(angle) * radius;
+                positions[i * 3 + 1] = height;
+                positions[i * 3 + 2] = -180 + Math.sin(angle) * radius * 0.3;
+
+                // 橙黄色
+                const t = Math.random();
+                colors[i * 3] = 0.9 + t * 0.1;     // R
+                colors[i * 3 + 1] = 0.5 + t * 0.3;  // G
+                colors[i * 3 + 2] = 0.1 + t * 0.15; // B
+
+                sizes[i] = 0.5 + Math.random() * 2.5;
+                phases[i] = Math.random() * Math.PI * 2;
+                speeds[i] = 0.3 + Math.random() * 0.7;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+            geometry.setAttribute('phase', new THREE.BufferAttribute(phases, 1));
+            geometry.setAttribute('speed', new THREE.BufferAttribute(speeds, 1));
+
+            const material = new THREE.ShaderMaterial({
+                vertexShader: `
+                    attribute float size;
+                    attribute float phase;
+                    attribute float speed;
+                    attribute vec3 color;
+                    uniform float uTime;
+                    varying vec3 vColor;
+                    varying float vAlpha;
+
+                    void main() {
+                        vColor = color;
+
+                        // 波纹运动：向外扩散 + 上下浮动
+                        vec3 pos = position;
+                        float t = uTime * speed + phase;
+
+                        // 径向波动
+                        float ripple = sin(t * 2.0) * 3.0;
+                        float dist = length(pos.xz);
+                        pos.x += normalize(pos.x) * ripple * 0.3;
+                        pos.z += normalize(pos.z) * ripple * 0.1;
+
+                        // 上下浮动
+                        pos.y += sin(t * 1.5) * 2.0;
+
+                        // 透明度：波纹效果
+                        vAlpha = 0.3 + sin(t * 3.0) * 0.3;
+                        vAlpha *= smoothstep(50.0, 10.0, dist); // 远处淡出
+
+                        vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                        gl_PointSize = size * (300.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vColor;
+                    varying float vAlpha;
+
+                    void main() {
+                        float dist = length(gl_PointCoord - vec2(0.5));
+                        if(dist > 0.5) discard;
+
+                        // 柔和圆形粒子
+                        float alpha = (1.0 - dist * 2.0) * vAlpha;
+                        alpha = smoothstep(0.0, 1.0, alpha);
+
+                        gl_FragColor = vec4(vColor, alpha);
+                    }
+                `,
+                uniforms: {
+                    uTime: { value: 0 }
+                },
+                transparent: true,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            });
+
+            const particles = new THREE.Points(geometry, material);
+            return particles;
+        }
+
+        const rippleParticles = createRippleParticles();
+        scene.add(rippleParticles);
+
+        // ========== 海洋 ==========
+        const oceanGeo = new THREE.PlaneGeometry(300, 300, 256, 256);
+        const oceanMat = new THREE.ShaderMaterial({
+            vertexShader: `
+                uniform float uTime;
+                varying float vElevation;
+                varying vec3 vWorldPos;
+                varying vec2 vUv;
+                varying float vDistToShore;
+                varying vec3 vNormal;
+                varying float vWavePhase;
+
+                vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+                vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+                vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
+                float snoise(vec2 v) {
+                    const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+                                       -0.577350269189626, 0.024390243902439);
+                    vec2 i  = floor(v + dot(v, C.yy));
+                    vec2 x0 = v -   i + dot(i, C.xx);
+                    vec2 i1;
+                    i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+                    vec4 x12 = x0.xyxy + C.xxzz;
+                    x12.xy -= i1;
+                    i = mod289(i);
+                    vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0))
+                        + i.x + vec3(0.0, i1.x, 1.0));
+                    vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
+                        dot(x12.zw,x12.zw)), 0.0);
+                    m = m*m;
+                    m = m*m;
+                    vec3 x = 2.0 * fract(p * C.www) - 1.0;
+                    vec3 h = abs(x) - 0.5;
+                    vec3 ox = floor(x + 0.5);
+                    vec3 a0 = x - ox;
+                    m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+                    vec3 g;
+                    g.x  = a0.x  * x0.x  + h.x  * x0.y;
+                    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+                    return 130.0 * dot(m, g);
+                }
+
+                void main() {
+                    vec3 pos = position;
+
+                    float shoreDist = length(pos.z + 12.0);
+                    vDistToShore = shoreDist;
+                    float dampen = smoothstep(0.0, 40.0, shoreDist);
+
+                    float w1 = sin(pos.x * 0.06 + uTime * 0.25) * 4.0;
+                    float w2 = sin(pos.z * 0.08 + uTime * 0.20) * 3.5;
+                    float w3 = sin((pos.x * 0.20 + pos.z * 0.12) + uTime * 0.32) * 2.5;
+                    float w4 = sin((pos.x * 0.12 - pos.z * 0.20) + uTime * 0.28) * 2.0;
+                    float w5 = sin(pos.x * 0.4 + pos.z * 0.25 + uTime * 0.50) * 1.2;
+                    float w6 = sin(pos.x * 0.3 - pos.z * 0.4 + uTime * 0.45) * 1.0;
+                    float w7 = sin(pos.z * 0.7 + pos.x * 0.15 + uTime * 0.80) * 0.5;
+                    float w8 = sin(pos.x * 1.0 + uTime * 0.90) * 0.4;
+                    float n1 = snoise(pos.xz * 0.02 + uTime * 0.06) * 2.0;
+                    float n2 = snoise(pos.xz * 0.05 + uTime * 0.12) * 1.0;
+                    float n3 = snoise(pos.xz * 0.12 + uTime * 0.20) * 0.4;
+
+                    float totalWave = (w1 + w2 + w3 + w4 + w5 + w6 + w7 + w8 + n1 + n2 + n3) * dampen;
+                    pos.y += totalWave;
+
+                    float zOffset = sin(pos.x * 0.10 + uTime * 0.30) * 1.5
+                                  + sin(pos.z * 0.06 + uTime * 0.22) * 1.2
+                                  + snoise(pos.xz * 0.04 + uTime * 0.10) * 0.8;
+                    pos.z += zOffset * dampen * 0.8;
+
+                    float xOffset = sin(pos.z * 0.08 + uTime * 0.25) * 1.0
+                                  + sin((pos.x + pos.z) * 0.15 + uTime * 0.35) * 0.6;
+                    pos.x += xOffset * dampen * 0.5;
+
+                    vWavePhase = sin(pos.x * 0.06 + uTime * 0.25) * 0.5 + 0.5;
+
+                    float dx = cos(pos.x * 0.06 + uTime * 0.25) * 0.24 * dampen
+                             + cos((pos.x * 0.20 + pos.z * 0.12) + uTime * 0.32) * 0.50 * dampen
+                             + cos(pos.x * 0.4 + pos.z * 0.25 + uTime * 0.50) * 0.48 * dampen
+                             + cos(pos.x * 1.0 + uTime * 0.90) * 0.40 * dampen;
+                    float dz = cos(pos.z * 0.08 + uTime * 0.20) * 0.28 * dampen
+                             + cos((pos.x * 0.12 - pos.z * 0.20) + uTime * 0.28) * (-0.40) * dampen
+                             + cos(pos.z * 0.7 + pos.x * 0.15 + uTime * 0.80) * 0.35 * dampen;
+
+                    vNormal = normalize(vec3(-dx, 1.0, -dz));
+
+                    vElevation = totalWave;
+                    vWorldPos = (modelMatrix * vec4(pos, 1.0)).xyz;
+                    vUv = uv;
+
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float uTime;
+                varying float vElevation;
+                varying vec3 vWorldPos;
+                varying vec2 vUv;
+                varying float vDistToShore;
+                varying vec3 vNormal;
+                varying float vWavePhase;
+
+                float hash(vec2 p) {
+                    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+                }
+
+                float noise(vec2 p) {
+                    vec2 i = floor(p);
+                    vec2 f = fract(p);
+                    f = f * f * (3.0 - 2.0 * f);
+                    return mix(
+                        mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+                        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
+                        f.y
+                    );
+                }
+
+                void main() {
+                    vec3 deep = vec3(0.02, 0.10, 0.28);
+                    vec3 mid = vec3(0.04, 0.22, 0.40);
+                    vec3 shallow = vec3(0.10, 0.42, 0.55);
+                    vec3 foam = vec3(0.90, 0.94, 0.96);
+                    vec3 horizonGlow = vec3(0.95, 0.65, 0.40);
+
+                    float depthMix = smoothstep(-4.0, -1.0, vElevation);
+                    vec3 color = mix(deep, mid, depthMix);
+
+                    float shallowMix = smoothstep(-1.0, 1.5, vElevation);
+                    color = mix(color, shallow, shallowMix * 0.7);
+
+                    vec3 viewDir = normalize(cameraPosition - vWorldPos);
+                    float fresnel = pow(1.0 - abs(viewDir.y), 5.0);
+
+                    float horizonFactor = pow(1.0 - abs(viewDir.y), 2.0);
+                    color = mix(color, horizonGlow, horizonFactor * 0.3 * (1.0 - shallowMix));
+
+                    vec3 lightDir = normalize(vec3(0.3, -0.8, -0.5));
+                    vec3 halfDir = normalize(lightDir + viewDir);
+                    float NdotH = max(dot(vNormal, halfDir), 0.0);
+                    float specular = pow(NdotH, 64.0);
+                    color += vec3(0.7, 0.6, 0.5) * specular * fresnel * 1.2;
+
+                    float specular2 = pow(NdotH, 16.0);
+                    color += vec3(0.3, 0.35, 0.4) * specular2 * 0.4;
+
+                    float foamThreshold = 0.5;
+                    if(vElevation > foamThreshold) {
+                        float foamMix = smoothstep(foamThreshold, 2.0, vElevation);
+                        float stripePattern = sin(vUv.x * 50.0 + vWavePhase * 8.0) * 0.5 + 0.5;
+                        float stripeNoise = noise(vUv * 80.0 + uTime * 0.4);
+                        float stripes = mix(stripePattern, stripeNoise, 0.3);
+                        foamMix *= smoothstep(0.3, 0.7, stripes);
+                        foamMix *= 0.85;
+                        color = mix(color, foam, foamMix);
+                    }
+
+                    float shoreLine = smoothstep(0.0, 30.0, vDistToShore);
+                    if(shoreLine < 0.5 && vElevation > -1.0) {
+                        float shoreFoam = smoothstep(0.0, 0.5, shoreLine);
+                        float shoreNoise = noise(vUv * 40.0 + uTime * 0.5);
+                        float shoreFoamMix = (1.0 - shoreFoam) * shoreNoise;
+                        color = mix(foam, color, shoreFoam);
+                        color += vec3(0.3, 0.3, 0.3) * shoreFoamMix * 0.5;
+                    }
+
+                    float sparkle = noise(vUv * 120.0 + vec2(uTime * 2.5));
+                    if(sparkle > 0.98 && fresnel > 0.1) {
+                        color += vec3(0.5, 0.45, 0.35) * 0.8;
+                    }
+
+                    float sandColor = smoothstep(5.0, 30.0, vDistToShore);
+                    vec3 sandTint = vec3(0.85, 0.78, 0.65);
+                    color = mix(color, sandTint, (1.0 - sandColor) * 0.2);
+
+                    gl_FragColor = vec4(color, 0.93);
+                }
+            `,
+            uniforms: {
+                uTime: { value: 0 }
+            },
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+        const ocean = new THREE.Mesh(oceanGeo, oceanMat);
+        ocean.rotation.x = -Math.PI / 2;
+        ocean.position.y = -0.5;
+        scene.add(ocean);
+
+        // ========== 沙滩 ==========
+        const sandGeo = new THREE.PlaneGeometry(90, 50, 80, 80);
+        const sandPos = sandGeo.attributes.position;
+        for(let i = 0; i < sandPos.count; i++){
+            const x = sandPos.getX(i);
+            const y = sandPos.getY(i);
+            const h = Math.sin(x * 0.08) * 0.5 + Math.cos(y * 0.12) * 0.4
+                    + Math.sin(x * 0.03 + y * 0.05) * 0.8
+                    + Math.sin(x * 0.15) * 0.2;
+            sandPos.setZ(i, h);
+        }
+        sandGeo.computeVertexNormals();
+
+        const sandMat = new THREE.MeshStandardMaterial({
+            color: 0xe8dcc4,
+            roughness: 0.95,
+            metalness: 0.0
+        });
+        const sand = new THREE.Mesh(sandGeo, sandMat);
+        sand.rotation.x = -Math.PI / 2;
+        sand.position.set(0, -0.3, 22);
+        sand.receiveShadow = true;
+        scene.add(sand);
+
+        const wetGeo = new THREE.PlaneGeometry(90, 12, 40, 8);
+        const wetMat = new THREE.MeshStandardMaterial({
+            color: 0xc8b8a0,
+            roughness: 0.5,
+            metalness: 0.05
+        });
+        const wet = new THREE.Mesh(wetGeo, wetMat);
+        wet.rotation.x = -Math.PI / 2;
+        wet.position.set(0, -0.25, 8);
+        scene.add(wet);
+
+        // ========== 椰子树 ==========
+        function createPalm(x, z, scale) {
+            const group = new THREE.Group();
+
+            const trunkSegments = 12;
+            const trunkHeight = 8;
+            for(let i = 0; i < trunkSegments; i++) {
+                const t = i / trunkSegments;
+                const nextT = (i + 1) / trunkSegments;
+
+                const y1 = t * trunkHeight;
+                const y2 = nextT * trunkHeight;
+                const x1 = Math.sin(t * Math.PI * 0.5) * 1.0;
+                const x2 = Math.sin(nextT * Math.PI * 0.5) * 1.0;
+
+                const r1 = 0.4 * (1 - t * 0.5);
+                const r2 = 0.4 * (1 - nextT * 0.5);
+
+                const segGeo = new THREE.CylinderGeometry(r2, r1, y2 - y1, 8);
+                const seg = new THREE.Mesh(
+                    segGeo,
+                    new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.85 })
+                );
+                seg.position.set((x1 + x2) / 2, (y1 + y2) / 2, 0);
+                seg.rotation.z = Math.atan2(x2 - x1, y2 - y1);
+                seg.castShadow = true;
+                group.add(seg);
+            }
+
+            const frondCount = 9;
+            for(let i = 0; i < frondCount; i++) {
+                const angle = (i / frondCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
+                const frondGroup = new THREE.Group();
+
+                for(let j = 0; j < 8; j++) {
+                    const t = j / 8;
+                    const width = 0.5 * (1 - t * 0.8);
+                    const length = 0.6;
+
+                    const segGeo = new THREE.PlaneGeometry(width, length, 1, 1);
+                    const segMat = new THREE.MeshStandardMaterial({
+                        color: j % 2 === 0 ? 0x2e7d32 : 0x256e29,
+                        roughness: 0.7,
+                        side: THREE.DoubleSide
+                    });
+
+                    const seg = new THREE.Mesh(segGeo, segMat);
+
+                    const dist = 0.3 + t * 3.5;
+                    const drop = t * t * 1.8;
+
+                    seg.position.set(
+                        Math.cos(angle) * dist,
+                        7.8 - drop,
+                        Math.sin(angle) * dist
+                    );
+
+                    seg.rotation.x = -0.5 - t * 0.8;
+                    seg.rotation.y = angle + Math.sin(t * Math.PI) * 0.15;
+                    seg.rotation.z = Math.sin(t * Math.PI * 2) * 0.2;
+
+                    seg.castShadow = true;
+                    frondGroup.add(seg);
+                }
+
+                frondGroup.userData = {
+                    swaySpeed: 0.5 + Math.random() * 0.3,
+                    swayAmount: 0.04 + Math.random() * 0.02,
+                    phase: Math.random() * Math.PI * 2
+                };
+
+                group.add(frondGroup);
+            }
+
+            group.position.set(x, 0, z);
+            group.scale.set(scale, scale, scale);
+            return group;
+        }
+
+        const palm1 = createPalm(-12, 26, 1.1);
+        scene.add(palm1);
+
+        const palm2 = createPalm(16, 28, 0.95);
+        palm2.rotation.y = 0.3;
+        scene.add(palm2);
+
+        // ========== 灯笼 ==========
+        function createLantern(x, z) {
+            const group = new THREE.Group();
+
+            const pole = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.04, 0.04, 1.5, 8),
+                new THREE.MeshStandardMaterial({ color: 0x333333 })
+            );
+            pole.position.y = 0.75;
+            group.add(pole);
+
+            const bulb = new THREE.Mesh(
+                new THREE.SphereGeometry(0.15, 16, 16),
+                new THREE.MeshStandardMaterial({
+                    color: 0xffd4a3,
+                    emissive: 0xffa040,
+                    emissiveIntensity: 4
+                })
+            );
+            bulb.position.y = 1.6;
+            group.add(bulb);
+
+            const light = new THREE.PointLight(0xffd4a3, 2, 20, 2);
+            light.position.y = 1.6;
+            light.castShadow = true;
+            group.add(light);
+
+            group.position.set(x, 0, z);
+            return group;
+        }
+
+        scene.add(createLantern(5, 15));
+        scene.add(createLantern(-7, 19));
+
+        // ========== 灯光 ==========
+        scene.add(new THREE.AmbientLight(0x7799bb, 0.5));
+
+        const dirLight = new THREE.DirectionalLight(0xffccaa, 0.7);
+        dirLight.position.set(40, 5, -100);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        const d = 60;
+        dirLight.shadow.camera.left = -d;
+        dirLight.shadow.camera.right = d;
+        dirLight.shadow.camera.top = d;
+        dirLight.shadow.camera.bottom = -d;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 250;
+        scene.add(dirLight);
+
+        scene.add(new THREE.HemisphereLight(0x4466aa, 0xaa9988, 0.4));
+
+        // ========== 动画 ==========
+        const clock = new THREE.Clock();
+        const fronds = [];
+        scene.traverse(function(o) {
+            if(o.userData && o.userData.swaySpeed) {
+                fronds.push(o);
+            }
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const t = clock.getElapsedTime();
+
+            oceanMat.uniforms.uTime.value = t;
+            rippleParticles.material.uniforms.uTime.value = t;
+
+            fronds.forEach(function(f) {
+                const d = f.userData;
+                const s = Math.sin(t * d.swaySpeed + d.phase) * d.swayAmount;
+                f.rotation.y = s;
+                f.rotation.x = s * 0.5;
+            });
+
+            camera.position.x = Math.sin(t * 0.03) * 2;
+            camera.position.y = 15 + Math.cos(t * 0.02) * 0.5;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', function() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>

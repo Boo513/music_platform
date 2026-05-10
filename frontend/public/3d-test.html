@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head><meta charset="UTF-8"><title>3D Test</title></head>
+<body style="margin:0;background:#0d0f18;">
+<div id="root"></div>
+<script type="module">
+import { createRoot } from 'https://esm.sh/react-dom@18/client';
+import { Canvas } from 'https://esm.sh/@react-three/fiber@8';
+import { Stars } from 'https://esm.sh/@react-three/drei@9';
+import React from 'https://esm.sh/react@18';
+import * as THREE from 'https://esm.sh/three@0.160.0';
+
+function Scene() {
+  return React.createElement(React.Fragment, null,
+    React.createElement('color', {attach:'background', args:['#0a0a18']}),
+    React.createElement('fog', {attach:'fog', args:['#0a0a18',60,300]}),
+    React.createElement(Stars, {radius:150, depth:80, count:500, factor:3, fade:true}),
+    React.createElement('ambientLight', {intensity:0.4, color:'#3a3060'}),
+    React.createElement('pointLight', {position:[30,20,-40], intensity:2, color:'#FF8C42', distance:200})
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  React.createElement('div', {style:{width:'100vw',height:'100vh'}},
+    React.createElement(Canvas, {camera:{position:[0,0,50],fov:60}},
+      React.createElement(Scene)
+    )
+  )
+);
+</script>
+</body>
+</html>

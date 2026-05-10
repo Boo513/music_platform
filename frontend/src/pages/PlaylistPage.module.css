@@ -1,0 +1,278 @@
+.page {
+  min-height: 100vh;
+  background: #000;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Impact', 'Arial Black', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  display: flex;
+  padding: 0;
+}
+
+/* ── 45° 红黑斜线条纹 ── */
+.stripes {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: repeating-linear-gradient(45deg, #000, #000 30px, rgba(255,0,0,0.1) 30px, rgba(255,0,0,0.1) 60px);
+  animation: moveStripes 2s linear infinite;
+}
+@keyframes moveStripes {
+  0% {background-position: 0 0;}
+  100% {background-position: 42.4px 42.4px;}
+}
+
+/* ── 全屏黑色闪屏 ── */
+.blackFlash {
+  position: fixed; inset: 0; z-index: 200; background: #000; pointer-events: none;
+}
+
+/* ── PLAY! 弹窗 ── */
+.playPopup {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 300;
+  pointer-events: none;
+  font-size: 86px; font-weight: 900; font-style: italic; letter-spacing: 10px;
+  color: #ffdd00;
+  text-shadow: 6px 6px 0 #ff0000, 0 0 50px rgba(255,0,0,0.9), 0 0 100px rgba(255,221,0,0.5);
+}
+
+/* ── 左面板 (1/3) ── */
+.leftPanel {
+  width: 33.333%;
+  min-width: 260px;
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 40px 28px;
+}
+.infoCard {
+  clip-path: polygon(0 5%, 92% 0, 100% 25%, 100% 95%, 8% 100%, 0 75%);
+  background: #fff;
+  border: 4px solid #000;
+  box-shadow: 10px 10px 0px #000;
+  padding: 32px 28px;
+  position: relative;
+}
+.infoName {
+  font-size: 42px; font-weight: 900; color: #000;
+  line-height: 1; letter-spacing: 4px; text-transform: uppercase;
+}
+.infoDivider {
+  width: 60%; height: 3px; background: #ff0000;
+  margin: 16px 0;
+  clip-path: polygon(0 0, 100% 0, 95% 100%, 0 100%);
+}
+.infoDesc {
+  font-size: 14px; color: #333; font-weight: 700;
+  margin-bottom: 6px;
+}
+.infoMeta {
+  font-size: 11px; color: #888; font-weight: 700; letter-spacing: 2px;
+}
+
+/* ── 右侧 (2/3) ── */
+.rightPanel {
+  width: 66.666%;
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 24px 20px 100px 8px;
+  perspective: 800px;
+  min-height: 0;
+}
+
+/* ── 技能卡牌列表（可滚动） ── */
+.cardList {
+  display: flex; flex-direction: column; gap: 14px;
+  transform-style: preserve-3d;
+  overflow-y: auto;
+  max-height: calc(100vh - 100px);
+  padding-right: 8px;
+}
+.cardList::-webkit-scrollbar { width: 4px; }
+.cardList::-webkit-scrollbar-thumb { background: #ff0000; }
+
+/* ── 单张技能卡牌 ── */
+.cardWrap {
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+/* ── 闪电层（比卡牌大，blur 漏电光晕） ── */
+.arcLayer {
+  position: absolute;
+  top: -3px; left: -3px; right: -3px; bottom: -3px;
+  clip-path: polygon(0 20%, 95% 0, 100% 80%, 5% 100%);
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(90deg, transparent, #00ffff, transparent);
+  background-size: 200% 100%;
+  animation: arcSweep 3s linear infinite;
+  filter: blur(4px);
+  opacity: 0;
+}
+
+/* 选中时闪电层更亮 */
+.cardWrap.selected .arcLayer { opacity: 0.7; }
+
+@keyframes arcSweep {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── 残影拖尾 ── */
+.afterimage {
+  position: absolute; inset: 0;
+  clip-path: polygon(0 20%, 95% 0, 100% 80%, 5% 100%);
+  pointer-events: none; z-index: -1;
+  background: linear-gradient(90deg, #00ffff, #ffdd00);
+}
+
+/* ── 卡牌本体 ── */
+.card {
+  clip-path: polygon(0 20%, 95% 0, 100% 80%, 5% 100%);
+  background: #111;
+  border: 2px solid rgba(255,0,0,0.25);
+  padding: 16px 24px;
+  cursor: pointer;
+  position: relative; z-index: 1;
+  box-shadow: 8px 8px 0px #000;
+  transition: box-shadow 0.15s, border-color 0.15s, background 0.2s;
+}
+.card:hover {
+  border-color: rgba(255,0,0,0.55);
+}
+.cardWrap.selected .card {
+  background: rgba(200,0,0,1);
+  border-color: #00ffff;
+  box-shadow: 8px 8px 0px #000, 0 0 25px rgba(0,255,255,0.6);
+}
+
+/* 卡牌内部布局 */
+.cardInner {
+  display: flex; align-items: center; gap: 16px; position: relative; z-index: 1;
+}
+.cardIcon {
+  width: 48px; height: 48px;
+  clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%);
+  background: #ff0000;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 900; color: #fff;
+  flex-shrink: 0;
+}
+.cardWrap.selected .cardIcon { background: #00ffff; color: #000; }
+.cardBody { flex: 1; min-width: 0; }
+.cardName {
+  font-size: 18px; font-weight: 900; color: #fff;
+  letter-spacing: 3px; text-transform: uppercase;
+  text-shadow: 3px 3px 0 #000;
+}
+.cardArtist {
+  font-size: 11px; color: #ffdd00; letter-spacing: 2px; margin-top: 2px;
+}
+.cardTags { display: flex; gap: 8px; margin-top: 6px; }
+.tag {
+  font-size: 10px; font-weight: 900; padding: 3px 10px; letter-spacing: 2px;
+  clip-path: polygon(12% 0, 100% 0, 88% 100%, 0 100%);
+  color: #fff;
+}
+.tagRed { background: #ff0000; }
+.tagCyan { background: #00ffff; color: #000; }
+.cardWrap.selected .tagRed { background: #000; color: #ff0000; }
+.cardWrap.selected .tagCyan { background: #fff; color: #00ffff; }
+
+/* ── 移除歌曲按钮 ── */
+.removeBtn {
+  background: none;
+  border: 2px solid rgba(255,0,0,0.35);
+  color: rgba(255,0,0,0.5);
+  font-size: 14px; font-weight: 900;
+  cursor: pointer;
+  padding: 4px 10px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.removeBtn:hover {
+  border-color: #ff0000;
+  color: #ff0000;
+  background: rgba(255,0,0,0.1);
+}
+
+/* ── 删除歌单按钮 ── */
+.deleteListBtn {
+  margin-top: 14px;
+  background: none;
+  border: 2px solid #ff0000;
+  color: #ff0000;
+  font-size: 11px; font-weight: 900; letter-spacing: 2px;
+  cursor: pointer;
+  padding: 8px 18px;
+  transition: all 0.15s;
+  clip-path: polygon(5% 0, 95% 0, 100% 30%, 100% 100%, 0 100%, 0 30%);
+}
+.deleteListBtn:hover {
+  background: #ff0000;
+  color: #fff;
+}
+
+/* ── 确认移除弹窗 ── */
+.confirmOverlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+}
+.confirmBox {
+  clip-path: polygon(4% 0, 96% 0, 100% 20%, 100% 100%, 0 100%, 0 20%);
+  background: #111;
+  border: 2px solid #ff0000;
+  padding: 28px 36px;
+  box-shadow: 10px 10px 0px #000;
+  text-align: center;
+}
+.confirmTitle {
+  font-size: 16px; font-weight: 900; color: #fff;
+  letter-spacing: 2px; margin-bottom: 20px;
+}
+.confirmActions {
+  display: flex; gap: 12px; justify-content: center;
+}
+.confirmCancel {
+  clip-path: polygon(8% 0, 92% 0, 100% 30%, 100% 100%, 0 100%, 0 30%);
+  background: #222; border: 2px solid #555; color: #888;
+  padding: 10px 28px; font-size: 13px; font-weight: 900; letter-spacing: 2px;
+  cursor: pointer; transition: all 0.15s;
+}
+.confirmCancel:hover { border-color: #fff; color: #fff; }
+.confirmOk {
+  clip-path: polygon(8% 0, 92% 0, 100% 30%, 100% 100%, 0 100%, 0 30%);
+  background: #ff0000; border: 2px solid #ff0000; color: #fff;
+  padding: 10px 28px; font-size: 13px; font-weight: 900; letter-spacing: 2px;
+  cursor: pointer; transition: all 0.15s;
+}
+.confirmOk:hover { background: #cc0000; }
+
+/* ── 顶部播放按钮（页面顶部居中） ── */
+.bottomBtn {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  clip-path: polygon(3% 0, 97% 0, 100% 35%, 100% 100%, 0 100%, 0 35%);
+  background: #ff0000;
+  border: 3px solid #000;
+  padding: 16px 56px;
+  color: #fff; font-size: 18px; font-weight: 900; letter-spacing: 6px;
+  cursor: pointer;
+  box-shadow: 10px 10px 0px #000;
+  transition: box-shadow 0.12s, transform 0.12s;
+}
+.bottomBtn:hover { background: #cc0000; }
+.bottomBtn:active {
+  box-shadow: 3px 3px 0px #000;
+  transform: translateX(-50%) translate(7px, 7px);
+}
+
+/* ── 响应式 ── */
+@media (max-width: 768px) {
+  .page { flex-direction: column; }
+  .leftPanel { width: 100%; min-width: 0; padding: 20px 16px 0; }
+  .rightPanel { width: 100%; padding: 16px; }
+  .cardName { font-size: 14px; }
+  .infoName { font-size: 28px; }
+}

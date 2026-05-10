@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.musicplatform.mapper.PlaylistMapper">
+
+    <select id="selectById" resultType="com.musicplatform.entity.Playlist">
+        SELECT * FROM playlists WHERE id = #{id}
+    </select>
+
+    <select id="selectByUserId" resultType="com.musicplatform.entity.Playlist">
+        SELECT * FROM playlists WHERE user_id = #{userId} ORDER BY created_at DESC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO playlists (name, description, cover, user_id, is_public)
+        VALUES (#{name}, #{description}, #{cover}, #{userId}, #{isPublic})
+    </insert>
+
+    <update id="update">
+        UPDATE playlists
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="isPublic != null">is_public = #{isPublic},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM playlists WHERE id = #{id}
+    </delete>
+
+    <select id="countSongs" resultType="int">
+        SELECT COUNT(*) FROM playlist_songs WHERE playlist_id = #{playlistId}
+    </select>
+
+</mapper>

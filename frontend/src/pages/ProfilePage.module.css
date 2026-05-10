@@ -1,0 +1,396 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #050510;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  padding: 24px;
+}
+
+/* ── 霓虹光晕背景 ── */
+.bgGlow1 {
+  position: absolute;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(188,19,254,0.18) 0%, transparent 70%);
+  top: -200px; left: -100px;
+  pointer-events: none;
+}
+.bgGlow2 {
+  position: absolute;
+  width: 500px; height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,240,255,0.12) 0%, transparent 70%);
+  bottom: -150px; right: -120px;
+  pointer-events: none;
+}
+.bgGlow3 {
+  position: absolute;
+  width: 400px; height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,0,127,0.10) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* ── 主卡片 3D 透视容器 ── */
+.cardWrap {
+  perspective: 1200px;
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  z-index: 1;
+}
+
+.card {
+  width: 100%;
+  background: rgba(255,255,255,0.025);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 28px;
+  padding: 32px 28px 28px;
+  position: relative;
+  transition: box-shadow 0.4s;
+  will-change: transform;
+}
+
+/* ── 头像区域 ── */
+.avatarSection {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.avatarWrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+
+.avatarRing {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: #bc13fe;
+  border-right-color: #00f0ff;
+  animation: ringSpin 2.4s linear infinite;
+  filter: drop-shadow(0 0 8px rgba(188,19,254,0.5));
+}
+
+@keyframes ringSpin {
+  to { transform: rotate(360deg); }
+}
+
+.avatarInner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1a0a2e, #0a0a20);
+  border: 2px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+  color: #bc13fe;
+  text-shadow: 0 0 12px rgba(188,19,254,0.6);
+  position: relative;
+  z-index: 1;
+}
+
+.userName {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.userId {
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 2px;
+}
+
+.editBtn {
+  margin-left: auto;
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(188,19,254,0.3);
+  background: rgba(188,19,254,0.06);
+  color: #bc13fe;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+  align-self: flex-start;
+  position: relative;
+  overflow: hidden;
+}
+.editBtn:hover {
+  background: rgba(188,19,254,0.14);
+  border-color: rgba(188,19,254,0.5);
+  box-shadow: 0 0 20px rgba(188,19,254,0.2);
+}
+
+/* ── 统计栏 ── */
+.stats {
+  display: flex;
+  gap: 24px;
+  padding: 16px 0;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  margin-bottom: 20px;
+}
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.statNum {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+}
+.statLabel {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+}
+
+/* ── 2x2 菜单网格 ── */
+.menuGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.menuItem {
+  padding: 18px 16px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1.2);
+  will-change: transform;
+}
+.menuItem:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(188,19,254,0.2);
+  box-shadow: 0 0 24px rgba(188,19,254,0.1), inset 0 0 24px rgba(188,19,254,0.03);
+}
+.menuItem:active {
+  transform: scale(0.96);
+}
+
+.menuIcon {
+  font-size: 22px;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.04);
+  flex-shrink: 0;
+}
+.menuLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.75);
+}
+
+/* ── 涟漪 ── */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(188,19,254,0.5) 0%, rgba(0,240,255,0.3) 50%, transparent 100%);
+  transform: scale(0);
+  animation: rippleAnim 0.7s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes rippleAnim {
+  to {
+    transform: scale(5);
+    opacity: 0;
+  }
+}
+
+/* ── 底部 ── */
+.bottom {
+  text-align: center;
+}
+
+.hint {
+  font-size: 12px;
+  color: rgba(255,255,255,0.25);
+  margin-bottom: 14px;
+}
+
+.createBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 40px;
+  border-radius: 28px;
+  border: 1px solid rgba(0,240,255,0.25);
+  background: rgba(0,240,255,0.05);
+  color: #00f0ff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1.2);
+}
+.createBtn:hover {
+  background: rgba(0,240,255,0.12);
+  border-color: rgba(0,240,255,0.45);
+  box-shadow: 0 0 32px rgba(0,240,255,0.18);
+}
+
+/* ── 返回按钮 ── */
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0;
+  margin-bottom: 12px;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.4);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.backBtn:hover { color: rgba(255,255,255,0.75); }
+
+/* ── 列表标题 ── */
+.listTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.85);
+  margin-bottom: 14px;
+}
+
+/* ── 列表容器 ── */
+.listWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.listWrap::-webkit-scrollbar { width: 3px; }
+.listWrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+
+/* ── 列表项 ── */
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s;
+  background: rgba(255,255,255,0.015);
+  border: 1px solid transparent;
+}
+.listItem:hover {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.06);
+}
+
+.listIcon {
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.04);
+  flex-shrink: 0;
+}
+
+.listInfo {
+  flex: 1;
+  min-width: 0;
+}
+.listName {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.listMeta {
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+  margin-top: 1px;
+}
+
+.listArrow {
+  font-size: 16px;
+  color: rgba(255,255,255,0.2);
+  flex-shrink: 0;
+}
+
+.listTime {
+  font-size: 10px;
+  color: rgba(255,255,255,0.25);
+  flex-shrink: 0;
+}
+
+.unfavBtn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.2);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px;
+  transition: color 0.2s;
+}
+.unfavBtn:hover { color: #ff4444; }
+
+/* ── 空状态 ── */
+.empty {
+  text-align: center;
+  padding: 32px 0;
+  font-size: 13px;
+  color: rgba(255,255,255,0.25);
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 28px;
+  border-radius: 28px;
+  background: rgba(20,10,30,0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(188,19,254,0.25);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 999;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 16px rgba(188,19,254,0.15);
+}
