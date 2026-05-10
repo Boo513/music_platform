@@ -61,4 +61,8 @@ public class FavoriteService {
     public boolean isFavorited(Long userId, Long songId) {
         return favoriteMapper.exists(userId, songId);
     }
+
+    public int getFavoriteCount(Long songId) {
+        return favoriteMapper.countBySongId(songId);
+    }
 }

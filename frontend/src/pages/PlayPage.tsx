@@ -745,12 +745,13 @@ function Scene3D({ zoomLevel, effects }: { zoomLevel: number; effects: { particl
 
 export default function PlayPage() {
   const { songId } = useParams<{ songId: string }>();
-  const { isPlaying, currentSong, play, pause, resume, queue } = usePlayerStore();
+  const { isPlaying, currentSong, play, pause, resume, queue, volume, setVolume } = usePlayerStore();
   const [demoSong, setDemoSong] = useState<Song | null>(null);
   const [showPanel, setShowPanel] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const prevVolumeRef = useRef(0.5);
   const [zoomLevel, setZoomLevel] = useState(5);
   const [selectedScene, setSelectedScene] = useState('auto');
   const [effects, setEffects] = useState({ particles: true, bloom: false, vignette: true });
@@ -795,6 +796,17 @@ export default function PlayPage() {
   const storeSong = currentSong();
   const song = storeSong || demoSong || DEMO_SONG;
 
+  const handleToggleFavorite = () => {
+    if (!song.id) return;
+    const next = !isFavorited;
+    setIsFavorited(next);
+    if (song) song.isFavorited = next;
+    (next ? favoritesApi.add(song.id) : favoritesApi.remove(song.id)).catch(() => {
+      setIsFavorited(!next);
+      if (song) song.isFavorited = !next;
+    });
+  };
+
   const handleZoomIn = () => setZoomLevel((z) => Math.max(1, z - 1));
   const handleZoomOut = () => setZoomLevel((z) => Math.min(10, z + 1));
   const handleToggleFullscreen = () => {
@@ -815,10 +827,19 @@ export default function PlayPage() {
         <div className="pointer-events-auto">
           <TopIcons
             isFavorited={isFavorited}
-            onToggleFavorite={() => setIsFavorited(!isFavorited)}
+            onToggleFavorite={handleToggleFavorite}
             onOpenSettings={() => setShowSettings(true)}
             isMuted={isMuted}
-            onToggleMute={() => setIsMuted(!isMuted)}
+            onToggleMute={() => {
+              if (isMuted) {
+                setIsMuted(false);
+                setVolume(prevVolumeRef.current);
+              } else {
+                prevVolumeRef.current = volume;
+                setIsMuted(true);
+                setVolume(0);
+              }
+            }}
           />
           <RightControls
             onTogglePanel={() => setShowPanel(!showPanel)}
@@ -830,7 +851,9 @@ export default function PlayPage() {
             <RadioPanel
               song={song}
               isPlaying={isPlaying}
+              isFavorited={isFavorited}
               onTogglePlay={() => isPlaying ? pause() : resume()}
+              onToggleFavorite={handleToggleFavorite}
               onClose={() => setShowPanel(false)}
             />
           )}

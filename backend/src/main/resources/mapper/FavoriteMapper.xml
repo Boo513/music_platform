@@ -31,4 +31,8 @@
         DELETE FROM favorites WHERE song_id = #{songId}
     </delete>
 
+    <select id="countBySongId" resultType="int">
+        SELECT COUNT(*) FROM favorites WHERE song_id = #{songId}
+    </select>
+
 </mapper>

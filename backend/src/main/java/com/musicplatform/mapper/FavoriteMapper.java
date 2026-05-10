@@ -18,4 +18,5 @@ public interface FavoriteMapper {
     );
     int countByUserId(@Param("userId") Long userId);
     int deleteBySongId(@Param("songId") Long songId);
+    int countBySongId(@Param("songId") Long songId);
 }
