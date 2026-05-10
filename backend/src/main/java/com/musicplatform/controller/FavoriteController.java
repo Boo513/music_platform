@@ -48,4 +48,10 @@ public class FavoriteController {
         boolean fav = favoriteService.isFavorited(principal.getId(), songId);
         return ResponseEntity.ok(ApiResponse.ok(new FavoriteCheckResponse(fav)));
     }
+
+    @GetMapping("/{songId}/count")
+    public ResponseEntity<ApiResponse<Integer>> count(@PathVariable Long songId) {
+        int count = favoriteService.getFavoriteCount(songId);
+        return ResponseEntity.ok(ApiResponse.ok(count));
+    }
 }

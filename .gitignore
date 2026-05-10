@@ -16,6 +16,7 @@ backend/target/
 # 前端构建输出
 frontend/dist/
 frontend/node_modules/
+frontend/.vite/
 
 # 环境变量
 .env

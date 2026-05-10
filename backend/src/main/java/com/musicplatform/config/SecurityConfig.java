@@ -33,6 +33,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/songs/**").permitAll()
                 .requestMatchers(HttpMethod.HEAD, "/api/songs/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/favorites/*/count").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/playlists/*").permitAll()
                 .requestMatchers(HttpMethod.HEAD, "/api/playlists/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
