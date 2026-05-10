@@ -442,3 +442,8 @@ body {
 
 /* ===== TABULAR NUMS ===== */
 .tabular-nums { font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

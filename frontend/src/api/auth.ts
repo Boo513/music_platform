@@ -9,4 +9,7 @@ export const authApi = {
     client.post<any, ApiResponse<{ token: string; user: User }>>('/auth/login', { username, password }),
 
   getMe: () => client.get<any, ApiResponse<User>>('/user/me'),
+
+  updateProfile: (nickname: string) =>
+    client.put<any, ApiResponse<User>>('/user/profile', { nickname }),
 };

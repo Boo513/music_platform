@@ -9,6 +9,7 @@ const HomePage = lazy(() => import('@/pages/HomePage'));
 const UploadPage = lazy(() => import('@/pages/UploadPage'));
 const PlayPage = lazy(() => import('@/pages/PlayPage'));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
+const PlaylistPage = lazy(() => import('@/pages/PlaylistPage'));
 
 function PageFallback() {
  return <div className="flex items-center justify-center h-screen">加载中...</div>;
@@ -32,6 +33,7 @@ function AnimatedRoutes() {
  <Route path="/play/:songId" element={<PlayPage />} />
  <Route path="/upload" element={<UploadPage />} />
  <Route path="/profile" element={<ProfilePage />} />
+ <Route path="/playlist/:id" element={<PlaylistPage />} />
  </Route>
  </Routes>
  </motion.div>

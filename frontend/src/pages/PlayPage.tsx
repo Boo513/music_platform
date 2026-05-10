@@ -5,6 +5,7 @@ import { Stars, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { usePlayerStore } from '@/stores/playerStore';
 import { songsApi } from '@/api/songs';
+import { favoritesApi } from '@/api/favorites';
 import { TopIcons } from '@/components/layout/TopIcons';
 import { RightControls } from '@/components/layout/RightControls';
 import { RadioPanel } from '@/components/layout/RadioPanel';
@@ -496,14 +497,232 @@ function ZoomController({ zoomLevel }: { zoomLevel: number }) {
   return null;
 }
 
-function Scene3D({ zoomLevel }: { zoomLevel: number }) {
+// ===== CARS =====
+function CarModel({ color }: { color: string }) {
+  return (
+    <group>
+      {/* body */}
+      <mesh position={[0, 0.35, 0]}>
+        <boxGeometry args={[0.7, 0.35, 1.6]} />
+        <meshStandardMaterial color={color} roughness={0.3} metalness={0.6} />
+      </mesh>
+      {/* cabin */}
+      <mesh position={[0, 0.55, -0.15]}>
+        <boxGeometry args={[0.6, 0.22, 0.8]} />
+        <meshStandardMaterial color="#111" roughness={0.1} metalness={0.8} />
+      </mesh>
+      {/* wheels */}
+      {[[-0.4, 0.5], [0.4, 0.5], [-0.4, -0.55], [0.4, -0.55]].map(([wx, wz], i) => (
+        <mesh key={i} position={[wx, 0.12, wz]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.12, 0.12, 0.12, 8]} />
+          <meshStandardMaterial color="#111" roughness={0.9} />
+        </mesh>
+      ))}
+      {/* headlights */}
+      <mesh position={[-0.25, 0.4, 0.85]}>
+        <boxGeometry args={[0.1, 0.12, 0.04]} />
+        <meshBasicMaterial color="#ffffcc" />
+      </mesh>
+      <mesh position={[0.25, 0.4, 0.85]}>
+        <boxGeometry args={[0.1, 0.12, 0.04]} />
+        <meshBasicMaterial color="#ffffcc" />
+      </mesh>
+      {/* taillights */}
+      <mesh position={[-0.25, 0.4, -0.85]}>
+        <boxGeometry args={[0.1, 0.12, 0.04]} />
+        <meshBasicMaterial color="#ff0000" />
+      </mesh>
+      <mesh position={[0.25, 0.4, -0.85]}>
+        <boxGeometry args={[0.1, 0.12, 0.04]} />
+        <meshBasicMaterial color="#ff0000" />
+      </mesh>
+    </group>
+  );
+}
+
+function Cars() {
+  const carsRef = useRef<THREE.Group>(null);
+  const carData = useMemo(() => {
+    const cars: { roadAxis: 'x' | 'z'; roadPos: number; startOffset: number; speed: number; color: string; lane: number }[] = [];
+    const colors = ['#cc3333', '#3366cc', '#33aa55', '#ffaa00', '#9933cc', '#ffffff', '#ff6699', '#3388aa',
+                    '#cc4400', '#2277aa', '#88aa33', '#dd4488', '#44aacc', '#aa7733', '#6666cc', '#ee7722',
+                    '#229944', '#bb3355', '#5577dd', '#cc9933'];
+    const roadInterval = 24;
+    const cityR = 150;
+
+    for (let i = 0; i < 20; i++) {
+      const roadAxis = Math.random() > 0.5 ? 'x' : 'z';
+      // Major roads at multiples of 24
+      const roadIdx = Math.floor(Math.random() * (Math.floor(cityR / roadInterval) * 2 + 1)) - Math.floor(cityR / roadInterval);
+      const roadPos = roadIdx * roadInterval;
+      const startOffset = (Math.random() - 0.5) * cityR * 2;
+      const speed = 1.5 + Math.random() * 4;
+      const color = colors[i % colors.length];
+      const lane = (Math.random() > 0.5 ? 1 : -1) * (0.8 + Math.random() * 1.2);
+      cars.push({ roadAxis, roadPos, startOffset, speed, color, lane });
+    }
+    return cars;
+  }, []);
+
+  useFrame((_, delta) => {
+    if (!carsRef.current) return;
+    const dt = Math.min(delta, 0.1);
+    carData.forEach((car, i) => {
+      const child = carsRef.current!.children[i] as THREE.Group;
+      if (!child) return;
+      if (car.roadAxis === 'x') {
+        child.position.x += car.speed * dt * (car.speed > 0 ? 1 : -1);
+        child.position.z = car.roadPos + car.lane;
+        child.rotation.y = car.speed > 0 ? Math.PI / 2 : -Math.PI / 2;
+        if (Math.abs(child.position.x) > 160) child.position.x = -child.position.x;
+      } else {
+        child.position.z += car.speed * dt * (car.speed > 0 ? 1 : -1);
+        child.position.x = car.roadPos + car.lane;
+        child.rotation.y = car.speed > 0 ? 0 : Math.PI;
+        if (Math.abs(child.position.z) > 160) child.position.z = -child.position.z;
+      }
+    });
+  });
+
+  return (
+    <group ref={carsRef}>
+      {carData.map((car, i) => (
+        <group
+          key={i}
+          position={[
+            car.roadAxis === 'x' ? car.startOffset : car.roadPos + car.lane,
+            0.02,
+            car.roadAxis === 'z' ? car.startOffset : car.roadPos + car.lane,
+          ]}
+        >
+          <CarModel color={car.color} />
+          {/* headlight glow */}
+          <pointLight position={[0, 0.4, 0.85]} color="#ffffcc" intensity={0.15} distance={3} />
+        </group>
+      ))}
+    </group>
+  );
+}
+
+// ===== PEDESTRIANS =====
+function PersonModel({ color, walkPhase }: { color: string; walkPhase: number }) {
+  const legSwing = Math.sin(walkPhase) * 0.5;
+  const bodyBob = Math.abs(Math.sin(walkPhase)) * 0.04;
+  return (
+    <group position={[0, bodyBob, 0]}>
+      {/* body */}
+      <mesh position={[0, 0.55, 0]}>
+        <cylinderGeometry args={[0.1, 0.14, 0.5, 8]} />
+        <meshStandardMaterial color={color} roughness={0.7} />
+      </mesh>
+      {/* head */}
+      <mesh position={[0, 0.95, 0]}>
+        <sphereGeometry args={[0.11, 8, 8]} />
+        <meshStandardMaterial color="#f5d0b0" roughness={0.5} />
+      </mesh>
+      {/* left leg */}
+      <group position={[-0.06, 0.52, 0]}>
+        <mesh rotation={[legSwing, 0, 0]} position={[0, -0.175, 0]}>
+          <cylinderGeometry args={[0.06, 0.07, 0.35, 6]} />
+          <meshStandardMaterial color="#222" roughness={0.9} />
+        </mesh>
+      </group>
+      {/* right leg */}
+      <group position={[0.06, 0.52, 0]}>
+        <mesh rotation={[-legSwing, 0, 0]} position={[0, -0.175, 0]}>
+          <cylinderGeometry args={[0.06, 0.07, 0.35, 6]} />
+          <meshStandardMaterial color="#222" roughness={0.9} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+function Pedestrians() {
+  const pedsRef = useRef<THREE.Group>(null);
+  const speeRef = useRef<number[]>([]);
+  const phaseRef = useRef<number[]>([]);
+  const pedData = useMemo(() => {
+    const peds: { sideX: number; sideZ: number; startOff: number; speed: number; color: string; axis: 'x'|'z' }[] = [];
+    const colors = ['#cc4444','#4444cc','#44aa44','#ccaa22','#8844aa','#ffffff','#4488aa','#cc6622',
+                    '#226688','#88aa44','#cc4488','#44aacc','#aa7744','#6666cc','#ee7744','#44aa88'];
+    for (let i = 0; i < 72; i++) {
+      const axis = Math.random() > 0.5 ? 'x' : 'z';
+      const roadIdx = (Math.floor(Math.random() * 13) - 6) * 24;
+      const offset = 3.2 + Math.random() * 1.5;
+      const sign = Math.random() > 0.5 ? 1 : -1;
+      const startOff = (Math.random() - 0.5) * 300;
+      const speed = 0.4 + Math.random() * 0.8;
+      peds.push({
+        axis,
+        sideX: axis === 'x' ? roadIdx + offset * sign : roadIdx,
+        sideZ: axis === 'z' ? roadIdx + offset * sign : roadIdx,
+        startOff, speed,
+        color: colors[i % colors.length],
+      });
+    }
+    speeRef.current = peds.map((p) => p.speed);
+    phaseRef.current = peds.map(() => Math.random() * Math.PI * 2);
+    return peds;
+  }, []);
+
+  useFrame((_, delta) => {
+    if (!pedsRef.current) return;
+    const dt = Math.min(delta, 0.1);
+    pedData.forEach((p, i) => {
+      const outer = pedsRef.current!.children[i] as THREE.Group;
+      if (!outer) return;
+      const walkSpeed = speeRef.current[i];
+      phaseRef.current[i] += walkSpeed * 10 * dt;
+      // Update walk animation on the PersonModel (first child of outer group)
+      const person = outer.children[0] as THREE.Group;
+      if (person) {
+        const phase = phaseRef.current[i];
+        const legSwing = Math.sin(phase) * 0.5;
+        const bodyBob = Math.abs(Math.sin(phase)) * 0.04;
+        person.position.y = bodyBob;
+        // left leg (child 2 of person)
+        const leftLeg = person.children[2] as THREE.Group;
+        if (leftLeg) leftLeg.rotation.x = legSwing;
+        // right leg (child 3 of person)
+        const rightLeg = person.children[3] as THREE.Group;
+        if (rightLeg) rightLeg.rotation.x = -legSwing;
+      }
+      // Move along road
+      if (p.axis === 'x') {
+        outer.position.x += p.speed * dt;
+        outer.position.z = p.sideZ;
+        outer.rotation.y = p.speed > 0 ? Math.PI/2 : -Math.PI/2;
+        if (Math.abs(outer.position.x) > 160) outer.position.x = -outer.position.x;
+      } else {
+        outer.position.z += p.speed * dt;
+        outer.position.x = p.sideX;
+        outer.rotation.y = p.speed > 0 ? 0 : Math.PI;
+        if (Math.abs(outer.position.z) > 160) outer.position.z = -outer.position.z;
+      }
+    });
+  });
+
+  return (
+    <group ref={pedsRef}>
+      {pedData.map((p, i) => (
+        <group key={i} position={[p.axis==='x' ? p.startOff : p.sideX, 0.02, p.axis==='z' ? p.startOff : p.sideZ]}>
+          <PersonModel color={p.color} walkPhase={phaseRef.current[i]} />
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function Scene3D({ zoomLevel, effects }: { zoomLevel: number; effects: { particles: boolean; bloom: boolean; vignette: boolean } }) {
   return (
     <>
       <SkyDome />
-      <fog attach="fog" args={['#e07840', 120, 550]} />
-      <ambientLight intensity={0.8} color="#5a7090" />
-      <hemisphereLight intensity={0.7} color="#6a80a0" groundColor="#FF8C42" />
-      <directionalLight position={[50, 100, 50]} intensity={0.25} color="#8899aa" />
+      <fog attach="fog" args={[effects.bloom ? '#ffaa66' : '#e07840', effects.bloom ? 80 : 120, effects.bloom ? 350 : 550]} />
+      <ambientLight intensity={effects.bloom ? 1.6 : 0.8} color={effects.bloom ? '#ffcc88' : '#5a7090'} />
+      <hemisphereLight intensity={effects.bloom ? 1.4 : 0.7} color="#6a80a0" groundColor="#FF8C42" />
+      <directionalLight position={[50, 100, 50]} intensity={effects.bloom ? 0.7 : 0.25} color={effects.bloom ? '#ffddaa' : '#8899aa'} />
+      {effects.bloom && <pointLight position={[-30, 30, -30]} intensity={1.0} color="#ff9944" distance={120} />}
       <ZoomController zoomLevel={zoomLevel} />
       <OrbitControls
         target={[-30, -5, -20]}
@@ -515,32 +734,62 @@ function Scene3D({ zoomLevel }: { zoomLevel: number }) {
       <Stars radius={150} depth={80} count={300} factor={3} saturation={0.2} fade speed={0.5} />
       <Ground />
       <Buildings />
+      <Cars />
+      <Pedestrians />
       <Lighthouse />
-      <Particles />
-      <SnowParticles />
+      {effects.particles && <Particles />}
+      {effects.particles && <SnowParticles />}
     </>
   );
 }
 
 export default function PlayPage() {
   const { songId } = useParams<{ songId: string }>();
-  const { isPlaying, currentSong, play, pause, resume } = usePlayerStore();
+  const { isPlaying, currentSong, play, pause, resume, queue } = usePlayerStore();
   const [demoSong, setDemoSong] = useState<Song | null>(null);
   const [showPanel, setShowPanel] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(5);
+  const [selectedScene, setSelectedScene] = useState('auto');
+  const [effects, setEffects] = useState({ particles: true, bloom: false, vignette: true });
 
   useEffect(() => {
-    if (songId) {
+    if (!songId) return;
+    // 如果队列为空，先加载歌曲列表作为队列
+    if (queue.length === 0) {
+      songsApi.list({ size: 50, sort: 'newest' }).then((r) => {
+        const list = r.data.records;
+        const target = list.find((s) => s.id === Number(songId));
+        if (target) {
+          play(target, list);
+          setIsFavorited(target.isFavorited);
+        } else {
+          songsApi.getById(Number(songId)).then((res) => {
+            play(res.data, list);
+            setIsFavorited(res.data.isFavorited);
+          }).catch(() => {
+            play(DEMO_SONG);
+            setDemoSong(DEMO_SONG);
+          });
+        }
+      }).catch(() => {
+        play(DEMO_SONG);
+        setDemoSong(DEMO_SONG);
+      });
+    } else if (!queue.some((s) => s.id === Number(songId))) {
       songsApi.getById(Number(songId)).then((res) => {
-        play(res.data);
+        play(res.data, [...queue, res.data]);
+        setIsFavorited(res.data.isFavorited);
       }).catch(() => {
         play(DEMO_SONG);
         setDemoSong(DEMO_SONG);
       });
     }
+    favoritesApi.check(Number(songId))
+      .then((res) => setIsFavorited(res.data.favorited))
+      .catch(() => {});
   }, [songId]);
 
   const storeSong = currentSong();
@@ -554,10 +803,11 @@ export default function PlayPage() {
   };
 
   return (
+    <>
     <div className="fixed inset-0" style={{ background: '#0a0a18' }}>
       <div className="absolute inset-0 z-0">
         <Canvas camera={{ position: [80, 55, -100], fov: 55 }}>
-          <Scene3D zoomLevel={zoomLevel} />
+          <Scene3D zoomLevel={zoomLevel} effects={effects} />
         </Canvas>
       </div>
 
@@ -585,19 +835,20 @@ export default function PlayPage() {
             />
           )}
         </div>
-        <div className="absolute inset-0 vignette pointer-events-none" />
+        {effects.vignette && <div className="absolute inset-0 vignette pointer-events-none" />}
       </div>
-
-      <SettingsPanel
-        open={showSettings} onClose={() => setShowSettings(false)}
-        selectedScene="auto" onSelectScene={() => {}}
-        effects={{ particles: true, bloom: false, vignette: true }}
-        onToggleEffect={() => {}}
-      />
 
       <div className="fixed top-30 right-90 z-10 text-13 font-semibold tracking-wider text-white-30">
         HEAR THE 🌍
       </div>
     </div>
+
+    <SettingsPanel
+      open={showSettings} onClose={() => setShowSettings(false)}
+      selectedScene={selectedScene} onSelectScene={setSelectedScene}
+      effects={effects}
+      onToggleEffect={(key) => setEffects((e) => ({ ...e, [key]: !e[key] }))}
+    />
+    </>
   );
 }

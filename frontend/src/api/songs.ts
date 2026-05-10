@@ -19,6 +19,11 @@ export const songsApi = {
 
   delete: (id: number) => client.delete<any, ApiResponse<null>>(`/songs/${id}`),
 
+  uploadCover: (songId: number, formData: FormData) =>
+    client.post<any, ApiResponse<{ coverUrl: string }>>(`/songs/${songId}/cover`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
   getStreamUrl: (id: number) => `/api/songs/${id}/stream`,
   getCoverUrl: (id: number) => `/api/songs/${id}/cover`,
 };
