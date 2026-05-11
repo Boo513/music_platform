@@ -2,6 +2,7 @@ package com.musicplatform.service;
 
 import com.musicplatform.dto.PageData;
 import com.musicplatform.dto.SongResponse;
+import com.musicplatform.dto.SongUpdateRequest;
 import com.musicplatform.entity.Song;
 import com.musicplatform.exception.BusinessException;
 import com.musicplatform.exception.ErrorCode;
@@ -133,10 +134,35 @@ public class SongService {
     }
 
     @Transactional
-    public void delete(Long id, Long userId) {
+    public void update(Long id, SongUpdateRequest req, Long userId, boolean isAdmin) {
         Song song = songMapper.selectById(id);
         if (song == null) throw new BusinessException(ErrorCode.SONG_NOT_FOUND);
-        if (!song.getUploaderId().equals(userId)) throw new BusinessException(ErrorCode.FORBIDDEN);
+        if (!isAdmin && !song.getUploaderId().equals(userId))
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+
+        if (req.getTitle() != null && !req.getTitle().isBlank())
+            song.setTitle(req.getTitle().trim());
+        if (req.getArtist() != null && !req.getArtist().isBlank())
+            song.setArtist(req.getArtist().trim());
+        if (req.getStyle() != null) {
+            if (!VALID_STYLES.contains(req.getStyle()))
+                throw new BusinessException(ErrorCode.INVALID_STYLE);
+            song.setStyle(req.getStyle());
+        }
+        if (req.getMood() != null) {
+            if (!VALID_MOODS.contains(req.getMood()))
+                throw new BusinessException(ErrorCode.INVALID_MOOD);
+            song.setMood(req.getMood());
+        }
+        songMapper.update(song);
+    }
+
+    @Transactional
+    public void delete(Long id, Long userId, boolean isAdmin) {
+        Song song = songMapper.selectById(id);
+        if (song == null) throw new BusinessException(ErrorCode.SONG_NOT_FOUND);
+        if (!isAdmin && !song.getUploaderId().equals(userId))
+            throw new BusinessException(ErrorCode.FORBIDDEN);
 
         try {
             Path audioFile = Paths.get(audioDir, song.getFilePath());

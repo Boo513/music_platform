@@ -17,6 +17,9 @@ export const songsApi = {
       },
     }),
 
+  update: (id: number, data: { title?: string; artist?: string; style?: string; mood?: string }) =>
+    client.put<any, ApiResponse<Song>>(`/songs/${id}`, data),
+
   delete: (id: number) => client.delete<any, ApiResponse<null>>(`/songs/${id}`),
 
   uploadCover: (songId: number, formData: FormData) =>

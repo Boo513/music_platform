@@ -48,6 +48,15 @@
         VALUES (#{title}, #{artist}, #{filePath}, #{coverPath}, #{duration}, #{style}, #{mood}, #{uploaderId})
     </insert>
 
+    <update id="update">
+        UPDATE songs SET
+            title = #{title},
+            artist = #{artist},
+            style = #{style},
+            mood = #{mood}
+        WHERE id = #{id}
+    </update>
+
     <delete id="deleteById">
         DELETE FROM songs WHERE id = #{id}
     </delete>
