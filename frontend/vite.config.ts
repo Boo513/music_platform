@@ -13,6 +13,7 @@ export default defineConfig({
       'localhost',
       '.ngrok-free.dev',
       '.netlify.app',
+      '.trycloudflare.com',
     ],
     proxy: {
       '/api': 'http://localhost:8080',
