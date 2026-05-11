@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/stores/authStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import { songsApi } from '@/api/songs';
 import { startAudioPlayback } from '@/hooks/useAudioPlayer';
-import { STYLE_OPTIONS, type Song, type StyleType } from '@/types';
+import { STYLE_OPTIONS, MOOD_OPTIONS, type Song, type StyleType, type MoodType } from '@/types';
 
 const GENRES = ['全部', ...STYLE_OPTIONS.map((s) => s.label)];
 
@@ -23,6 +24,14 @@ export function MusicList({ searchKeyword = '' }: Props) {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [mvUrl, setMvUrl] = useState<string | null>(null);
+  const [editSong, setEditSong] = useState<Song | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editArtist, setEditArtist] = useState('');
+  const [editStyle, setEditStyle] = useState<StyleType | ''>('');
+  const [editMood, setEditMood] = useState<MoodType | ''>('');
+  const [deleteTarget, setDeleteTarget] = useState<Song | null>(null);
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
   const sentinelRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef(1);
   const hasMoreRef = useRef(false);
@@ -136,6 +145,34 @@ export function MusicList({ searchKeyword = '' }: Props) {
                     🎬
                   </button>
                 )}
+                {isAdmin && (
+                  <>
+                    <button
+                      className="song-edit-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditSong(s);
+                        setEditTitle(s.title);
+                        setEditArtist(s.artist);
+                        setEditStyle(s.style);
+                        setEditMood(s.mood);
+                      }}
+                      title="编辑歌曲"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className="song-del-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteTarget(s);
+                      }}
+                      title="删除歌曲"
+                    >
+                      🗑️
+                    </button>
+                  </>
+                )}
                 <span className="song-play">▶</span>
               </div>
             ))}
@@ -147,6 +184,80 @@ export function MusicList({ searchKeyword = '' }: Props) {
           </>
         )}
       </div>
+
+      {/* 编辑弹窗 */}
+      {editSong && (
+        <div className="mv-overlay" onClick={() => setEditSong(null)}>
+          <div className="edit-dialog" onClick={(e) => e.stopPropagation()}>
+            <h3 className="edit-title">编辑歌曲</h3>
+            <div className="edit-field">
+              <label>歌名</label>
+              <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+            </div>
+            <div className="edit-field">
+              <label>歌手</label>
+              <input value={editArtist} onChange={(e) => setEditArtist(e.target.value)} />
+            </div>
+            <div className="edit-field">
+              <label>风格</label>
+              <select value={editStyle} onChange={(e) => setEditStyle(e.target.value as StyleType)}>
+                <option value="">不变</option>
+                {STYLE_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>{s.emoji} {s.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="edit-field">
+              <label>情绪</label>
+              <select value={editMood} onChange={(e) => setEditMood(e.target.value as MoodType)}>
+                <option value="">不变</option>
+                {MOOD_OPTIONS.map((m) => (
+                  <option key={m.value} value={m.value}>{m.emoji} {m.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="edit-actions">
+              <button className="edit-cancel" onClick={() => setEditSong(null)}>取消</button>
+              <button className="edit-save" onClick={() => {
+                const data: Record<string, string> = {};
+                if (editTitle.trim() && editTitle.trim() !== editSong.title) data.title = editTitle.trim();
+                if (editArtist.trim() && editArtist.trim() !== editSong.artist) data.artist = editArtist.trim();
+                if (editStyle && editStyle !== editSong.style) data.style = editStyle;
+                if (editMood && editMood !== editSong.mood) data.mood = editMood;
+                if (Object.keys(data).length === 0) { setEditSong(null); return; }
+                songsApi.update(editSong.id, data).then((res) => {
+                  setSongs((prev) => prev.map((s) => s.id === editSong.id ? { ...s, ...res.data } : s));
+                  setEditSong(null);
+                }).catch(() => {});
+              }}>保存</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 删除确认弹窗 */}
+      {deleteTarget && (
+        <div className="mv-overlay" onClick={() => setDeleteTarget(null)}>
+          <div className="edit-dialog" onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>⚠️</div>
+            <h3 className="edit-title">确认删除</h3>
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 20 }}>
+              将永久删除「{deleteTarget.title} - {deleteTarget.artist}」
+            </p>
+            <div className="edit-actions" style={{ justifyContent: 'center' }}>
+              <button className="edit-cancel" onClick={() => setDeleteTarget(null)}>取消</button>
+              <button className="edit-save" style={{ background: 'linear-gradient(135deg, #c0392b, #a01d1d)' }}
+                onClick={() => {
+                  songsApi.delete(deleteTarget.id).then(() => {
+                    setSongs((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+                    setDeleteTarget(null);
+                  }).catch(() => {});
+                }}
+              >确认删除</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MV 播放弹窗 */}
       {mvUrl && (

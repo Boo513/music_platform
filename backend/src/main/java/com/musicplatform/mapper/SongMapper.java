@@ -25,6 +25,7 @@ public interface SongMapper {
     int insert(Song song);
     int deleteById(@Param("id") Long id);
     int incrementPlayCount(@Param("id") Long id);
+    int update(Song song);
     int updateCoverPath(@Param("id") Long id, @Param("coverPath") String coverPath);
     int updateVideoPath(@Param("id") Long id, @Param("videoPath") String videoPath);
 }

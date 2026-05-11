@@ -163,11 +163,20 @@ public class SongController {
         }
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<SongResponse>> update(
+            @PathVariable Long id,
+            @RequestBody SongUpdateRequest req,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        songService.update(id, req, principal.getId(), "admin".equals(principal.getRole()));
+        return ResponseEntity.ok(ApiResponse.ok("编辑成功", songService.getById(id, principal.getId())));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(
             @PathVariable Long id,
             @AuthenticationPrincipal UserPrincipal principal) {
-        songService.delete(id, principal.getId());
+        songService.delete(id, principal.getId(), "admin".equals(principal.getRole()));
         return ResponseEntity.ok(ApiResponse.ok("删除成功", null));
     }
 

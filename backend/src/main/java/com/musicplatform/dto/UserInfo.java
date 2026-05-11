@@ -11,6 +11,7 @@ public class UserInfo {
     private String username;
     private String nickname;
     private String avatar;
+    private String role;
     private LocalDateTime createdAt;
 
     public static UserInfo from(User user) {

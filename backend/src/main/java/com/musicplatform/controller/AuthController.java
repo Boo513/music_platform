@@ -34,6 +34,7 @@ public class AuthController {
         info.setId(principal.getId());
         info.setUsername(principal.getUsername());
         info.setNickname(principal.getNickname());
+        info.setRole(principal.getRole());
         return ResponseEntity.ok(ApiResponse.ok(info));
     }
 }
