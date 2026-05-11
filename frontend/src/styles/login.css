@@ -297,8 +297,25 @@
   }
 }
 @media (max-width: 640px) {
+  /* 允许页面垂直滚动 */
+  .login-page {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    height: auto;
+    min-height: 100vh;
+  }
   .login-overlay {
-    padding: 20px;
+    position: relative;
+    inset: auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 20px 20px 80px;
+    pointer-events: auto;
+  }
+  .scene-container {
+    position: fixed;
+    inset: 0;
   }
   .hero-text {
     position: relative;
@@ -320,6 +337,7 @@
     margin: 0 auto;
   }
   .player-bar-romantic {
+    position: fixed;
     padding: 0 16px;
   }
   .pb-right {

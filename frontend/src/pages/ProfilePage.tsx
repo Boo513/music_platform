@@ -58,6 +58,9 @@ export default function ProfilePage() {
   const [pageLoading, setPageLoading] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const { logout } = useAuthStore();
 
   // 3D card effects
   const cardRef = useRef<HTMLDivElement>(null);
@@ -169,6 +172,15 @@ export default function ProfilePage() {
               }}
             >
               编辑资料
+            </button>
+            <button
+              className={styles.logoutBtn}
+              onClick={(e) => {
+                addRipple(e, 80);
+                setShowLogoutConfirm(true);
+              }}
+            >
+              退出
             </button>
           </div>
 
@@ -370,6 +382,48 @@ export default function ProfilePage() {
             {t.text}
           </motion.div>
         ))}
+      </AnimatePresence>
+
+      {/* 退出登录确认弹窗 */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <motion.div
+            className={styles.modalOverlay}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowLogoutConfirm(false)}
+          >
+            <motion.div
+              className={styles.confirmDialog}
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={styles.confirmIcon}>⚠️</div>
+              <div className={styles.confirmTitle}>确认退出</div>
+              <div className={styles.confirmDesc}>退出后需要重新登录才能使用</div>
+              <div className={styles.confirmActions}>
+                <button
+                  className={styles.confirmCancel}
+                  onClick={() => setShowLogoutConfirm(false)}
+                >
+                  取消
+                </button>
+                <button
+                  className={styles.confirmOk}
+                  onClick={() => {
+                    logout();
+                    navigate('/login');
+                  }}
+                >
+                  退出登录
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* 弹窗 */}
