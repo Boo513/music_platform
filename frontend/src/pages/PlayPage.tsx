@@ -397,7 +397,7 @@ function Buildings() {
           const topH = 0.8, topW = bw - 0.6;
           const topM = new THREE.Mesh(new THREE.BoxGeometry(topW, topH, topW), MATS.roof);
           topM.position.set(x, bh + topH / 2, z); group.add(topM);
-        } else if (typeRoll < 0.83) {
+        } else {
           // Type E: Park
           const pr = 3 + n * 4;
           mesh = new THREE.Mesh(new THREE.CylinderGeometry(pr, pr, 0.15, 16), MATS.park);
@@ -412,47 +412,6 @@ function Buildings() {
             const crown = new THREE.Mesh(new THREE.ConeGeometry(crownR, 0.8 + Math.random() * 0.6, 8), MATS.treeLeaf);
             crown.position.set(tx, th + crownR * 0.6, tz); group.add(crown);
           }
-        } else if (typeRoll < 0.91) {
-          // Type F: Shopping Mall - large footprint, yellow
-          const mw = 6 + n * 4, mh = 1.8 + n * 1, md = 5 + n2 * 3;
-          const main = new THREE.Mesh(bGeom(mw, mh, md), MATS.mallWall);
-          main.position.set(x, mh / 2, z);
-          const glassStrip = new THREE.Mesh(new THREE.BoxGeometry(mw - 0.3, 0.6, 0.15), MATS.mallGlass);
-          glassStrip.position.set(x, 0.9, z + md / 2 + 0.05); group.add(glassStrip);
-          const roofSlab = new THREE.Mesh(new THREE.BoxGeometry(mw + 0.6, 0.3, md + 0.6), MATS.mallRoof);
-          roofSlab.position.set(x, mh + 0.15, z); group.add(roofSlab);
-          group.add(main); mesh = main;
-          addWindows(x, z, mw, mh, md, Math.floor(mh * 0.5), 0.7);
-        } else {
-          // Type G: Hospital - white, all floors lit
-          const hw = 4 + n * 2, hh = 3 + n2 * 2.5, hd = 4 + n * 2;
-          const main = new THREE.Mesh(bGeom(hw, hh, hd), MATS.hospWall);
-          main.position.set(x, hh / 2, z);
-          group.add(main); mesh = main;
-          // All windows lit (odds=1.0 means every window)
-          addWindows(x, z, hw, hh, hd, Math.floor(hh * 0.85), 1.0);
-          // Roof
-          const hRoof = new THREE.Mesh(new THREE.BoxGeometry(hw + 0.4, 0.25, hd + 0.4), MATS.hospRoof);
-          hRoof.position.set(x, hh + 0.13, z); group.add(hRoof);
-          // Red cross sign on top
-          const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.2, 0.15), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-          crossV.position.set(x, hh + 0.8, z); group.add(crossV);
-          const crossH = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.3, 0.15), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-          crossH.position.set(x, hh + 0.8, z); group.add(crossH);
-          // Standing people at entrance
-          for (let pi = 0; pi < 4; pi++) {
-            const px = x + (pi - 1.5) * 0.7;
-            const pz = z + hd / 2 + 0.5;
-            const person = new THREE.Group();
-            // body
-            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.5, 8), new THREE.MeshStandardMaterial({ color: ['#2244aa','#cc4444','#44aa44','#888888'][pi], roughness: 0.7 }));
-            body.position.y = 0.55; person.add(body);
-            // head
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8), new THREE.MeshStandardMaterial({ color: '#f5d0b0', roughness: 0.5 }));
-            head.position.y = 0.95; person.add(head);
-            person.position.set(px, 0, pz);
-            group.add(person);
-          }
         }
 
         if (mesh) {
@@ -462,6 +421,91 @@ function Buildings() {
         }
       }
     }
+
+    // ===== Fixed large buildings: 4 Malls + 2 Hospitals =====
+    const mallPositions: [number, number][] = [
+      [42, -78], [-52, -58], [32, 52], [-58, 42],
+    ];
+    const hospPositions: [number, number][] = [
+      [-32, -74], [52, 5],
+    ];
+
+    mallPositions.forEach(([mx, mz]) => {
+      const mw = 10, mh = 2.5, md = 8;
+      const main = new THREE.Mesh(bGeom(mw, mh, md), MATS.mallWall);
+      main.position.set(mx, mh / 2, mz);
+      main.castShadow = true; main.receiveShadow = true;
+      group.add(main);
+      // Glass strip front
+      const glassStrip = new THREE.Mesh(new THREE.BoxGeometry(mw - 0.5, 0.7, 0.2), MATS.mallGlass);
+      glassStrip.position.set(mx, 1.0, mz + md / 2 + 0.05);
+      group.add(glassStrip);
+      // Roof
+      const roofSlab = new THREE.Mesh(new THREE.BoxGeometry(mw + 1, 0.35, md + 1), MATS.mallRoof);
+      roofSlab.position.set(mx, mh + 0.18, mz);
+      group.add(roofSlab);
+      // Windows
+      for (let fy = 0; fy < 2; fy++) {
+        for (let face = 0; face < 4; face++) {
+          if (face === 2) continue; // skip back wall
+          const angle = face * Math.PI / 2;
+          const wx = mx + Math.cos(angle) * (mw / 2 + 0.04);
+          const wy = fy * 1.2 - mh / 2 + 0.8;
+          const wz = mz + Math.sin(angle) * (md / 2 + 0.04);
+          if (Math.random() > 0.65) continue;
+          const wg = new THREE.BoxGeometry(face === 0 || face === 2 ? 0.4 : 0.8, 0.5, 0.04);
+          const wm = new THREE.Mesh(wg, MATS.mallGlass);
+          wm.position.set(wx, wy, wz);
+          group.add(wm);
+        }
+      }
+    });
+
+    hospPositions.forEach(([hx, hz]) => {
+      const hw = 8, hh = 5, hd = 7;
+      const main = new THREE.Mesh(bGeom(hw, hh, hd), MATS.hospWall);
+      main.position.set(hx, hh / 2, hz);
+      main.castShadow = true; main.receiveShadow = true;
+      group.add(main);
+      // All windows lit
+      for (let fy = 0; fy < 4; fy++) {
+        for (let face = 0; face < 4; face++) {
+          const angle = face * Math.PI / 2;
+          const wx = hx + Math.cos(angle) * (hw / 2 + 0.04);
+          const wy = fy * 1.2 - hh / 2 + 0.8;
+          const wz = hz + Math.sin(angle) * (hd / 2 + 0.04);
+          const wg = new THREE.BoxGeometry(0.4, 0.55, 0.04);
+          const wm = new THREE.Mesh(wg, MATS.hospWindow);
+          wm.position.set(wx, wy, wz);
+          group.add(wm);
+        }
+      }
+      // Roof
+      const hRoof = new THREE.Mesh(new THREE.BoxGeometry(hw + 0.6, 0.3, hd + 0.6), MATS.hospRoof);
+      hRoof.position.set(hx, hh + 0.15, hz);
+      group.add(hRoof);
+      // Red cross
+      const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.4, 0.18), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+      crossV.position.set(hx, hh + 1.0, hz);
+      group.add(crossV);
+      const crossH = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.35, 0.18), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+      crossH.position.set(hx, hh + 1.0, hz);
+      group.add(crossH);
+      // Standing people at entrance
+      for (let pi = 0; pi < 5; pi++) {
+        const px = hx + (pi - 2) * 0.8;
+        const pz = hz + hd / 2 + 0.6;
+        const person = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.5, 8),
+          new THREE.MeshStandardMaterial({ color: ['#2244aa','#cc4444','#44aa44','#aa44cc','#888888'][pi], roughness: 0.7 }));
+        body.position.y = 0.55; person.add(body);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8),
+          new THREE.MeshStandardMaterial({ color: '#f5d0b0', roughness: 0.5 }));
+        head.position.y = 0.95; person.add(head);
+        person.position.set(px, 0, pz);
+        group.add(person);
+      }
+    });
 
     // Street lamps along major roads
     const lampBase = new THREE.CylinderGeometry(0.1, 0.15, 4, 8);
