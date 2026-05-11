@@ -42,10 +42,6 @@ export function UIOverlay() {
           <button className="upload-btn" onClick={handleProfileClick} style={{ marginLeft: 8 }}>
             {isLoggedIn ? '👤 个人中心' : '🔑 登录'}
           </button>
-          <div className="home-param">
-            <span className="param-value">0.70</span>
-            <span className="param-label">验证你的身份</span>
-          </div>
         </div>
       </div>
 

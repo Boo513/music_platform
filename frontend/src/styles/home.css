@@ -56,7 +56,7 @@
   font-size: 12px;
   font-weight: 300;
   letter-spacing: 3px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.6);
   margin-top: 8px;
   text-transform: uppercase;
 }
@@ -99,25 +99,6 @@
   box-shadow: 0 0 24px rgba(255, 140, 66, 0.4);
   transform: translateY(-1px);
 }
-.home-param {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-.param-value {
-  font-size: 28px;
-  font-weight: 900;
-  color: #FF8C42;
-  font-family: 'JetBrains Mono', monospace;
-}
-.param-label {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.3);
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
-
 /* ===== MIDDLE CONTENT ===== */
 .home-middle {
   display: flex;
@@ -149,7 +130,7 @@
   outline: none;
 }
 .scene-search input::placeholder {
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.45);
 }
 .scene-search input:focus {
   border-color: rgba(255, 140, 66, 0.4);
@@ -160,7 +141,7 @@
   top: 50%;
   transform: translateY(-50%);
   font-size: 12px;
-  opacity: 0.4;
+  opacity: 0.6;
 }
 
 /* 搜索结果下拉 */
@@ -267,10 +248,10 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.04);
 }
 .scene-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
 }
 .scene-item.active {
   background: rgba(255, 140, 66, 0.12);
@@ -284,7 +265,7 @@
 .scene-label {
   flex: 1;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.85);
 }
 .scene-item.active .scene-label {
   color: #FF8C42;
@@ -311,17 +292,17 @@
 }
 .genre-tag {
   padding: 5px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 11px;
   cursor: pointer;
   transition: all 0.2s;
 }
 .genre-tag:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
 }
 .genre-tag.active {
   background: rgba(255, 140, 66, 0.15);
@@ -350,10 +331,10 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  background: rgba(255, 255, 255, 0.01);
+  background: rgba(255, 255, 255, 0.03);
 }
 .song-row:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.07);
 }
 .song-info {
   flex: 1;
@@ -364,11 +345,11 @@
 .song-title {
   font-size: 13px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.92);
 }
 .song-artist {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.55);
 }
 .song-cover-mini {
   width: 38px;
@@ -404,7 +385,7 @@
 }
 .song-play {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.45);
   transition: color 0.2s;
 }
 .song-row:hover .song-play {
@@ -440,7 +421,7 @@
 }
 .hp-artist {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.55);
 }
 .hp-center {
   display: flex;
@@ -452,7 +433,7 @@
 }
 .hp-time {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.55);
   font-family: 'JetBrains Mono', monospace;
   min-width: 30px;
 }
@@ -487,7 +468,7 @@
 }
 .hp-tag {
   font-size: 8px;
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.5);
   letter-spacing: 1px;
 }
 .hp-tag-vip {
