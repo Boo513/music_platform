@@ -826,8 +826,6 @@ export default function PlayPage() {
       <div className="absolute inset-0 z-10 pointer-events-none">
         <div className="pointer-events-auto">
           <TopIcons
-            isFavorited={isFavorited}
-            onToggleFavorite={handleToggleFavorite}
             onOpenSettings={() => setShowSettings(true)}
             isMuted={isMuted}
             onToggleMute={() => {
