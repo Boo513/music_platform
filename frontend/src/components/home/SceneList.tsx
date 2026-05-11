@@ -1,7 +1,7 @@
 import { useStore } from '@/stores/useStore';
 
 const SCENES = [
-  { key: 'cyberpunk', label: '赛博朋克城市', emoji: '🔮', color: '#FF8C42', speed: 2.5 },
+  { key: 'cyberpunk', label: '赛博朋克城市', emoji: '🔮', color: '#FF8C42', speed: 0.4 },
   { key: 'galaxy', label: '宇宙星河', emoji: '🌌', color: '#7c3aed', speed: 0.6 },
   { key: 'spring', label: '春日樱花', emoji: '🌸', color: '#ffb7c5', speed: 1.5 },
   { key: 'beach', label: '夏日海滩', emoji: '🏖', color: '#4a90d9', speed: 1.2 },
