@@ -7,6 +7,8 @@ import com.musicplatform.entity.Song;
 import com.musicplatform.exception.BusinessException;
 import com.musicplatform.exception.ErrorCode;
 import com.musicplatform.mapper.FavoriteMapper;
+import com.musicplatform.mapper.HistoryMapper;
+import com.musicplatform.mapper.PlaylistSongMapper;
 import com.musicplatform.mapper.SongMapper;
 import com.musicplatform.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +27,8 @@ public class SongService {
 
     private final SongMapper songMapper;
     private final FavoriteMapper favoriteMapper;
+    private final HistoryMapper historyMapper;
+    private final PlaylistSongMapper playlistSongMapper;
     private final UserMapper userMapper;
 
     @Value("${app.upload.audio-dir:uploads/audio}")
@@ -36,9 +40,13 @@ public class SongService {
     @Value("${app.upload.video-dir:uploads/videos}")
     private String videoDir;
 
-    public SongService(SongMapper songMapper, FavoriteMapper favoriteMapper, UserMapper userMapper) {
+    public SongService(SongMapper songMapper, FavoriteMapper favoriteMapper,
+                       HistoryMapper historyMapper, PlaylistSongMapper playlistSongMapper,
+                       UserMapper userMapper) {
         this.songMapper = songMapper;
         this.favoriteMapper = favoriteMapper;
+        this.historyMapper = historyMapper;
+        this.playlistSongMapper = playlistSongMapper;
         this.userMapper = userMapper;
     }
 
@@ -170,9 +178,15 @@ public class SongService {
             if (song.getCoverPath() != null) {
                 Files.deleteIfExists(Paths.get(coverDir, song.getCoverPath()));
             }
+            if (song.getVideoPath() != null) {
+                Files.deleteIfExists(Paths.get(videoDir, song.getVideoPath()));
+            }
         } catch (IOException ignored) {}
 
+        // 删除所有关联数据（外键约束）
         favoriteMapper.deleteBySongId(song.getId());
+        historyMapper.deleteBySongId(song.getId());
+        playlistSongMapper.deleteBySongId(song.getId());
         songMapper.deleteById(id);
     }
 

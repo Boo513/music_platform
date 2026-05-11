@@ -23,6 +23,10 @@
         DELETE FROM playlist_songs WHERE playlist_id = #{playlistId}
     </delete>
 
+    <delete id="deleteBySongId">
+        DELETE FROM playlist_songs WHERE song_id = #{songId}
+    </delete>
+
     <select id="existsByPlaylistAndSong" resultType="boolean">
         SELECT COUNT(*) > 0 FROM playlist_songs
         WHERE playlist_id = #{playlistId} AND song_id = #{songId}

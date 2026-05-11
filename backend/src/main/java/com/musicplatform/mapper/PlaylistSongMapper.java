@@ -13,6 +13,7 @@ public interface PlaylistSongMapper {
                @Param("sortOrder") int sortOrder);
     int deleteByPlaylistAndSong(@Param("playlistId") Long playlistId, @Param("songId") Long songId);
     int deleteByPlaylistId(@Param("playlistId") Long playlistId);
+    int deleteBySongId(@Param("songId") Long songId);
     boolean existsByPlaylistAndSong(@Param("playlistId") Long playlistId, @Param("songId") Long songId);
     int maxSortOrder(@Param("playlistId") Long playlistId);
 }
