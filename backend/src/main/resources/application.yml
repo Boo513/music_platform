@@ -26,3 +26,4 @@ app:
   upload:
     audio-dir: uploads/audio
     cover-dir: uploads/covers
+    video-dir: uploads/videos

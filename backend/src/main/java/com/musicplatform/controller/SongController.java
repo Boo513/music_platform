@@ -125,6 +125,44 @@ public class SongController {
         }
     }
 
+    @PostMapping("/{id}/video")
+    public ResponseEntity<ApiResponse<?>> uploadVideo(
+            @PathVariable Long id,
+            @RequestParam("video") MultipartFile video,
+            @AuthenticationPrincipal UserPrincipal principal) throws IOException {
+
+        String contentType = video.getContentType();
+        if (contentType == null || !"video/mp4".equals(contentType)) {
+            if (!video.getOriginalFilename().toLowerCase().endsWith(".mp4")) {
+                throw new BusinessException(ErrorCode.UNSUPPORTED_FORMAT);
+            }
+        }
+        if (video.getSize() > 200 * 1024 * 1024) {
+            throw new BusinessException(ErrorCode.FILE_TOO_LARGE);
+        }
+
+        String url = songService.uploadVideo(id, video.getBytes(), "mp4", principal.getId());
+        return ResponseEntity.ok(ApiResponse.ok("MV上传成功", new VideoResponse(url)));
+    }
+
+    @GetMapping("/{id}/video")
+    public ResponseEntity<Resource> getVideo(@PathVariable Long id) {
+        String videoPath = songService.getVideoPath(id);
+        if (videoPath == null) return ResponseEntity.notFound().build();
+        Path path = Path.of(videoPath);
+        if (!Files.exists(path)) return ResponseEntity.notFound().build();
+        Resource resource = new FileSystemResource(path);
+        try {
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_TYPE, "video/mp4")
+                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                    .contentLength(resource.contentLength())
+                    .body(resource);
+        } catch (IOException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(
             @PathVariable Long id,
@@ -134,4 +172,5 @@ public class SongController {
     }
 
     record CoverResponse(String coverUrl) {}
+    record VideoResponse(String videoUrl) {}
 }

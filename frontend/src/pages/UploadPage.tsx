@@ -10,11 +10,12 @@ import '@/styles/upload.css';
 export default function UploadPage() {
   const navigate = useNavigate();
   const {
-    isUploading, uploadProgress, selectedFile, coverFile, title, artist, style, mood, error,
-    startUpload, finishUpload, setProgress, setError, setCoverFile, reset,
+    isUploading, uploadProgress, selectedFile, coverFile, videoFile, title, artist, style, mood, error,
+    startUpload, finishUpload, setProgress, setError, setCoverFile, setVideoFile, reset,
   } = useUploadStore();
 
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [videoName, setVideoName] = useState<string | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
 
   const canSubmit = !!(selectedFile && title.trim() && artist.trim() && style && mood && !isUploading);
@@ -37,6 +38,21 @@ export default function UploadPage() {
     setCoverPreview(URL.createObjectURL(file));
   };
 
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('video/') && !file.name.toLowerCase().endsWith('.mp4')) {
+      setError('MV仅支持 MP4 格式');
+      return;
+    }
+    if (file.size > 200 * 1024 * 1024) {
+      setError('MV文件大小不能超过200MB');
+      return;
+    }
+    setVideoFile(file);
+    setVideoName(file.name);
+  };
+
   const handleSubmit = () => {
     if (!canSubmit) return;
     setError('');
@@ -56,6 +72,11 @@ export default function UploadPage() {
           const coverForm = new FormData();
           coverForm.append('cover', coverFile);
           songsApi.uploadCover(res.data.id, coverForm).catch(() => {});
+        }
+        if (videoFile) {
+          const videoForm = new FormData();
+          videoForm.append('video', videoFile);
+          songsApi.uploadVideo(res.data.id, videoForm).catch(() => {});
         }
         finishUpload();
         setTimeout(() => setShowCelebration(true), 400);
@@ -103,6 +124,22 @@ export default function UploadPage() {
               />
               <span className="up-cover-hint">
                 {coverFile ? coverFile.name : '点击选择封面 (可选)'}
+              </span>
+            </label>
+          </div>
+          <div className="up-field" style={{ marginTop: 16 }}>
+            <label className="up-label">MUSIC VIDEO (MV)</label>
+            <label className="up-cover-picker">
+              <div className="up-cover-placeholder">🎬</div>
+              <input
+                type="file"
+                accept="video/mp4,.mp4"
+                onChange={handleVideoChange}
+                disabled={isUploading}
+                style={{ display: 'none' }}
+              />
+              <span className="up-cover-hint">
+                {videoName || '点击上传MV视频 (可选, MP4格式, ≤200MB)'}
               </span>
             </label>
           </div>

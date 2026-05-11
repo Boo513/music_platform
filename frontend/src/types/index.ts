@@ -18,6 +18,7 @@ export interface Song {
   mood: MoodType;
   playCount: number;
   isFavorited: boolean;
+  hasVideo?: boolean;
   uploader: { id: number; nickname: string };
   createdAt: string;
 }

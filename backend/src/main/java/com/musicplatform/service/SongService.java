@@ -32,6 +32,9 @@ public class SongService {
     @Value("${app.upload.cover-dir:uploads/covers}")
     private String coverDir;
 
+    @Value("${app.upload.video-dir:uploads/videos}")
+    private String videoDir;
+
     public SongService(SongMapper songMapper, FavoriteMapper favoriteMapper, UserMapper userMapper) {
         this.songMapper = songMapper;
         this.favoriteMapper = favoriteMapper;
@@ -145,6 +148,32 @@ public class SongService {
 
         favoriteMapper.deleteBySongId(song.getId());
         songMapper.deleteById(id);
+    }
+
+    public String getVideoPath(Long id) {
+        Song song = songMapper.selectById(id);
+        if (song == null || song.getVideoPath() == null) return null;
+        Path filePath = Paths.get(videoDir, song.getVideoPath());
+        if (!Files.exists(filePath)) return null;
+        return filePath.toAbsolutePath().toString();
+    }
+
+    @Transactional
+    public String uploadVideo(Long songId, byte[] videoBytes, String extension, Long userId) {
+        Song song = songMapper.selectById(songId);
+        if (song == null) throw new BusinessException(ErrorCode.SONG_NOT_FOUND);
+        if (!song.getUploaderId().equals(userId)) throw new BusinessException(ErrorCode.FORBIDDEN);
+
+        try {
+            Path videoPath = Paths.get(videoDir);
+            Files.createDirectories(videoPath);
+            String fileName = java.util.UUID.randomUUID() + "." + extension;
+            Files.write(videoPath.resolve(fileName), videoBytes);
+            songMapper.updateVideoPath(songId, fileName);
+            return "/api/songs/" + songId + "/video";
+        } catch (IOException e) {
+            throw new RuntimeException("视频上传失败", e);
+        }
     }
 
     @Transactional

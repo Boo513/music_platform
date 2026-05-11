@@ -22,6 +22,7 @@ export function MusicList({ searchKeyword = '' }: Props) {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [mvUrl, setMvUrl] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef(1);
   const hasMoreRef = useRef(false);
@@ -123,6 +124,18 @@ export function MusicList({ searchKeyword = '' }: Props) {
                   <span className="song-artist">{s.artist}</span>
                 </div>
                 {s.isFavorited && <span className="song-vip">❤️</span>}
+                {s.hasVideo && (
+                  <button
+                    className="song-mv-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMvUrl(songsApi.getVideoUrl(s.id));
+                    }}
+                    title="播放MV"
+                  >
+                    🎬
+                  </button>
+                )}
                 <span className="song-play">▶</span>
               </div>
             ))}
@@ -134,6 +147,22 @@ export function MusicList({ searchKeyword = '' }: Props) {
           </>
         )}
       </div>
+
+      {/* MV 播放弹窗 */}
+      {mvUrl && (
+        <div className="mv-overlay" onClick={() => setMvUrl(null)}>
+          <div className="mv-player" onClick={(e) => e.stopPropagation()}>
+            <button className="mv-close" onClick={() => setMvUrl(null)}>✕</button>
+            <video
+              src={mvUrl}
+              controls
+              autoPlay
+              className="mv-video"
+              onError={() => setMvUrl(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
