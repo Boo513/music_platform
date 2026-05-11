@@ -833,10 +833,21 @@ export default function PlayPage() {
       </div>
 
       <div className="absolute inset-0 z-10 pointer-events-none">
-        {/* Toast */}
+        {/* 未登录提示弹窗 */}
         {toast && (
-          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl bg-black-70 border border-orange-30 text-white text-sm font-semibold backdrop-blur-md animate-pulse pointer-events-none">
-            {toast}
+          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto" onClick={() => setToast('')}>
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+            <div className="relative bg-dark-90 border border-orange-20 rounded-2xl px-8 py-6 text-center max-w-xs w-11/12 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="text-3xl mb-3">🔒</div>
+              <div className="text-white text-base font-semibold mb-2">需要登录</div>
+              <div className="text-white-50 text-sm mb-5">{toast}</div>
+              <button
+                className="px-6 py-2 rounded-xl bg-accent-15 border border-orange-30 text-white text-sm font-semibold transition-all hover:bg-[rgba(255,140,66,0.25)]"
+                onClick={() => setToast('')}
+              >
+                知道了
+              </button>
+            </div>
           </div>
         )}
         <div className="pointer-events-auto">
