@@ -30,6 +30,7 @@ export function MusicList({ searchKeyword = '' }: Props) {
   const [editStyle, setEditStyle] = useState<StyleType | ''>('');
   const [editMood, setEditMood] = useState<MoodType | ''>('');
   const [deleteTarget, setDeleteTarget] = useState<Song | null>(null);
+  const [deleteOk, setDeleteOk] = useState(false);
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -251,10 +252,24 @@ export function MusicList({ searchKeyword = '' }: Props) {
                   songsApi.delete(deleteTarget.id).then(() => {
                     setSongs((prev) => prev.filter((s) => s.id !== deleteTarget.id));
                     setDeleteTarget(null);
+                    setDeleteOk(true);
+                    setTimeout(() => setDeleteOk(false), 2000);
                   }).catch(() => {});
                 }}
               >确认删除</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 删除成功提示 */}
+      {deleteOk && (
+        <div className="mv-overlay" onClick={() => setDeleteOk(false)}>
+          <div className="edit-dialog" onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 40, marginBottom: 8 }}>✅</div>
+            <h3 className="edit-title">删除成功</h3>
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 16 }}>歌曲已从平台移除</p>
+            <button className="edit-save" onClick={() => setDeleteOk(false)} style={{ width: '100%' }}>确定</button>
           </div>
         </div>
       )}
