@@ -8,7 +8,7 @@ export function ParticleTunnel() {
   const speedsRef = useRef<Float32Array | null>(null);
 
   const { positions, colors } = useMemo(() => {
-    const count = 6000;
+    const count = 2500;
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
     const spd = new Float32Array(count);
@@ -20,9 +20,9 @@ export function ParticleTunnel() {
       pos[i * 3 + 1] = (Math.random() - 0.5) * 20;
       pos[i * 3 + 2] = (Math.random() - 0.5) * 120;
 
-      const hue = 0.08 + Math.random() * 0.1;
-      const sat = 0.6 + Math.random() * 0.4;
-      const light = 0.4 + Math.random() * 0.3;
+      const hue = 0.08 + Math.random() * 0.08;
+      const sat = 0.2 + Math.random() * 0.3;
+      const light = 0.25 + Math.random() * 0.25;
       const c = new THREE.Color().setHSL(hue, sat, light);
       col[i * 3] = c.r;
       col[i * 3 + 1] = c.g;
@@ -48,7 +48,7 @@ export function ParticleTunnel() {
     const nextSpeed = state.currentSpeed + (state.targetSpeed - state.currentSpeed) * delta * 2;
     useStore.setState({ currentSpeed: nextSpeed });
 
-    const count = 6000;
+    const count = 2500;
     for (let i = 0; i < count; i++) {
       pos[i * 3 + 2] += spd[i] * nextSpeed * delta * 10;
       if (pos[i * 3 + 2] > 60) {
@@ -81,21 +81,21 @@ export function ParticleTunnel() {
         <bufferAttribute
           attach="attributes-position"
           array={positions}
-          count={6000}
+          count={2500}
           itemSize={3}
         />
         <bufferAttribute
           attach="attributes-color"
           array={colors}
-          count={6000}
+          count={2500}
           itemSize={3}
         />
       </bufferGeometry>
       <pointsMaterial
-        size={0.25}
+        size={0.18}
         vertexColors
         transparent
-        opacity={0.85}
+        opacity={0.55}
         depthWrite={false}
         blending={THREE.AdditiveBlending}
         sizeAttenuation

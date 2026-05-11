@@ -40,7 +40,7 @@ export function CityScene() {
     <>
       <color attach="background" args={['#0a0a18']} />
       <fog attach="fog" args={['#0a0a18', 60, 300]} />
-      <Stars radius={150} depth={80} count={800} factor={3} saturation={0.2} fade speed={0.3} />
+      <Stars radius={150} depth={80} count={400} factor={2} saturation={0.15} fade speed={0.25} />
       <ambientLight intensity={0.3} color="#3a3060" />
       <pointLight position={[50, 30, -40]} intensity={2} color="#FF8C42" distance={200} />
       <pointLight position={[-40, 20, -60]} intensity={1.5} color="#7c3aed" distance={150} />
