@@ -99,25 +99,6 @@
   box-shadow: 0 0 24px rgba(255, 140, 66, 0.4);
   transform: translateY(-1px);
 }
-.home-param {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-.param-value {
-  font-size: 28px;
-  font-weight: 900;
-  color: #FF8C42;
-  font-family: 'JetBrains Mono', monospace;
-}
-.param-label {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.5);
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
-
 /* ===== MIDDLE CONTENT ===== */
 .home-middle {
   display: flex;
