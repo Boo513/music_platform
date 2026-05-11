@@ -715,7 +715,45 @@ function Pedestrians() {
   );
 }
 
-function Scene3D({ zoomLevel, effects }: { zoomLevel: number; effects: { particles: boolean; bloom: boolean; vignette: boolean } }) {
+function AutoRotateController({ enabled }: { enabled: boolean }) {
+  const { camera } = useThree();
+  const timeRef = useRef(0);
+
+  useFrame((_, delta) => {
+    if (!enabled) return;
+    timeRef.current += delta * 0.06;
+
+    const t = timeRef.current;
+    // Lighthouse at [0, 0, -40]
+    const lhX = 0, lhZ = -40, lhY = 28;
+
+    // Camera orbits at a distance, creating off-center framing
+    const orbitRadius = 70 + Math.sin(t * 0.4) * 10;
+    const orbitAngle = t;
+    const camX = lhX + Math.cos(orbitAngle) * orbitRadius;
+    const camZ = lhZ + Math.sin(orbitAngle) * orbitRadius;
+    const camY = 32 + Math.sin(t * 0.35) * 10;
+
+    // Look target offset from lighthouse — lighthouse stays off-center
+    const lookOffsetX = 25 + Math.sin(t * 0.55) * 15;
+    const lookOffsetZ = 15 + Math.cos(t * 0.45) * 10;
+    const lookX = lhX + lookOffsetX;
+    const lookZ = lhZ + lookOffsetZ;
+
+    camera.position.x += (camX - camera.position.x) * 0.015;
+    camera.position.y += (camY - camera.position.y) * 0.015;
+    camera.position.z += (camZ - camera.position.z) * 0.015;
+    camera.lookAt(lookX, lhY, lookZ);
+  });
+
+  return null;
+}
+
+function Scene3D({ zoomLevel, effects, autoRotate }: {
+  zoomLevel: number;
+  effects: { particles: boolean; bloom: boolean; vignette: boolean };
+  autoRotate: boolean;
+}) {
   return (
     <>
       <SkyDome />
@@ -725,6 +763,7 @@ function Scene3D({ zoomLevel, effects }: { zoomLevel: number; effects: { particl
       <directionalLight position={[50, 100, 50]} intensity={effects.bloom ? 0.7 : 0.25} color={effects.bloom ? '#ffddaa' : '#8899aa'} />
       {effects.bloom && <pointLight position={[-30, 30, -30]} intensity={1.0} color="#ff9944" distance={120} />}
       <ZoomController zoomLevel={zoomLevel} />
+      <AutoRotateController enabled={autoRotate} />
       <OrbitControls
         target={[-30, -5, -20]}
         minDistance={30} maxDistance={350}
@@ -757,6 +796,7 @@ export default function PlayPage() {
   const [zoomLevel, setZoomLevel] = useState(5);
   const [selectedScene, setSelectedScene] = useState('auto');
   const [effects, setEffects] = useState({ particles: true, bloom: false, vignette: true });
+  const [autoRotate, setAutoRotate] = useState(true);
   const [toast, setToast] = useState('');
 
   useEffect(() => {
@@ -828,7 +868,7 @@ export default function PlayPage() {
     <div className="fixed inset-0" style={{ background: '#0a0a18' }}>
       <div className="absolute inset-0 z-0">
         <Canvas camera={{ position: [80, 55, -100], fov: 55 }}>
-          <Scene3D zoomLevel={zoomLevel} effects={effects} />
+          <Scene3D zoomLevel={zoomLevel} effects={effects} autoRotate={autoRotate} />
         </Canvas>
       </div>
 
@@ -852,6 +892,8 @@ export default function PlayPage() {
         )}
         <div className="pointer-events-auto">
           <TopIcons
+            autoRotate={autoRotate}
+            onToggleAutoRotate={() => setAutoRotate(!autoRotate)}
             onOpenSettings={() => setShowSettings(true)}
             isMuted={isMuted}
             onToggleMute={() => {
