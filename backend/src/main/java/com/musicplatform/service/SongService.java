@@ -129,6 +129,7 @@ public class SongService {
             song.setFilePath(fileName);
             song.setStyle(style);
             song.setMood(mood);
+            song.setIsPublic(isPublic);
             song.setUploaderId(uploaderId);
             song.setDuration(0);
             songMapper.insert(song);
