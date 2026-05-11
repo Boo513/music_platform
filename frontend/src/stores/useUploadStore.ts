@@ -11,6 +11,7 @@ interface UploadState {
   artist: string;
   style: StyleType | null;
   mood: MoodType | null;
+  isPublic: boolean;
   error: string;
   setFile: (f: File | null) => void;
   setCoverFile: (f: File | null) => void;
@@ -19,6 +20,7 @@ interface UploadState {
   setArtist: (a: string) => void;
   setStyle: (s: StyleType) => void;
   setMood: (m: MoodType) => void;
+  setIsPublic: (v: boolean) => void;
   setError: (e: string) => void;
   startUpload: () => void;
   finishUpload: () => void;
@@ -36,6 +38,7 @@ export const useUploadStore = create<UploadState>((set, get) => ({
   artist: '',
   style: null,
   mood: null,
+  isPublic: true,
   error: '',
   setFile: (f) => set({ selectedFile: f, error: '' }),
   setCoverFile: (f) => set({ coverFile: f, error: '' }),
@@ -44,9 +47,10 @@ export const useUploadStore = create<UploadState>((set, get) => ({
   setArtist: (a) => set({ artist: a }),
   setStyle: (s) => set({ style: s }),
   setMood: (m) => set({ mood: m }),
+  setIsPublic: (v) => set({ isPublic: v }),
   setError: (e) => set({ error: e }),
   startUpload: () => set({ isUploading: true, uploadProgress: 0, error: '' }),
   finishUpload: () => set({ isUploading: false, uploadProgress: 1 }),
   setProgress: (p) => set({ uploadProgress: p }),
-  reset: () => set({ isUploading: false, uploadProgress: 0, selectedFile: null, coverFile: null, videoFile: null, title: '', artist: '', style: null, mood: null, error: '' }),
+  reset: () => set({ isUploading: false, uploadProgress: 0, selectedFile: null, coverFile: null, videoFile: null, title: '', artist: '', style: null, mood: null, isPublic: true, error: '' }),
 }));

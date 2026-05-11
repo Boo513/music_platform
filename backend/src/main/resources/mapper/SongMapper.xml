@@ -19,6 +19,11 @@
             <if test="keyword != null and keyword != ''">
                 AND (title LIKE CONCAT('%', #{keyword}, '%') OR artist LIKE CONCAT('%', #{keyword}, '%'))
             </if>
+            <if test="!isAdmin">
+                AND (is_public = 1
+                <if test="userId != null">OR uploader_id = #{userId}</if>
+                )
+            </if>
         </where>
         <choose>
             <when test="sort == 'plays'">ORDER BY play_count DESC</when>
@@ -40,12 +45,17 @@
             <if test="keyword != null and keyword != ''">
                 AND (title LIKE CONCAT('%', #{keyword}, '%') OR artist LIKE CONCAT('%', #{keyword}, '%'))
             </if>
+            <if test="!isAdmin">
+                AND (is_public = 1
+                <if test="userId != null">OR uploader_id = #{userId}</if>
+                )
+            </if>
         </where>
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO songs (title, artist, file_path, cover_path, duration, style, mood, uploader_id)
-        VALUES (#{title}, #{artist}, #{filePath}, #{coverPath}, #{duration}, #{style}, #{mood}, #{uploaderId})
+        INSERT INTO songs (title, artist, file_path, cover_path, duration, style, mood, is_public, uploader_id)
+        VALUES (#{title}, #{artist}, #{filePath}, #{coverPath}, #{duration}, #{style}, #{mood}, #{isPublic}, #{uploaderId})
     </insert>
 
     <update id="update">

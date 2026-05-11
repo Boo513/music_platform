@@ -2,7 +2,7 @@ import { useUploadStore } from '@/stores/useUploadStore';
 import { STYLE_OPTIONS, MOOD_OPTIONS } from '@/types';
 
 export function FormPanel() {
-  const { title, artist, style, mood, setTitle, setArtist, setStyle, setMood } = useUploadStore();
+  const { title, artist, style, mood, isPublic, setTitle, setArtist, setStyle, setMood, setIsPublic } = useUploadStore();
 
   return (
     <div className="up-form">
@@ -49,6 +49,20 @@ export function FormPanel() {
               onClick={() => setMood(m.value)}
             >{m.emoji} {m.label}</button>
           ))}
+        </div>
+      </div>
+
+      <div className="up-field">
+        <label className="up-label">VISIBILITY</label>
+        <div className="up-tags">
+          <button
+            className={`up-tag ${isPublic ? 'active' : ''}`}
+            onClick={() => setIsPublic(true)}
+          >🌐 公开</button>
+          <button
+            className={`up-tag ${!isPublic ? 'active' : ''}`}
+            onClick={() => setIsPublic(false)}
+          >🔒 私人</button>
         </div>
       </div>
     </div>
