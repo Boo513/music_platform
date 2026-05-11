@@ -1,6 +1,15 @@
 CREATE DATABASE IF NOT EXISTS music_platform DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE music_platform;
 
+-- 管理员表
+CREATE TABLE IF NOT EXISTS admins (
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username    VARCHAR(50) NOT NULL UNIQUE,
+    password    VARCHAR(255) NOT NULL COMMENT 'BCrypt加密',
+    nickname    VARCHAR(100) DEFAULT '管理员',
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
 -- 用户表
 CREATE TABLE IF NOT EXISTS users (
     id          BIGINT AUTO_INCREMENT PRIMARY KEY,
