@@ -765,11 +765,11 @@ export default function PlayPage() {
         const target = list.find((s) => s.id === Number(songId));
         if (target) {
           play(target, list);
-          setIsFavorited(target.isFavorited);
+          setIsFavorited(!!target.isFavorited);
         } else {
           songsApi.getById(Number(songId)).then((res) => {
             play(res.data, list);
-            setIsFavorited(res.data.isFavorited);
+            setIsFavorited(!!res.data.isFavorited);
           }).catch(() => {
             play(DEMO_SONG);
             setDemoSong(DEMO_SONG);
@@ -782,15 +782,16 @@ export default function PlayPage() {
     } else if (!queue.some((s) => s.id === Number(songId))) {
       songsApi.getById(Number(songId)).then((res) => {
         play(res.data, [...queue, res.data]);
-        setIsFavorited(res.data.isFavorited);
+        setIsFavorited(!!res.data.isFavorited);
       }).catch(() => {
         play(DEMO_SONG);
         setDemoSong(DEMO_SONG);
       });
+    } else {
+      // 队列中已有该歌曲，直接读取收藏状态
+      const existing = queue.find((s) => s.id === Number(songId));
+      if (existing) setIsFavorited(!!existing.isFavorited);
     }
-    favoritesApi.check(Number(songId))
-      .then((res) => setIsFavorited(res.data.favorited))
-      .catch(() => {});
   }, [songId]);
 
   const storeSong = currentSong();
