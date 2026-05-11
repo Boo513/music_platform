@@ -37,6 +37,38 @@
   pointer-events: none;
 }
 
+/* ── 返回首页按钮 ── */
+.backHomeBtn {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(188,19,254,0.2);
+  background: rgba(20,14,30,0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: rgba(255,255,255,0.7);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.backHomeBtn:hover {
+  background: rgba(188,19,254,0.12);
+  border-color: rgba(188,19,254,0.4);
+  color: #bc13fe;
+  box-shadow: 0 0 24px rgba(188,19,254,0.15);
+}
+.backHomeIcon {
+  font-size: 16px;
+  line-height: 1;
+}
+
 /* ── 主卡片 3D 透视容器 ── */
 .cardWrap {
   perspective: 1200px;
