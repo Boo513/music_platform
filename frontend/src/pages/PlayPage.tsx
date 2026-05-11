@@ -431,21 +431,25 @@ function Buildings() {
     ];
 
     mallPositions.forEach(([mx, mz]) => {
-      const mw = 10, mh = 2.5, md = 8;
+      const mw = 10, mh = 3.5, md = 8;
       const main = new THREE.Mesh(bGeom(mw, mh, md), MATS.mallWall);
       main.position.set(mx, mh / 2, mz);
       main.castShadow = true; main.receiveShadow = true;
       group.add(main);
-      // Glass strip front
-      const glassStrip = new THREE.Mesh(new THREE.BoxGeometry(mw - 0.5, 0.7, 0.2), MATS.mallGlass);
-      glassStrip.position.set(mx, 1.0, mz + md / 2 + 0.05);
+      // Glass strip front (ground floor)
+      const glassStrip = new THREE.Mesh(new THREE.BoxGeometry(mw - 0.5, 0.8, 0.2), MATS.mallGlass);
+      glassStrip.position.set(mx, 0.7, mz + md / 2 + 0.05);
       group.add(glassStrip);
+      // Upper floor glass band
+      const glassUpper = new THREE.Mesh(new THREE.BoxGeometry(mw - 0.5, 0.5, 0.2), MATS.mallGlass);
+      glassUpper.position.set(mx, mh - 0.5, mz + md / 2 + 0.05);
+      group.add(glassUpper);
       // Roof
       const roofSlab = new THREE.Mesh(new THREE.BoxGeometry(mw + 1, 0.35, md + 1), MATS.mallRoof);
       roofSlab.position.set(mx, mh + 0.18, mz);
       group.add(roofSlab);
       // Windows
-      for (let fy = 0; fy < 2; fy++) {
+      for (let fy = 0; fy < 3; fy++) {
         for (let face = 0; face < 4; face++) {
           if (face === 2) continue; // skip back wall
           const angle = face * Math.PI / 2;
