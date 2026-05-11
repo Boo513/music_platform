@@ -16,6 +16,7 @@ public class SongResponse {
     private String mood;
     private Integer playCount;
     private Boolean isFavorited;
+    private Boolean hasVideo;
     private UploaderInfo uploader;
     private LocalDateTime createdAt;
 
@@ -36,6 +37,7 @@ public class SongResponse {
         r.setMood(song.getMood());
         r.setPlayCount(song.getPlayCount() != null ? song.getPlayCount() : 0);
         r.setIsFavorited(isFavorited);
+        r.setHasVideo(song.getVideoPath() != null && !song.getVideoPath().isEmpty());
         r.setCreatedAt(song.getCreatedAt());
         return r;
     }

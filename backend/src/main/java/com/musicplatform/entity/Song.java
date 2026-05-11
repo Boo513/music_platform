@@ -10,6 +10,7 @@ public class Song {
     private String artist;
     private String filePath;
     private String coverPath;
+    private String videoPath;
     private Integer duration;
     private String style;
     private String mood;

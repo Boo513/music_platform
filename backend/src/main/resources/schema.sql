@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS songs (
     artist      VARCHAR(200) NOT NULL DEFAULT '未知艺术家',
     file_path   VARCHAR(500) NOT NULL COMMENT 'MP3文件路径（相对于uploads/audio/）',
     cover_path  VARCHAR(500) COMMENT '封面图路径',
+    video_path  VARCHAR(500) COMMENT 'MV视频路径',
     duration    INT NOT NULL DEFAULT 0 COMMENT '时长（秒）',
     style       VARCHAR(20) NOT NULL COMMENT '风格',
     mood        VARCHAR(20) NOT NULL COMMENT '情绪',

@@ -60,4 +60,8 @@
         UPDATE songs SET cover_path = #{coverPath} WHERE id = #{id}
     </update>
 
+    <update id="updateVideoPath">
+        UPDATE songs SET video_path = #{videoPath} WHERE id = #{id}
+    </update>
+
 </mapper>
