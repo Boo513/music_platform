@@ -13,7 +13,7 @@ export function TopIcons({ autoRotate, onToggleAutoRotate, onOpenSettings, onTog
   return (
     <div className="fixed top-7 left-7 z-10 flex gap-2.5">
       <GlassButton onClick={onToggleAutoRotate} title={autoRotate ? '关闭自动旋转' : '开启自动旋转'}>
-        {autoRotate ? '🔄' : '🔒' as ReactNode}
+        {autoRotate ? '📷' : '📷' as ReactNode}
       </GlassButton>
       <GlassButton onClick={onToggleMute}>{isMuted ? '🔇' : '🔊' as ReactNode}</GlassButton>
       <GlassButton onClick={onOpenSettings}>{'⚙' as ReactNode}</GlassButton>
