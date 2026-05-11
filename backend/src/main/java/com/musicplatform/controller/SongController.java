@@ -40,7 +40,8 @@ public class SongController {
             @RequestParam(defaultValue = "newest") String sort,
             @AuthenticationPrincipal UserPrincipal principal) {
         Long userId = principal != null ? principal.getId() : null;
-        return ResponseEntity.ok(ApiResponse.ok(songService.list(style, mood, keyword, sort, page, size, userId)));
+        boolean isAdmin = principal != null && "admin".equals(principal.getRole());
+        return ResponseEntity.ok(ApiResponse.ok(songService.list(style, mood, keyword, sort, page, size, userId, isAdmin)));
     }
 
     @GetMapping("/{id}")
@@ -73,6 +74,7 @@ public class SongController {
             @RequestParam("artist") String artist,
             @RequestParam("style") String style,
             @RequestParam("mood") String mood,
+            @RequestParam(defaultValue = "true") boolean isPublic,
             @RequestParam("audio") MultipartFile audio,
             @AuthenticationPrincipal UserPrincipal principal) throws IOException {
 
@@ -84,7 +86,7 @@ public class SongController {
             throw new BusinessException(ErrorCode.FILE_TOO_LARGE);
         }
 
-        SongResponse resp = songService.upload(title, artist, style, mood, audio.getBytes(), principal.getId());
+        SongResponse resp = songService.upload(title, artist, style, mood, isPublic, audio.getBytes(), principal.getId());
         return ResponseEntity.ok(ApiResponse.ok("上传成功", resp));
     }
 

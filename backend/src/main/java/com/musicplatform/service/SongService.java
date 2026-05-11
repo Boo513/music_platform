@@ -56,7 +56,7 @@ public class SongService {
             "happy", "sad", "calm", "excited", "romantic", "melancholy");
 
     public PageData<SongResponse> list(String style, String mood, String keyword,
-                                        String sort, int page, int size, Long userId) {
+                                        String sort, int page, int size, Long userId, boolean isAdmin) {
         if (style != null && !VALID_STYLES.contains(style)) {
             throw new BusinessException(ErrorCode.INVALID_STYLE);
         }
@@ -64,8 +64,8 @@ public class SongService {
             throw new BusinessException(ErrorCode.INVALID_MOOD);
         }
         int offset = (page - 1) * size;
-        List<Song> songs = songMapper.selectAll(style, mood, keyword, sort, offset, size);
-        int total = songMapper.countAll(style, mood, keyword);
+        List<Song> songs = songMapper.selectAll(style, mood, keyword, sort, offset, size, userId, isAdmin);
+        int total = songMapper.countAll(style, mood, keyword, userId, isAdmin);
 
         List<SongResponse> records = songs.stream().map(s -> {
             boolean fav = userId != null && favoriteMapper.exists(userId, s.getId());
@@ -105,7 +105,7 @@ public class SongService {
 
     @Transactional
     public SongResponse upload(String title, String artist, String style, String mood,
-                                byte[] fileBytes, Long uploaderId) {
+                                Boolean isPublic, byte[] fileBytes, Long uploaderId) {
         if (!VALID_STYLES.contains(style)) throw new BusinessException(ErrorCode.INVALID_STYLE);
         if (!VALID_MOODS.contains(mood)) throw new BusinessException(ErrorCode.INVALID_MOOD);
 

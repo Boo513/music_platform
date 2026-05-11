@@ -15,12 +15,16 @@ public interface SongMapper {
         @Param("keyword") String keyword,
         @Param("sort") String sort,
         @Param("offset") int offset,
-        @Param("size") int size
+        @Param("size") int size,
+        @Param("userId") Long userId,
+        @Param("isAdmin") boolean isAdmin
     );
     int countAll(
         @Param("style") String style,
         @Param("mood") String mood,
-        @Param("keyword") String keyword
+        @Param("keyword") String keyword,
+        @Param("userId") Long userId,
+        @Param("isAdmin") boolean isAdmin
     );
     int insert(Song song);
     int deleteById(@Param("id") Long id);

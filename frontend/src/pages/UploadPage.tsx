@@ -10,8 +10,8 @@ import '@/styles/upload.css';
 export default function UploadPage() {
   const navigate = useNavigate();
   const {
-    isUploading, uploadProgress, selectedFile, coverFile, videoFile, title, artist, style, mood, error,
-    startUpload, finishUpload, setProgress, setError, setCoverFile, setVideoFile, reset,
+    isUploading, uploadProgress, selectedFile, coverFile, videoFile, title, artist, style, mood, isPublic, error,
+    startUpload, finishUpload, setProgress, setError, setCoverFile, setVideoFile, setIsPublic, reset,
   } = useUploadStore();
 
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
@@ -64,6 +64,7 @@ export default function UploadPage() {
     formData.append('artist', artist.trim());
     formData.append('style', style!);
     formData.append('mood', mood!);
+    formData.append('isPublic', String(isPublic));
 
     songsApi
       .upload(formData, (pct) => setProgress(pct / 100))

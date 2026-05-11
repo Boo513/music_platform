@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS songs (
     duration    INT NOT NULL DEFAULT 0 COMMENT '时长（秒）',
     style       VARCHAR(20) NOT NULL COMMENT '风格',
     mood        VARCHAR(20) NOT NULL COMMENT '情绪',
+    is_public   TINYINT(1) NOT NULL DEFAULT 1 COMMENT '公开/私人',
     uploader_id BIGINT NOT NULL,
     play_count  INT NOT NULL DEFAULT 0,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

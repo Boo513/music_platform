@@ -14,6 +14,7 @@ public class Song {
     private Integer duration;
     private String style;
     private String mood;
+    private Boolean isPublic;
     private Long uploaderId;
     private Integer playCount;
     private LocalDateTime createdAt;
