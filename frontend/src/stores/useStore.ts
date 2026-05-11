@@ -18,8 +18,8 @@ interface AppState {
 export const useStore = create<AppState>((set) => ({
   mouseX: 0,
   mouseY: 0,
-  currentSpeed: 2.5,
-  targetSpeed: 2.5,
+  currentSpeed: 0.4,
+  targetSpeed: 0.4,
   accentColor: '#FF8C42',
   isShockwave: false,
   activeScene: 'cyberpunk',
