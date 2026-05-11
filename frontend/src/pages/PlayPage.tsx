@@ -721,21 +721,29 @@ function AutoRotateController({ enabled }: { enabled: boolean }) {
 
   useFrame((_, delta) => {
     if (!enabled) return;
-    timeRef.current += delta * 0.08; // slow rotation speed
+    timeRef.current += delta * 0.06;
 
     const t = timeRef.current;
-    // Irregular orbit around lighthouse at [0, 0, -40]
-    const centerX = 0, centerZ = -40;
-    const radius = 55 + Math.sin(t * 0.7) * 8 + Math.cos(t * 1.3) * 5;
-    const angle = t;
-    const targetX = centerX + Math.cos(angle) * radius;
-    const targetZ = centerZ + Math.sin(angle) * radius;
-    const height = 30 + Math.sin(t * 0.5) * 8 + Math.cos(t * 0.9) * 4;
+    // Lighthouse at [0, 0, -40]
+    const lhX = 0, lhZ = -40, lhY = 28;
 
-    camera.position.x += (targetX - camera.position.x) * 0.02;
-    camera.position.y += (height - camera.position.y) * 0.02;
-    camera.position.z += (targetZ - camera.position.z) * 0.02;
-    camera.lookAt(centerX, 28, centerZ);
+    // Camera orbits at a distance, creating off-center framing
+    const orbitRadius = 70 + Math.sin(t * 0.4) * 10;
+    const orbitAngle = t;
+    const camX = lhX + Math.cos(orbitAngle) * orbitRadius;
+    const camZ = lhZ + Math.sin(orbitAngle) * orbitRadius;
+    const camY = 32 + Math.sin(t * 0.35) * 10;
+
+    // Look target offset from lighthouse — lighthouse stays off-center
+    const lookOffsetX = 25 + Math.sin(t * 0.55) * 15;
+    const lookOffsetZ = 15 + Math.cos(t * 0.45) * 10;
+    const lookX = lhX + lookOffsetX;
+    const lookZ = lhZ + lookOffsetZ;
+
+    camera.position.x += (camX - camera.position.x) * 0.015;
+    camera.position.y += (camY - camera.position.y) * 0.015;
+    camera.position.z += (camZ - camera.position.z) * 0.015;
+    camera.lookAt(lookX, lhY, lookZ);
   });
 
   return null;
