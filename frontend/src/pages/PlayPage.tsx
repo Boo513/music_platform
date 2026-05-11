@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Stars, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
+import { useAuthStore } from '@/stores/authStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import { songsApi } from '@/api/songs';
 import { favoritesApi } from '@/api/favorites';
@@ -750,11 +751,13 @@ export default function PlayPage() {
   const [showPanel, setShowPanel] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
+  const { isLoggedIn } = useAuthStore();
   const [isMuted, setIsMuted] = useState(false);
   const prevVolumeRef = useRef(0.5);
   const [zoomLevel, setZoomLevel] = useState(5);
   const [selectedScene, setSelectedScene] = useState('auto');
   const [effects, setEffects] = useState({ particles: true, bloom: false, vignette: true });
+  const [toast, setToast] = useState('');
 
   useEffect(() => {
     if (!songId) return;
@@ -799,6 +802,11 @@ export default function PlayPage() {
 
   const handleToggleFavorite = () => {
     if (!song.id) return;
+    if (!isLoggedIn) {
+      setToast('请先登录后再收藏歌曲');
+      setTimeout(() => setToast(''), 2500);
+      return;
+    }
     const next = !isFavorited;
     setIsFavorited(next);
     if (song) song.isFavorited = next;
@@ -825,6 +833,12 @@ export default function PlayPage() {
       </div>
 
       <div className="absolute inset-0 z-10 pointer-events-none">
+        {/* Toast */}
+        {toast && (
+          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl bg-black-70 border border-orange-30 text-white text-sm font-semibold backdrop-blur-md animate-pulse pointer-events-none">
+            {toast}
+          </div>
+        )}
         <div className="pointer-events-auto">
           <TopIcons
             onOpenSettings={() => setShowSettings(true)}
