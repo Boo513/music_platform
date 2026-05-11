@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/stores/authStore';
 import { useUploadStore } from '@/stores/useUploadStore';
 import { songsApi } from '@/api/songs';
 import { FormPanel } from '@/components/upload/FormPanel';
@@ -9,6 +10,7 @@ import '@/styles/upload.css';
 
 export default function UploadPage() {
   const navigate = useNavigate();
+  const { isLoggedIn } = useAuthStore();
   const {
     isUploading, uploadProgress, selectedFile, coverFile, videoFile, title, artist, style, mood, isPublic, error,
     startUpload, finishUpload, setProgress, setError, setCoverFile, setVideoFile, setIsPublic, reset,
@@ -17,9 +19,15 @@ export default function UploadPage() {
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [videoName, setVideoName] = useState<string | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const canSubmit = !!(selectedFile && title.trim() && artist.trim() && style && mood && !isUploading);
   const isDone = uploadProgress >= 1 && !isUploading;
+
+  // 未登录检测
+  useEffect(() => {
+    if (!isLoggedIn) setShowLoginModal(true);
+  }, [isLoggedIn]);
 
   // 清理封面预览 URL
   useEffect(() => {
@@ -160,6 +168,23 @@ export default function UploadPage() {
           {error && <div className="up-error">{error}</div>}
         </div>
       </div>
+
+      {/* 未登录弹窗 */}
+      {showLoginModal && (
+        <div className="up-celebration">
+          <div className="up-celebration-card" style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🔐</div>
+            <div className="up-celebration-title">您还未登录</div>
+            <div className="up-celebration-sub" style={{ marginBottom: 20 }}>请登录后重试</div>
+            <button
+              className="up-celebration-btn"
+              onClick={() => navigate('/')}
+            >
+              返回首页
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 庆祝弹窗 */}
       {showCelebration && (
