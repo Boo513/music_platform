@@ -4,6 +4,7 @@ export interface User {
   username: string;
   nickname: string;
   avatar: string | null;
+  role?: 'user' | 'admin';
   createdAt: string;
 }
 

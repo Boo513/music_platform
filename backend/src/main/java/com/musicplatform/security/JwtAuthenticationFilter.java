@@ -1,6 +1,8 @@
 package com.musicplatform.security;
 
+import com.musicplatform.entity.Admin;
 import com.musicplatform.entity.User;
+import com.musicplatform.mapper.AdminMapper;
 import com.musicplatform.mapper.UserMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -20,10 +22,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
     private final UserMapper userMapper;
+    private final AdminMapper adminMapper;
 
-    public JwtAuthenticationFilter(JwtTokenProvider tokenProvider, UserMapper userMapper) {
+    public JwtAuthenticationFilter(JwtTokenProvider tokenProvider, UserMapper userMapper, AdminMapper adminMapper) {
         this.tokenProvider = tokenProvider;
         this.userMapper = userMapper;
+        this.adminMapper = adminMapper;
     }
 
     @Override
@@ -32,9 +36,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = extractToken(request);
         if (token != null && tokenProvider.validate(token)) {
             Long userId = tokenProvider.getUserId(token);
-            User user = userMapper.selectById(userId);
-            if (user != null) {
-                UserPrincipal principal = new UserPrincipal(user);
+            String role = tokenProvider.getRole(token);
+            UserPrincipal principal = null;
+
+            if ("admin".equals(role)) {
+                Admin admin = adminMapper.selectByUsername(tokenProvider.getUsername(token));
+                if (admin != null) {
+                    principal = new UserPrincipal(admin);
+                }
+            } else {
+                User user = userMapper.selectById(userId);
+                if (user != null) {
+                    principal = new UserPrincipal(user);
+                }
+            }
+
+            if (principal != null) {
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
