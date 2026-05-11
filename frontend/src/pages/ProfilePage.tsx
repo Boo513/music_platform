@@ -141,6 +141,17 @@ export default function ProfilePage() {
       <div className={styles.bgGlow2} />
       <div className={styles.bgGlow3} />
 
+      {/* 返回首页 */}
+      <motion.button
+        className={styles.backHomeBtn}
+        onClick={() => navigate('/')}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <span className={styles.backHomeIcon}>◂</span>
+        <span>首页</span>
+      </motion.button>
+
       {/* 3D 透视卡片 */}
       <div className={styles.cardWrap}>
         <motion.div
