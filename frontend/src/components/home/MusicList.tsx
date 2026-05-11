@@ -11,7 +11,11 @@ const STYLE_MAP: Record<string, StyleType> = Object.fromEntries(
   STYLE_OPTIONS.map((s) => [s.label, s.value])
 );
 
-export function MusicList() {
+interface Props {
+  searchKeyword?: string;
+}
+
+export function MusicList({ searchKeyword = '' }: Props) {
   const [activeGenre, setActiveGenre] = useState('全部');
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,11 +34,12 @@ export function MusicList() {
     else setLoadingMore(true);
     loadingRef.current = true;
 
-    const params: { page: number; size: number; style?: StyleType } = { page: p, size: 20 };
+    const params: { page: number; size: number; style?: StyleType; keyword?: string } = { page: p, size: 20 };
     if (activeGenre !== '全部') {
       const style = STYLE_MAP[activeGenre];
       if (style) params.style = style;
     }
+    if (searchKeyword) params.keyword = searchKeyword;
     songsApi
       .list(params)
       .then((res) => {
@@ -49,7 +54,7 @@ export function MusicList() {
         setLoadingMore(false);
         loadingRef.current = false;
       });
-  }, [activeGenre]);
+  }, [activeGenre, searchKeyword]);
 
   // 初次 / 切风格 → 重置
   useEffect(() => {

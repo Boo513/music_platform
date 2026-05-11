@@ -1,3 +1,4 @@
+import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { SceneList } from './SceneList';
@@ -7,6 +8,15 @@ import { Shockwave } from './Shockwave';
 export function UIOverlay() {
   const navigate = useNavigate();
   const { isLoggedIn } = useAuthStore();
+  const [searchQuery, setSearchQuery] = useState('');
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setDebouncedQuery(value.trim()), 300);
+  }, []);
 
   const handleProfileClick = () => {
     if (isLoggedIn) {
@@ -41,8 +51,8 @@ export function UIOverlay() {
 
       {/* Middle content */}
       <div className="home-middle">
-        <SceneList />
-        <MusicList />
+        <SceneList searchQuery={searchQuery} onSearchChange={handleSearchChange} />
+        <MusicList searchKeyword={debouncedQuery} />
       </div>
 
       {/* Bottom player bar — 已有全局 PlayerBar，此处移除硬编码占位 */}
