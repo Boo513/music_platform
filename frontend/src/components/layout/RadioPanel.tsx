@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/stores/authStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import { favoritesApi } from '@/api/favorites';
-import type { Song } from '@/types';
+import { playlistsApi } from '@/api/playlists';
+import type { Song, Playlist } from '@/types';
 import { STYLE_OPTIONS, MOOD_OPTIONS } from '@/types';
 
 interface RadioPanelProps {
@@ -32,8 +34,13 @@ const romanticBtn: React.CSSProperties = {
 
 export function RadioPanel({ song, isPlaying, isFavorited, onTogglePlay, onToggleFavorite, onClose }: RadioPanelProps) {
   const navigate = useNavigate();
+  const { isLoggedIn } = useAuthStore();
   const { playMode, next, prev, togglePlayMode } = usePlayerStore();
   const [favCount, setFavCount] = useState(0);
+  const [showPlaylistPicker, setShowPlaylistPicker] = useState(false);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [addingId, setAddingId] = useState<number | null>(null);
+  const [toastMsg, setToastMsg] = useState('');
   const prevFavRef = useRef(isFavorited);
 
   useEffect(() => {
@@ -53,6 +60,31 @@ export function RadioPanel({ song, isPlaying, isFavorited, onTogglePlay, onToggl
 
   const modeIcon = playMode === 'sequential' ? '🔁' : playMode === 'shuffle' ? '🔀' : '🔂';
   const modeLabel = playMode === 'sequential' ? '顺序' : playMode === 'shuffle' ? '随机' : '单曲';
+
+  const handleOpenPlaylistPicker = () => {
+    if (!isLoggedIn) {
+      setToastMsg('请先登录');
+      setTimeout(() => setToastMsg(''), 2000);
+      return;
+    }
+    playlistsApi.list().then((r) => setPlaylists(r.data)).catch(() => {});
+    setShowPlaylistPicker(!showPlaylistPicker);
+  };
+
+  const handleAddToPlaylist = (pl: Playlist) => {
+    if (!song.id) return;
+    setAddingId(pl.id);
+    playlistsApi.addSong(pl.id, song.id)
+      .then(() => {
+        setToastMsg(`已添加到「${pl.name}」`);
+        setShowPlaylistPicker(false);
+      })
+      .catch(() => setToastMsg('添加失败，可能已存在'))
+      .finally(() => {
+        setAddingId(null);
+        setTimeout(() => setToastMsg(''), 2000);
+      });
+  };
 
   const onHover = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.style.background = 'linear-gradient(135deg, rgba(236,72,153,0.22), rgba(168,85,247,0.22))';
@@ -86,6 +118,48 @@ export function RadioPanel({ song, isPlaying, isFavorited, onTogglePlay, onToggl
       <div className="p-4">
         <div className="flex items-center gap-2">
           <div className="text-xl font-bold flex-1">{song.title}</div>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={handleOpenPlaylistPicker}
+              style={romanticBtn}
+              onMouseEnter={onHover}
+              onMouseLeave={onLeave}
+              title="添加到歌单"
+            >
+              📁
+            </button>
+            {showPlaylistPicker && (
+              <div style={{
+                position: 'absolute', top: '100%', right: 0, marginTop: 6,
+                background: 'rgba(18,14,24,0.97)', backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(236,72,153,0.15)', borderRadius: 12,
+                padding: 8, minWidth: 180, maxHeight: 220, overflowY: 'auto', zIndex: 20,
+              }}>
+                {playlists.length === 0 ? (
+                  <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: 8, textAlign: 'center' }}>暂无歌单</div>
+                ) : (
+                  playlists.map((pl) => (
+                    <div
+                      key={pl.id}
+                      onClick={() => handleAddToPlaylist(pl)}
+                      style={{
+                        padding: '8px 10px', borderRadius: 8, cursor: 'pointer',
+                        fontSize: 13, color: addingId === pl.id ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.75)',
+                        transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', gap: 8,
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(236,72,153,0.1)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+                    >
+                      <span>📋</span>
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pl.name}</span>
+                      {addingId === pl.id && <span style={{ fontSize: 11 }}>...</span>}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
           <button
             onClick={() => navigate('/')}
             style={romanticBtn}
@@ -179,6 +253,9 @@ export function RadioPanel({ song, isPlaying, isFavorited, onTogglePlay, onToggl
         <div className="flex gap-4 mt-3 text-secondary text-xs">
           <span>👁 {song.playCount.toLocaleString()}</span>
           <span>❤️ {favCount}</span>
+          {toastMsg && (
+            <span style={{ color: 'rgba(251,207,232,0.7)', fontSize: 11, flex: 1, textAlign: 'right' }}>{toastMsg}</span>
+          )}
         </div>
         <button
           className="w-full mt-4 py-3 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300"
