@@ -319,6 +319,14 @@ function Buildings() {
       park: new THREE.MeshStandardMaterial({ color: 0x2d5016, roughness: 0.9 }),
       treeTrunk: new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.9 }),
       treeLeaf: new THREE.MeshStandardMaterial({ color: 0x1a4a10, roughness: 0.8 }),
+      // Mall
+      mallWall: new THREE.MeshStandardMaterial({ color: 0xe8b800, roughness: 0.4, metalness: 0.15 }),
+      mallGlass: new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.2, metalness: 0.3, emissive: 0xffd700, emissiveIntensity: 0.2 }),
+      mallRoof: new THREE.MeshStandardMaterial({ color: 0xcc9900, roughness: 0.5, metalness: 0.1 }),
+      // Hospital
+      hospWall: new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.3, metalness: 0.05 }),
+      hospWindow: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffcc, emissiveIntensity: 0.7, roughness: 0.1 }),
+      hospRoof: new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.4, metalness: 0.1 }),
     };
 
     const addWindows = (x: number, z: number, w: number, h: number, d: number, floors: number, odds: number) => {
@@ -346,7 +354,7 @@ function Buildings() {
         if (dist > CITY_R) continue;
         if (isRoad(x, z)) continue;
         if (placed.some(p => Math.sqrt((x - p.x) ** 2 + (z - p.z) ** 2) < MIN_SPACING)) continue;
-        if (hash(x * 0.05, z * 0.05) > 0.65) continue;
+        if (hash(x * 0.05, z * 0.05) > 0.55) continue;
         const dxL = x, dzL = z + 40;
         if (Math.sqrt(dxL * dxL + dzL * dzL) < 22) continue;
 
@@ -355,14 +363,14 @@ function Buildings() {
         const typeRoll = n2;
         let mesh: THREE.Mesh | null = null;
 
-        if (typeRoll < 0.40) {
+        if (typeRoll < 0.33) {
           // Type A: Low flat house
           const bh = 0.8 + n * 0.8, bw = 2 + n * 2.5, bd = 2 + hash(z * 0.07, x * 0.07) * 2;
           const mat = [MATS.dark, MATS.mid, MATS.light, MATS.dark2][Math.floor(n * 4)];
           mesh = new THREE.Mesh(bGeom(bw, bh, bd), mat);
           mesh.position.set(x, bh / 2, z);
           if (bh > 1) addWindows(x, z, bw, bh, bd, Math.floor(bh * 0.7), 0.92);
-        } else if (typeRoll < 0.65) {
+        } else if (typeRoll < 0.53) {
           // Type B: Multi-story residential
           const bh = 2 + n * 2.5, bw = 1.8 + n * 2, bd = 1.8 + n2 * 2;
           const mat = [MATS.mid, MATS.light, MATS.dark][Math.floor(n * 3)];
@@ -371,7 +379,7 @@ function Buildings() {
           const rf = new THREE.Mesh(new THREE.BoxGeometry(bw - 0.4, 0.2, bd - 0.4), MATS.roof);
           rf.position.set(x, bh + 0.1, z); group.add(rf);
           addWindows(x, z, bw, bh, bd, Math.floor(bh * 0.8), 0.88);
-        } else if (typeRoll < 0.80) {
+        } else if (typeRoll < 0.66) {
           // Type C: Commercial/glass
           const bh = 1.5 + n * 2, bw = 3 + n * 3, bd = 2.5 + n2 * 2.5;
           mesh = new THREE.Mesh(bGeom(bw, bh, bd), MATS.glass);
@@ -379,8 +387,8 @@ function Buildings() {
           const eq = new THREE.Mesh(new THREE.BoxGeometry(1, 0.5, 0.8), MATS.roof);
           eq.position.set(x, bh + 0.25, z); group.add(eq);
           addWindows(x, z, bw, bh, bd, Math.floor(bh * 0.6), 0.88);
-        } else if (typeRoll < 0.92) {
-          // Type D: Tower
+        } else if (typeRoll < 0.75) {
+          // Type D: Tower (reduced from 12% to 9%)
           const bh = 5 + n * 4, bw = 1.5 + n * 1.5, bd = 1.5 + n2 * 1.5;
           const mat = [MATS.dark, MATS.mid][Math.floor(n * 2)];
           mesh = new THREE.Mesh(bGeom(bw, bh, bd), mat);
@@ -389,7 +397,7 @@ function Buildings() {
           const topH = 0.8, topW = bw - 0.6;
           const topM = new THREE.Mesh(new THREE.BoxGeometry(topW, topH, topW), MATS.roof);
           topM.position.set(x, bh + topH / 2, z); group.add(topM);
-        } else {
+        } else if (typeRoll < 0.83) {
           // Type E: Park
           const pr = 3 + n * 4;
           mesh = new THREE.Mesh(new THREE.CylinderGeometry(pr, pr, 0.15, 16), MATS.park);
@@ -403,6 +411,47 @@ function Buildings() {
             const crownR = 0.3 + Math.random() * 0.5;
             const crown = new THREE.Mesh(new THREE.ConeGeometry(crownR, 0.8 + Math.random() * 0.6, 8), MATS.treeLeaf);
             crown.position.set(tx, th + crownR * 0.6, tz); group.add(crown);
+          }
+        } else if (typeRoll < 0.91) {
+          // Type F: Shopping Mall - large footprint, yellow
+          const mw = 6 + n * 4, mh = 1.8 + n * 1, md = 5 + n2 * 3;
+          const main = new THREE.Mesh(bGeom(mw, mh, md), MATS.mallWall);
+          main.position.set(x, mh / 2, z);
+          const glassStrip = new THREE.Mesh(new THREE.BoxGeometry(mw - 0.3, 0.6, 0.15), MATS.mallGlass);
+          glassStrip.position.set(x, 0.9, z + md / 2 + 0.05); group.add(glassStrip);
+          const roofSlab = new THREE.Mesh(new THREE.BoxGeometry(mw + 0.6, 0.3, md + 0.6), MATS.mallRoof);
+          roofSlab.position.set(x, mh + 0.15, z); group.add(roofSlab);
+          group.add(main); mesh = main;
+          addWindows(x, z, mw, mh, md, Math.floor(mh * 0.5), 0.7);
+        } else {
+          // Type G: Hospital - white, all floors lit
+          const hw = 4 + n * 2, hh = 3 + n2 * 2.5, hd = 4 + n * 2;
+          const main = new THREE.Mesh(bGeom(hw, hh, hd), MATS.hospWall);
+          main.position.set(x, hh / 2, z);
+          group.add(main); mesh = main;
+          // All windows lit (odds=1.0 means every window)
+          addWindows(x, z, hw, hh, hd, Math.floor(hh * 0.85), 1.0);
+          // Roof
+          const hRoof = new THREE.Mesh(new THREE.BoxGeometry(hw + 0.4, 0.25, hd + 0.4), MATS.hospRoof);
+          hRoof.position.set(x, hh + 0.13, z); group.add(hRoof);
+          // Red cross sign on top
+          const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.2, 0.15), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+          crossV.position.set(x, hh + 0.8, z); group.add(crossV);
+          const crossH = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.3, 0.15), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+          crossH.position.set(x, hh + 0.8, z); group.add(crossH);
+          // Standing people at entrance
+          for (let pi = 0; pi < 4; pi++) {
+            const px = x + (pi - 1.5) * 0.7;
+            const pz = z + hd / 2 + 0.5;
+            const person = new THREE.Group();
+            // body
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.5, 8), new THREE.MeshStandardMaterial({ color: ['#2244aa','#cc4444','#44aa44','#888888'][pi], roughness: 0.7 }));
+            body.position.y = 0.55; person.add(body);
+            // head
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8), new THREE.MeshStandardMaterial({ color: '#f5d0b0', roughness: 0.5 }));
+            head.position.y = 0.95; person.add(head);
+            person.position.set(px, 0, pz);
+            group.add(person);
           }
         }
 
