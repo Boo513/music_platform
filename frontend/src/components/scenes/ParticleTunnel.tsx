@@ -8,7 +8,7 @@ export function ParticleTunnel() {
   const speedsRef = useRef<Float32Array | null>(null);
 
   const { positions, colors } = useMemo(() => {
-    const count = 2500;
+    const count = 1600;
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
     const spd = new Float32Array(count);
@@ -48,7 +48,7 @@ export function ParticleTunnel() {
     const nextSpeed = state.currentSpeed + (state.targetSpeed - state.currentSpeed) * delta * 2;
     useStore.setState({ currentSpeed: nextSpeed });
 
-    const count = 2500;
+    const count = 1600;
     for (let i = 0; i < count; i++) {
       pos[i * 3 + 2] += spd[i] * nextSpeed * delta * 10;
       if (pos[i * 3 + 2] > 60) {
@@ -81,13 +81,13 @@ export function ParticleTunnel() {
         <bufferAttribute
           attach="attributes-position"
           array={positions}
-          count={2500}
+          count={1600}
           itemSize={3}
         />
         <bufferAttribute
           attach="attributes-color"
           array={colors}
-          count={2500}
+          count={1600}
           itemSize={3}
         />
       </bufferGeometry>

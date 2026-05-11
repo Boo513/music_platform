@@ -12,7 +12,7 @@ export function StarryGalaxy() {
 
  return (
  <group ref={groupRef}>
- <Stars radius={80} depth={60} count={300} factor={2.5} saturation={0.15} fade speed={0.3} />
+ <Stars radius={80} depth={60} count={200} factor={2.5} saturation={0.15} fade speed={0.3} />
  <mesh position={[0, 0, -30]}>
  <sphereGeometry args={[8, 32, 32]} />
  <meshBasicMaterial color="#7c3aed" transparent opacity={0.06} />
