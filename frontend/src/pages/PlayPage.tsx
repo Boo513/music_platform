@@ -715,7 +715,37 @@ function Pedestrians() {
   );
 }
 
-function Scene3D({ zoomLevel, effects }: { zoomLevel: number; effects: { particles: boolean; bloom: boolean; vignette: boolean } }) {
+function AutoRotateController({ enabled }: { enabled: boolean }) {
+  const { camera } = useThree();
+  const timeRef = useRef(0);
+
+  useFrame((_, delta) => {
+    if (!enabled) return;
+    timeRef.current += delta * 0.08; // slow rotation speed
+
+    const t = timeRef.current;
+    // Irregular orbit around lighthouse at [0, 0, -40]
+    const centerX = 0, centerZ = -40;
+    const radius = 55 + Math.sin(t * 0.7) * 8 + Math.cos(t * 1.3) * 5;
+    const angle = t;
+    const targetX = centerX + Math.cos(angle) * radius;
+    const targetZ = centerZ + Math.sin(angle) * radius;
+    const height = 30 + Math.sin(t * 0.5) * 8 + Math.cos(t * 0.9) * 4;
+
+    camera.position.x += (targetX - camera.position.x) * 0.02;
+    camera.position.y += (height - camera.position.y) * 0.02;
+    camera.position.z += (targetZ - camera.position.z) * 0.02;
+    camera.lookAt(centerX, 28, centerZ);
+  });
+
+  return null;
+}
+
+function Scene3D({ zoomLevel, effects, autoRotate }: {
+  zoomLevel: number;
+  effects: { particles: boolean; bloom: boolean; vignette: boolean };
+  autoRotate: boolean;
+}) {
   return (
     <>
       <SkyDome />
@@ -725,6 +755,7 @@ function Scene3D({ zoomLevel, effects }: { zoomLevel: number; effects: { particl
       <directionalLight position={[50, 100, 50]} intensity={effects.bloom ? 0.7 : 0.25} color={effects.bloom ? '#ffddaa' : '#8899aa'} />
       {effects.bloom && <pointLight position={[-30, 30, -30]} intensity={1.0} color="#ff9944" distance={120} />}
       <ZoomController zoomLevel={zoomLevel} />
+      <AutoRotateController enabled={autoRotate} />
       <OrbitControls
         target={[-30, -5, -20]}
         minDistance={30} maxDistance={350}
@@ -757,6 +788,7 @@ export default function PlayPage() {
   const [zoomLevel, setZoomLevel] = useState(5);
   const [selectedScene, setSelectedScene] = useState('auto');
   const [effects, setEffects] = useState({ particles: true, bloom: false, vignette: true });
+  const [autoRotate, setAutoRotate] = useState(true);
   const [toast, setToast] = useState('');
 
   useEffect(() => {
@@ -828,7 +860,7 @@ export default function PlayPage() {
     <div className="fixed inset-0" style={{ background: '#0a0a18' }}>
       <div className="absolute inset-0 z-0">
         <Canvas camera={{ position: [80, 55, -100], fov: 55 }}>
-          <Scene3D zoomLevel={zoomLevel} effects={effects} />
+          <Scene3D zoomLevel={zoomLevel} effects={effects} autoRotate={autoRotate} />
         </Canvas>
       </div>
 
@@ -852,6 +884,8 @@ export default function PlayPage() {
         )}
         <div className="pointer-events-auto">
           <TopIcons
+            autoRotate={autoRotate}
+            onToggleAutoRotate={() => setAutoRotate(!autoRotate)}
             onOpenSettings={() => setShowSettings(true)}
             isMuted={isMuted}
             onToggleMute={() => {
