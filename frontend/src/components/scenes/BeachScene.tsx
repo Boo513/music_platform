@@ -1,5 +1,5 @@
 import { useRef, useMemo, useCallback, useState, useEffect } from 'react';
-import { useFrame, extend, type Object3DNode } from '@react-three/fiber';
+import { useFrame, useThree, extend, type Object3DNode } from '@react-three/fiber';
 import { OrbitControls, shaderMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -190,44 +190,67 @@ function rng(seed: number) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Sky dome — simple gradient (no shaderMaterial, raw ShaderMaterial)
+// Sky background — Canvas gradient texture on scene.background
+// Avoids WebGL2 BackSide ShaderMaterial bug entirely
 // ═══════════════════════════════════════════════════════════════
+function SkyBackground() {
+  const { scene } = useThree();
+  const { gl } = useThree();
+
+  useEffect(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 2;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d')!;
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+    gradient.addColorStop(0, '#0044aa');
+    gradient.addColorStop(0.3, '#0066cc');
+    gradient.addColorStop(0.55, '#4db8ff');
+    gradient.addColorStop(0.8, '#8ec8e8');
+    gradient.addColorStop(1, '#b8e0ff');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 2, 512);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    scene.background = tex;
+    // Also set renderer clear color as fallback
+    gl.setClearColor(new THREE.Color('#4db8ff'));
+
+    return () => {
+      scene.background = null;
+      tex.dispose();
+    };
+  }, [scene, gl]);
+
+  return null;
+}
+
 function SkyDome() {
-  const { material, geometry } = useMemo(() => {
-    const geo = new THREE.SphereGeometry(900, 64, 32);
-    const mat = new THREE.ShaderMaterial({
-      uniforms: {
-        uTopColor: { value: new THREE.Color('#0066cc') },
-        uHorizonColor: { value: new THREE.Color('#b8e0ff') },
-        uSunPos: { value: new THREE.Vector3(0.6, 0.25, -0.8).normalize() },
-      },
-      vertexShader: `
-        varying vec3 vDir;
-        void main() {
-          vec4 wp = modelMatrix * vec4(position, 1.0);
-          vDir = wp.xyz;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }`,
-      fragmentShader: `
-        uniform vec3 uTopColor;
-        uniform vec3 uHorizonColor;
-        uniform vec3 uSunPos;
-        varying vec3 vDir;
-        void main() {
-          float h = normalize(vDir).y;
-          vec3 col = mix(uHorizonColor, uTopColor, smoothstep(0.0, 0.7, h));
-          float sunD = max(dot(normalize(vDir), uSunPos), 0.0);
-          col += vec3(1.0, 0.95, 0.7) * pow(sunD, 80.0) * 1.2;
-          col += vec3(1.0, 0.85, 0.5) * pow(sunD, 10.0) * 0.5;
-          gl_FragColor = vec4(col, 1.0);
-        }`,
-      side: THREE.BackSide,
-      depthWrite: false,
-    });
-    return { material: mat, geometry: geo };
+  // Sun glow sphere — warm tone atmosphere near sun position
+  const glowTex = useMemo(() => {
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    const g = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+    g.addColorStop(0, 'rgba(255,240,180,0.6)');
+    g.addColorStop(0.1, 'rgba(255,220,120,0.3)');
+    g.addColorStop(0.4, 'rgba(255,180,60,0.05)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
   }, []);
 
-  return <mesh geometry={geometry} material={material} renderOrder={-1} />;
+  return (
+    <sprite position={[300, 120, -400]} scale={[350, 350, 1]}>
+      <spriteMaterial map={glowTex} blending={THREE.AdditiveBlending}
+        depthWrite={false} depthTest={false} opacity={0.7} />
+    </sprite>
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -838,6 +861,7 @@ export function BeachScene({ autoRotate = false }: { autoRotate?: boolean; effec
   return (
     <>
       {/* Atmosphere */}
+      <SkyBackground />
       <SkyDome />
       <SunAndLight />
       <fogExp2 attach="fog" args={['#87ceeb', 0.0025]} />
