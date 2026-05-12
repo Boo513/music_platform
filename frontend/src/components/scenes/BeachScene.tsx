@@ -548,53 +548,68 @@ function SunLight() {
   );
 }
 
-// ── Beach Terrain — Organic curved shoreline with noise ──────────
-function BeachTerrain() {
+// ── Island Terrain — large central organic island ──────────────
+function IslandTerrain() {
   const matRef = useRef<SandMaterialType>(null);
   const { geometry } = useMemo(() => {
-    // Build organic coastline using Shape + Bezier curves
-    const shorelineControlPoints = [
-      [-140, -25], [-80, 12], [-35, 28], [10, 38],
-      [60, 35], [105, 22], [130, 0], [110, -20],
-      [60, -32], [10, -28], [-50, -18], [-100, -10],
-    ];
-
-    // Add noise to control points
-    const jittered = shorelineControlPoints.map(([x, y]) => [
-      x + (Math.random() - 0.5) * 15,
-      y + (Math.random() - 0.5) * 10,
-    ]);
-
+    // Large organic island shape using ellipse + noise perturbation
     const shape = new THREE.Shape();
-    shape.moveTo(jittered[0][0], jittered[0][1]);
-    shape.quadraticCurveTo(jittered[1][0], jittered[1][1], jittered[2][0], jittered[2][1]);
-    shape.quadraticCurveTo(jittered[3][0], jittered[3][1], jittered[4][0], jittered[4][1]);
-    shape.quadraticCurveTo(jittered[5][0], jittered[5][1], jittered[6][0], jittered[6][1]);
-    shape.quadraticCurveTo(jittered[7][0], jittered[7][1], jittered[8][0], jittered[8][1]);
-    shape.quadraticCurveTo(jittered[9][0], jittered[9][1], jittered[10][0], jittered[10][1]);
-    shape.quadraticCurveTo(jittered[11][0], jittered[11][1], jittered[0][0], jittered[0][1]);
+    const cx = 0, cz = 0;
+    const baseRx = 120, baseRz = 80; // Ellipse radii
+    const segments = 48;
 
-    // Extrude shape into a flat geometry with subdivisions
-    const geo = new THREE.ShapeGeometry(shape, 128);
+    // Generate organic island outline with noise
+    const outline: THREE.Vector2[] = [];
+    for (let i = 0; i < segments; i++) {
+      const angle = (i / segments) * Math.PI * 2;
+      const noiseR = 1.0 + fbm2D(Math.cos(angle) * 3 + 0.5, Math.sin(angle) * 3 + 0.5, 3) * 0.25;
+      const rx = baseRx + (Math.random() - 0.5) * 10;
+      const rz = baseRz + (Math.random() - 0.5) * 8;
+      const x = cx + Math.cos(angle) * rx * noiseR;
+      const z = cz + Math.sin(angle) * rz * noiseR;
+      outline.push(new THREE.Vector2(x, z));
+    }
 
-    // Add height variation based on distance from shoreline
+    shape.moveTo(outline[0].x, outline[0].y);
+    for (let i = 1; i < outline.length; i++) {
+      const prev = outline[(i - 1 + outline.length) % outline.length];
+      const curr = outline[i];
+      const next = outline[(i + 1) % outline.length];
+      const cpx = curr.x + (next.x - prev.x) * 0.1;
+      const cpy = curr.y + (next.y - prev.y) * 0.1;
+      shape.quadraticCurveTo(cpx, cpy, next.x, next.y);
+    }
+
+    const geo = new THREE.ShapeGeometry(shape, 96);
+
+    // Add terrain height — island rises from water
     const pos = geo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
       const z = pos.getY(i);
 
-      // Distance from waterline (approximate — points further -Z are drier)
-      const distFromWater = z * 0.8 + fbm2D(x * 0.05, z * 0.05, 4) * 6;
-      let height = 0;
+      // Distance from island center
+      const dist = Math.sqrt(x * x + z * z);
+      const maxDist = 130;
 
-      if (distFromWater < -5) {
-        // Dry sand — gentle dunes
-        const dune = fbm2D(x * 0.04, z * 0.04, 5) * 2.5;
-        height = (-distFromWater - 5) * 0.03 + dune;
+      // Height profile: flat beach → gentle slope → inland plateau
+      let height = 0;
+      const normDist = dist / maxDist;
+
+      if (normDist < 0.3) {
+        // Interior plateau — flat, slightly elevated
+        height = 2.5 + fbm2D(x * 0.05, z * 0.05, 4) * 1.5;
+      } else if (normDist < 0.85) {
+        // Gradual slope from plateau to beach
+        const t = (normDist - 0.3) / 0.55;
+        height = 2.5 * (1.0 - t) + fbm2D(x * 0.06, z * 0.06, 4) * (1.0 - t) * 1.5;
+      } else if (normDist < 1.0) {
+        // Beach zone — very flat, slight wetness
+        const t2 = (normDist - 0.85) / 0.15;
+        height = (1.0 - t2) * 0.5 + smoothNoise2D(x * 0.5, z * 0.5) * 0.08;
       } else {
-        // Wet sand / transition — very flat with micro detail
-        const micro = smoothNoise2D(x * 0.5, z * 0.5) * 0.1;
-        height = -distFromWater * 0.01 + micro;
+        // Slightly underwater (outer edge)
+        height = -0.3;
       }
 
       pos.setZ(i, height);
@@ -611,16 +626,32 @@ function BeachTerrain() {
   });
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 35]} receiveShadow castShadow>
-      <primitive object={geometry} attach="geometry" />
-      {/* @ts-ignore */}
-      <sandMaterial
-        ref={matRef}
-        attach="material"
-        uWaterLevel={-2}
-        uTransitionWidth={8}
-      />
-    </mesh>
+    <group>
+      {/* Main island */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.3, 0]} receiveShadow castShadow>
+        <primitive object={geometry} attach="geometry" />
+        {/* @ts-ignore */}
+        <sandMaterial
+          ref={matRef}
+          attach="material"
+          uWaterLevel={130}
+          uTransitionWidth={25}
+        />
+      </mesh>
+
+      {/* Underwater sand shelf to blend island with ocean */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.15, 0]} receiveShadow>
+        <ringGeometry args={[90, 160, 64]} />
+        <meshStandardMaterial
+          color="#d4c4a0"
+          roughness={0.7}
+          metalness={0.0}
+          transparent
+          opacity={0.7}
+          depthWrite={true}
+        />
+      </mesh>
+    </group>
   );
 }
 
@@ -665,16 +696,16 @@ function Rock({ position, scale, seed = 0 }: {
 function Rocks() {
   const rocks = useMemo(() => {
     const result: { pos: [number, number, number]; scale: number; seed: number }[] = [];
-    for (let i = 0; i < 12; i++) {
-      const angle = (i / 12) * Math.PI * 2 + Math.random() * 0.8 - 0.4;
-      const dist = 35 + Math.random() * 35;
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2 + Math.random() * 0.5 - 0.25;
+      const dist = 80 + Math.random() * 30; // Near island shoreline
       result.push({
         pos: [
           Math.cos(angle) * dist,
-          0.4 + Math.random() * 0.4,
+          0.5 + Math.random() * 0.5,
           Math.sin(angle) * dist,
         ],
-        scale: 0.8 + Math.random() * 2.5,
+        scale: 1.5 + Math.random() * 3.5,
         seed: i * 137.5,
       });
     }
@@ -776,16 +807,17 @@ function PalmTree({ position }: { position: [number, number, number] }) {
 // ── Palm Trees Group ─────────────────────────────────────────────
 function PalmTrees() {
   const positions = useMemo<[number, number, number][]>(() => [
-    [-45, 0, -65],
-    [-32, 0, -78],
-    [-55, 0, -58],
-    [42, 0, -70],
-    [58, 0, -55],
-    [28, 0, -82],
-    [-18, 0, -88],
-    [22, 0, -92],
-    [-65, 0, -48],
-    [65, 0, -62],
+    // On the island — scattered around the inland area
+    [-50, 0, -20],
+    [-30, 0, 30],
+    [40, 0, -15],
+    [55, 0, 20],
+    [-15, 0, -45],
+    [20, 0, 35],
+    [-60, 0, 10],
+    [10, 0, -10],
+    [65, 0, -35],
+    [-35, 0, -55],
   ], []);
 
   return (
@@ -1140,8 +1172,8 @@ export function BeachScene({ autoRotate = false, effects = { bloom: false, vigne
       {/* Ocean */}
       <Ocean onPointerDown={handleOceanClick} />
 
-      {/* Terrain */}
-      <BeachTerrain />
+      {/* Island terrain */}
+      <IslandTerrain />
       <Rocks />
 
       {/* Vegetation */}
@@ -1173,7 +1205,7 @@ export function BeachScene({ autoRotate = false, effects = { bloom: false, vigne
         maxDistance={100}
         maxPolarAngle={Math.PI * 0.48}
         minPolarAngle={0.08}
-        target={[0, 0, 0]}
+        target={[0, 1.5, 0]}
       />
     </>
   );
