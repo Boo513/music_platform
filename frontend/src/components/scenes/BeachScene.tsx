@@ -204,11 +204,11 @@ function SkyBackground() {
     const ctx = canvas.getContext('2d')!;
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 512);
-    gradient.addColorStop(0, '#0044aa');
-    gradient.addColorStop(0.3, '#0066cc');
-    gradient.addColorStop(0.55, '#4db8ff');
-    gradient.addColorStop(0.8, '#8ec8e8');
-    gradient.addColorStop(1, '#b8e0ff');
+    gradient.addColorStop(0, '#0055dd');
+    gradient.addColorStop(0.25, '#1e90ff');
+    gradient.addColorStop(0.5, '#5cb8ff');
+    gradient.addColorStop(0.75, '#a0d8ff');
+    gradient.addColorStop(1, '#d4ecff');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 2, 512);
 
@@ -216,7 +216,7 @@ function SkyBackground() {
     tex.mapping = THREE.EquirectangularReflectionMapping;
     scene.background = tex;
     // Also set renderer clear color as fallback
-    gl.setClearColor(new THREE.Color('#4db8ff'));
+    gl.setClearColor(new THREE.Color('#1e90ff'));
 
     return () => {
       scene.background = null;
