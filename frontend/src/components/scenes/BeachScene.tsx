@@ -261,8 +261,7 @@ function SunAndLight() {
 
   return (
     <group>
-      <directionalLight position={[120, 100, -60]} intensity={1.8} color="#fff4d6"
-        castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
+      <directionalLight position={[120, 100, -60]} intensity={1.8} color="#fff4d6" />
       {/* Sun body */}
       <mesh position={sunPos}>
         <sphereGeometry args={[20, 32, 32]} />
@@ -352,13 +351,13 @@ function Beach() {
   return (
     <group>
       {/* Main beach shape */}
-      <mesh geometry={beachGeo} rotation={[-Math.PI/2, 0, 0]} position={[0, -0.3, 35]} receiveShadow>
+      <mesh geometry={beachGeo} rotation={[-Math.PI/2, 0, 0]} position={[0, -0.3, 35]}>
         {/* @ts-ignore */}
         <beachShaderMat attach="material" side={THREE.DoubleSide} />
       </mesh>
       {/* Sand dunes */}
       {dunes.map((d, i) => (
-        <mesh key={`dune-${i}`} position={d.pos} scale={d.scale} rotation-y={d.rot} receiveShadow>
+        <mesh key={`dune-${i}`} position={d.pos} scale={d.scale} rotation-y={d.rot}>
           <sphereGeometry args={[3 + d.scale[0] * 2, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
           <meshStandardMaterial color={new THREE.Color().setHSL(0.1, 0.5, 0.75 + d.scale[1] * 0.1)} roughness={0.95} metalness={0} />
         </mesh>
@@ -401,7 +400,7 @@ function Rocks() {
         <mesh key={`rock-${i}`} geometry={geos[i]}
           position={[c.x, c.s * 0.1, c.z]}
           rotation={[(Math.random()-0.5)*0.25, c.ry, (Math.random()-0.5)*0.25]}
-          castShadow receiveShadow>
+         >
           <meshStandardMaterial color="#3d3d3d" roughness={0.96} metalness={0.02} flatShading />
         </mesh>
       ))}
@@ -544,7 +543,7 @@ function PalmTree({ idx, position }: { idx: number; position: [number, number, n
   return (
     <group ref={groupRef} position={position} rotation-y={idx * 0.8}>
       {/* Trunk */}
-      <mesh geometry={trunkGeo.geo} castShadow>
+      <mesh geometry={trunkGeo.geo}>
         <meshStandardMaterial color="#5c4033" roughness={0.9} metalness={0} />
       </mesh>
       {/* Rings */}
@@ -813,19 +812,6 @@ function Splash({ pos, intensity = 1, onDone }: { pos: THREE.Vector3; intensity?
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Scene setup: background + fog
-// ═══════════════════════════════════════════════════════════════
-function SceneSetup() {
-  const { scene } = useThree();
-  useEffect(() => {
-    scene.background = new THREE.Color('#0066cc');
-    scene.fog = new THREE.FogExp2('#87ceeb', 0.0025);
-    return () => { scene.background = null; scene.fog = null; };
-  }, [scene]);
-  return null;
-}
-
-// ═══════════════════════════════════════════════════════════════
 // Main BeachScene
 // ═══════════════════════════════════════════════════════════════
 interface RippleItem { id: number; point: THREE.Vector3 }
@@ -861,8 +847,7 @@ export function BeachScene({ autoRotate = false }: { autoRotate?: boolean; effec
       {/* Atmosphere */}
       <SkyDome />
       <SunAndLight />
-      <SceneSetup />
-      <color attach="background" args={['#0066cc']} />
+      <fogExp2 attach="fog" args={['#87ceeb', 0.0025]} />
 
       {/* Lighting */}
       <ambientLight intensity={0.55} color="#8ec8e8" />
