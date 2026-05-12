@@ -358,7 +358,7 @@ function fbm2D(x: number, y: number, octaves = 5): number {
   return v;
 }
 
-// ── Ocean Component ──────────────────────────────────────────────
+// ── Ocean Component — ring-shaped (hole for island) ─────────────
 function Ocean({ onPointerDown }: { onPointerDown?: (point: THREE.Vector3) => void }) {
   const matRef = useRef<OceanMaterialType>(null);
   const [rippleOrigin, setRippleOrigin] = useState(new THREE.Vector3(0, 0, 0));
@@ -378,8 +378,34 @@ function Ocean({ onPointerDown }: { onPointerDown?: (point: THREE.Vector3) => vo
     }
   }, [onPointerDown]);
 
-  // 150x150 mesh for performance (was 256x256)
-  const geometry = useMemo(() => new THREE.PlaneGeometry(600, 600, 150, 150), []);
+  // Ring-shaped ocean: large square with island-shaped hole cut out
+  const geometry = useMemo(() => {
+    const size = 300;
+    const shape = new THREE.Shape();
+    // Outer square
+    shape.moveTo(-size, -size);
+    shape.lineTo(size, -size);
+    shape.lineTo(size, size);
+    shape.lineTo(-size, size);
+    shape.closePath();
+
+    // Island hole — matches IslandTerrain outline
+    const hole = new THREE.Path();
+    const segments = 48;
+    const baseRx = 105, baseRz = 70;
+    for (let i = 0; i <= segments; i++) {
+      const angle = (i / segments) * Math.PI * 2;
+      const nr = 1.0 + fbm2D(Math.cos(angle) * 3 + 0.5, Math.sin(angle) * 3 + 0.5, 3) * 0.2;
+      const x = Math.cos(angle) * baseRx * nr;
+      const z = Math.sin(angle) * baseRz * nr;
+      if (i === 0) hole.moveTo(x, z);
+      else hole.lineTo(x, z);
+    }
+    shape.holes.push(hole);
+
+    const geo = new THREE.ShapeGeometry(shape, 128);
+    return geo;
+  }, []);
 
   return (
     <mesh
@@ -696,16 +722,17 @@ function Rock({ position, scale, seed = 0 }: {
 function Rocks() {
   const rocks = useMemo(() => {
     const result: { pos: [number, number, number]; scale: number; seed: number }[] = [];
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2 + Math.random() * 0.5 - 0.25;
-      const dist = 80 + Math.random() * 30; // Near island shoreline
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+      // Place rocks ON the island shoreline (edge of land, not in water)
+      const dist = 75 + Math.random() * 25;
       result.push({
         pos: [
           Math.cos(angle) * dist,
-          0.5 + Math.random() * 0.5,
+          0.5 + Math.random() * 0.5, // Just above beach level
           Math.sin(angle) * dist,
         ],
-        scale: 1.5 + Math.random() * 3.5,
+        scale: 1.2 + Math.random() * 3.0,
         seed: i * 137.5,
       });
     }
