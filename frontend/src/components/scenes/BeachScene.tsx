@@ -1,6 +1,6 @@
 import { useRef, useMemo, useCallback, useState, useEffect } from 'react';
-import { useFrame, useThree, extend, type Object3DNode } from '@react-three/fiber';
-import { OrbitControls, shaderMaterial } from '@react-three/drei';
+import { useFrame, extend, type Object3DNode } from '@react-three/fiber';
+import { OrbitControls, shaderMaterial, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 
 // ═══════════════════════════════════════════════════════════════
@@ -149,41 +149,6 @@ declare module '@react-three/fiber' {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Sky dome shader
-// ═══════════════════════════════════════════════════════════════
-const SkyMaterial = shaderMaterial(
-  {
-    uTopColor: new THREE.Color('#0066cc'),
-    uMidColor: new THREE.Color('#4db8ff'),
-    uHorizonColor: new THREE.Color('#b8e0ff'),
-    uSunPosition: new THREE.Vector3(0.6, 0.3, -0.8).normalize(),
-  },
-  `varying vec3 vWorldPos; varying vec3 vNormal;
-   void main() {
-     vWorldPos = (modelMatrix * vec4(position,1.0)).xyz;
-     vNormal = normalize(position);
-     gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
-   }`,
-  `uniform vec3 uTopColor, uMidColor, uHorizonColor, uSunPosition;
-   varying vec3 vWorldPos; varying vec3 vNormal;
-   void main() {
-     float h = normalize(vWorldPos).y;
-     vec3 col;
-     if(h > 0.3) col = mix(uMidColor, uTopColor, smoothstep(0.3, 0.9, h));
-     else        col = mix(uHorizonColor, uMidColor, smoothstep(-0.1, 0.3, h));
-     float sunD = max(dot(normalize(vWorldPos), uSunPosition), 0.0);
-     col += vec3(1.0,0.95,0.7) * pow(sunD, 64.0) * 0.8;
-     col += vec3(1.0,0.85,0.5) * pow(sunD, 8.0) * 0.3;
-     gl_FragColor = vec4(col, 1.0);
-   }`,
-);
-extend({ SkyMaterial });
-type SkyMat = THREE.ShaderMaterial & { [k: string]: any };
-declare module '@react-three/fiber' {
-  interface ThreeElements { skyMaterial: Object3DNode<SkyMat, typeof SkyMaterial> }
-}
-
-// ═══════════════════════════════════════════════════════════════
 // Beach sand shader (depth-based dry → wet gradient)
 // ═══════════════════════════════════════════════════════════════
 const BeachShaderMat = shaderMaterial(
@@ -225,15 +190,20 @@ function rng(seed: number) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Sky dome
+// Sky dome (drei Sky — stable atmospheric scattering)
 // ═══════════════════════════════════════════════════════════════
 function SkyDome() {
-  const geo = useMemo(() => new THREE.SphereGeometry(900, 64, 64), []);
   return (
-    <mesh geometry={geo} renderOrder={-1}>
-      {/* @ts-ignore */}
-      <skyMaterial attach="material" side={THREE.BackSide} depthWrite={false} />
-    </mesh>
+    <Sky
+      distance={450000}
+      sunPosition={[0.6, 0.3, -0.8]}
+      inclination={0.52}
+      azimuth={0.25}
+      turbidity={8}
+      rayleigh={2}
+      mieCoefficient={0.005}
+      mieDirectionalG={0.8}
+    />
   );
 }
 
