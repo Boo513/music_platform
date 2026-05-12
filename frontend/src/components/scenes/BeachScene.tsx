@@ -275,7 +275,7 @@ function SunAndLight() {
 
   return (
     <group>
-      <directionalLight position={[100, 200, 50]} intensity={2.5} color="#FFF5E6" />
+      <directionalLight position={[100, 200, 50]} intensity={2.0} color="#FFFAF0" />
       {/* Sun body */}
       <mesh position={sunPos}>
         <sphereGeometry args={[20, 32, 32]} />
@@ -832,7 +832,8 @@ function ToneMappingSetup() {
   const { gl } = useThree();
   useEffect(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping;
-    gl.toneMappingExposure = 1.8;
+    gl.toneMappingExposure = 2.0;
+    gl.outputColorSpace = THREE.SRGBColorSpace;
   }, [gl]);
   return null;
 }
@@ -878,9 +879,9 @@ export function BeachScene({ autoRotate = false }: { autoRotate?: boolean; effec
       <fogExp2 attach="fog" args={['#4D9BFF', 0.0008]} />
 
       {/* Lighting */}
-      <ambientLight intensity={0.6} color="#E8F0FF" />
+      <ambientLight intensity={0.7} color="#FFFFFF" />
       <hemisphereLight intensity={0.6} color="#87CEEB" groundColor="#004466" />
-      <directionalLight intensity={0.3} color="#E0E8FF" position={[-60, 40, 60]} />
+      <directionalLight intensity={0.8} color="#E6F3FF" position={[-50, 20, -50]} />
       <pointLight intensity={0.3} color="#FFF5E6" position={[0, 10, 50]} distance={100} />
 
       {/* Scene elements */}
