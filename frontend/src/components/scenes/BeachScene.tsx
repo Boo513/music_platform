@@ -268,23 +268,39 @@ function SkyDome() {
 // ═══════════════════════════════════════════════════════════════
 function SunAndLight() {
   const sunPos = useMemo(() => new THREE.Vector3(350, 180, -450), []);
-  const haloGeo = useMemo(() => new THREE.SphereGeometry(50, 32, 32), []);
+  const glowTex = useMemo(() => {
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    g.addColorStop(0, 'rgba(255,238,136,1)');
+    g.addColorStop(0.05, 'rgba(255,238,136,0.9)');
+    g.addColorStop(0.2, 'rgba(255,200,80,0.5)');
+    g.addColorStop(0.5, 'rgba(255,140,30,0.1)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
+  }, []);
 
   return (
     <group>
       <directionalLight position={[120, 100, -60]} intensity={1.8} color="#fff4d6"
         castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
+      {/* Sun body */}
       <mesh position={sunPos}>
         <sphereGeometry args={[20, 32, 32]} />
         <meshBasicMaterial color="#ffee88" />
       </mesh>
-      <mesh position={sunPos} geometry={haloGeo}>
-        <shaderMaterial
-          vertexShader="varying vec3 vNorm; void main() { vNorm=normalize(normalMatrix*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }"
-          fragmentShader="varying vec3 vNorm; void main() { float i=pow(0.7-dot(vNorm,vec3(0,0,1)),2.5); gl_FragColor=vec4(1.0,0.92,0.6,1.0)*i*0.6; }"
-          transparent side={THREE.BackSide} blending={THREE.AdditiveBlending} depthWrite={false}
-        />
-      </mesh>
+      {/* Sun glow — sprite instead of sphere to avoid black ball artifact */}
+      <sprite position={sunPos} scale={[120, 120, 1]}>
+        <spriteMaterial map={glowTex} blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.6} />
+      </sprite>
+      <sprite position={sunPos} scale={[200, 200, 1]}>
+        <spriteMaterial map={glowTex} blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.2} />
+      </sprite>
     </group>
   );
 }
