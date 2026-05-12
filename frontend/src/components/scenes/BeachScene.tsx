@@ -205,11 +205,11 @@ function SkyBackground() {
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 512);
     // Equirectangular: 0=南极 0.5=赤道(地平线) 1=北极(天顶)
-    gradient.addColorStop(0, '#87CEEB');   // 南极(不可见/地平线色)
-    gradient.addColorStop(0.5, '#87CEEB'); // 赤道=地平线(最亮)
-    gradient.addColorStop(0.7, '#1E90FF'); // 中天
-    gradient.addColorStop(0.85, '#0066DD');// 天顶附近(深蓝)
-    gradient.addColorStop(1, '#0044AA');   // 天顶(最深蓝)
+    gradient.addColorStop(0, '#87CEEB');   // 南极(地平线色)
+    gradient.addColorStop(0.45, '#87CEEB');// 地平线
+    gradient.addColorStop(0.6, '#3399DD'); // 低空
+    gradient.addColorStop(0.78, '#1155AA');// 中高空
+    gradient.addColorStop(1, '#0A2A5C');   // 天顶(深蓝)
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 2, 512);
 
@@ -217,7 +217,7 @@ function SkyBackground() {
     tex.mapping = THREE.EquirectangularReflectionMapping;
     scene.background = tex;
     // Also set renderer clear color as fallback
-    gl.setClearColor(new THREE.Color('#1E90FF'));
+    gl.setClearColor(new THREE.Color('#1155AA'));
 
     return () => {
       scene.background = null;
@@ -278,7 +278,7 @@ function SunAndLight() {
 
   return (
     <group>
-      <directionalLight position={[100, 200, 50]} intensity={2.0} color="#FFFAF0" />
+      <directionalLight position={[100, 200, 50]} intensity={3.0} color="#FFFAF0" />
       {/* Sun body */}
       <mesh position={sunPos}>
         <sphereGeometry args={[20, 32, 32]} />
@@ -835,7 +835,7 @@ function ToneMappingSetup() {
   const { gl } = useThree();
   useEffect(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping;
-    gl.toneMappingExposure = 2.5;
+    gl.toneMappingExposure = 1.4;
     gl.outputColorSpace = THREE.SRGBColorSpace;
   }, [gl]);
   return null;
@@ -882,7 +882,7 @@ export function BeachScene({ autoRotate = false }: { autoRotate?: boolean; effec
       <fogExp2 attach="fog" args={['#4D9BFF', 0.0008]} />
 
       {/* Lighting */}
-      <ambientLight intensity={0.7} color="#FFFFFF" />
+      <ambientLight intensity={0.85} color="#FFFFFF" />
       <hemisphereLight intensity={0.6} color="#87CEEB" groundColor="#004466" />
       <directionalLight intensity={0.8} color="#E6F3FF" position={[-50, 20, -50]} />
       <pointLight intensity={0.3} color="#FFF5E6" position={[0, 10, 50]} distance={100} />
