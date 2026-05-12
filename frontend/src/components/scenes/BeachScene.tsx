@@ -204,9 +204,9 @@ function SkyBackground() {
     const ctx = canvas.getContext('2d')!;
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 512);
-    gradient.addColorStop(0, '#1E90FF');
-    gradient.addColorStop(0.5, '#63B8FF');
-    gradient.addColorStop(1, '#87CEEB');
+    gradient.addColorStop(0, '#5BB5FF');
+    gradient.addColorStop(0.4, '#8ED4FF');
+    gradient.addColorStop(1, '#BCE9FF');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 2, 512);
 
@@ -214,7 +214,7 @@ function SkyBackground() {
     tex.mapping = THREE.EquirectangularReflectionMapping;
     scene.background = tex;
     // Also set renderer clear color as fallback
-    gl.setClearColor(new THREE.Color('#1e90ff'));
+    gl.setClearColor(new THREE.Color('#5BB5FF'));
 
     return () => {
       scene.background = null;
@@ -246,7 +246,7 @@ function SkyDome() {
   return (
     <sprite position={[300, 120, -400]} scale={[350, 350, 1]}>
       <spriteMaterial map={glowTex} blending={THREE.AdditiveBlending}
-        depthWrite={false} depthTest={false} opacity={0.7} />
+        depthWrite={false} depthTest={false} opacity={0.95} />
     </sprite>
   );
 }
@@ -283,10 +283,10 @@ function SunAndLight() {
       </mesh>
       {/* Sun glow — sprite instead of sphere to avoid black ball artifact */}
       <sprite position={sunPos} scale={[120, 120, 1]}>
-        <spriteMaterial map={glowTex} blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.6} />
+        <spriteMaterial map={glowTex} blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.85} />
       </sprite>
       <sprite position={sunPos} scale={[200, 200, 1]}>
-        <spriteMaterial map={glowTex} blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.2} />
+        <spriteMaterial map={glowTex} blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.35} />
       </sprite>
     </group>
   );
@@ -832,7 +832,7 @@ function ToneMappingSetup() {
   const { gl } = useThree();
   useEffect(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping;
-    gl.toneMappingExposure = 2.0;
+    gl.toneMappingExposure = 2.5;
     gl.outputColorSpace = THREE.SRGBColorSpace;
   }, [gl]);
   return null;
