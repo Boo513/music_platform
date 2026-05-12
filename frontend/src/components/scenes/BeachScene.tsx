@@ -275,7 +275,7 @@ function SunAndLight() {
 
   return (
     <group>
-      <directionalLight position={[120, 100, -60]} intensity={1.8} color="#FFF5E6" />
+      <directionalLight position={[100, 200, 50]} intensity={2.5} color="#FFF5E6" />
       {/* Sun body */}
       <mesh position={sunPos}>
         <sphereGeometry args={[20, 32, 32]} />
@@ -826,6 +826,18 @@ function Splash({ pos, intensity = 1, onDone }: { pos: THREE.Vector3; intensity?
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Tone mapping setup
+// ═══════════════════════════════════════════════════════════════
+function ToneMappingSetup() {
+  const { gl } = useThree();
+  useEffect(() => {
+    gl.toneMapping = THREE.ACESFilmicToneMapping;
+    gl.toneMappingExposure = 1.8;
+  }, [gl]);
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Main BeachScene
 // ═══════════════════════════════════════════════════════════════
 interface RippleItem { id: number; point: THREE.Vector3 }
@@ -859,14 +871,15 @@ export function BeachScene({ autoRotate = false }: { autoRotate?: boolean; effec
   return (
     <>
       {/* Atmosphere */}
+      <ToneMappingSetup />
       <SkyBackground />
       <SkyDome />
       <SunAndLight />
-      <fogExp2 attach="fog" args={['#4D9BFF', 0.0015]} />
+      <fogExp2 attach="fog" args={['#4D9BFF', 0.0008]} />
 
       {/* Lighting */}
       <ambientLight intensity={0.6} color="#E8F0FF" />
-      <hemisphereLight intensity={0.5} color="#87CEEB" groundColor="#f4d998" />
+      <hemisphereLight intensity={0.6} color="#87CEEB" groundColor="#004466" />
       <directionalLight intensity={0.3} color="#E0E8FF" position={[-60, 40, 60]} />
       <pointLight intensity={0.3} color="#FFF5E6" position={[0, 10, 50]} distance={100} />
 
