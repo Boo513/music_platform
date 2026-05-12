@@ -1,1238 +1,906 @@
-import { useRef, useMemo, useCallback, useState } from 'react';
+import { useRef, useMemo, useCallback, useState, useEffect } from 'react';
 import { useFrame, useThree, extend, type Object3DNode } from '@react-three/fiber';
 import { OrbitControls, shaderMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 
-// ── GLSL Noise Library ───────────────────────────────────────────
-const glslNoise = `
-  float hash(vec2 p) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-  }
-  float hash3(vec3 p) {
-    p = fract(p * 0.3183099 + 0.1); p *= 17.0;
-    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
-  }
-  float noise2(vec2 p) {
-    vec2 i = floor(p), f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
-    float a = hash(i), b = hash(i + vec2(1.0, 0.0));
-    float c = hash(i + vec2(0.0, 1.0)), d = hash(i + vec2(1.0, 1.0));
-    return a + (b - a) * f.x + (c - a) * f.y + (a - b - c + d) * f.x * f.y;
-  }
-  float fbm2(vec2 p) {
-    float v = 0.0, a = 0.5;
-    for (int i = 0; i < 5; i++) { v += a * noise2(p); p *= 2.0; a *= 0.5; }
-    return v;
+// ═══════════════════════════════════════════════════════════════
+// GLSL snippets
+// ═══════════════════════════════════════════════════════════════
+const glslSnoise3 = `
+  vec3 mod289(vec3 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
+  vec4 mod289(vec4 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
+  vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+  vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+  float snoise(vec3 v) {
+    const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+    const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+    vec3 i = floor(v + dot(v, C.yyy));
+    vec3 x0 = v - i + dot(i, C.xxx);
+    vec3 g = step(x0.yzx, x0.xyz);
+    vec3 l = 1.0 - g;
+    vec3 i1 = min(g.xyz, l.zxy);
+    vec3 i2 = max(g.xyz, l.zxy);
+    vec3 x1 = x0 - i1 + C.xxx;
+    vec3 x2 = x0 - i2 + C.yyy;
+    vec3 x3 = x0 - D.yyy;
+    i = mod289(i);
+    vec4 p = permute(permute(permute(
+        i.z + vec4(0.0, i1.z, i2.z, 1.0))
+        + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+        + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+    float n_ = 0.142857142857;
+    vec3 ns = n_ * D.wyz - D.xzx;
+    vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+    vec4 x_ = floor(j * ns.z);
+    vec4 y_ = floor(j - 7.0 * x_);
+    vec4 x = x_ * ns.x + ns.yyyy;
+    vec4 y = y_ * ns.x + ns.yyyy;
+    vec4 h = 1.0 - abs(x) - abs(y);
+    vec4 b0 = vec4(x.xy, y.xy);
+    vec4 b1 = vec4(x.zw, y.zw);
+    vec4 s0 = floor(b0)*2.0 + 1.0;
+    vec4 s1 = floor(b1)*2.0 + 1.0;
+    vec4 sh = -step(h, vec4(0.0));
+    vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+    vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+    vec3 p0 = vec3(a0.xy,h.x);
+    vec3 p1 = vec3(a0.zw,h.y);
+    vec3 p2 = vec3(a1.xy,h.z);
+    vec3 p3 = vec3(a1.zw,h.w);
+    vec4 norm = taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
+    p0*=norm.x; p1*=norm.y; p2*=norm.z; p3*=norm.w;
+    vec4 m = max(0.6 - vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)), 0.0);
+    m=m*m;
+    return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
   }
 `;
 
-// ── Ocean Shader — Gerstner Waves with Analytical Normals ────────
+// ═══════════════════════════════════════════════════════════════
+// Ocean shader (Simplex noise waves)
+// ═══════════════════════════════════════════════════════════════
 const OceanMaterial = shaderMaterial(
   {
     uTime: 0,
-    uSunDir: new THREE.Vector3(0.6, 0.25, -0.8).normalize(),
-    uSunColor: new THREE.Color('#ffee88'),
-    uDeepColor: new THREE.Color('#001f3f'),
-    uShallowColor: new THREE.Color('#0077be'),
-    uFoamColor: new THREE.Color('#e0ffff'),
-    uFresnelPower: 4.0,
-    uWaveSpeed: 1.2,
-    uRippleOrigin: new THREE.Vector3(0, 0, 0),
-    uRippleTime: -1,
+    uDeepColor: new THREE.Color('#003d5c'),
+    uShallowColor: new THREE.Color('#0077b6'),
+    uFoamColor: new THREE.Color('#e0f4ff'),
+    uSunDir: new THREE.Vector3(0.5, 0.7, -0.5).normalize(),
+    uSunColor: new THREE.Color('#fff8dc'),
+    uCameraPos: new THREE.Vector3(),
   },
-  // Vertex Shader
   `uniform float uTime;
-   uniform float uWaveSpeed;
-   uniform vec3 uRippleOrigin;
-   uniform float uRippleTime;
-
+   varying vec2 vUv;
    varying vec3 vWorldPos;
    varying vec3 vNormal;
-   varying float vHeight;
-   varying vec2 vUv;
-   varying float vFoam;
+   varying float vElevation;
 
-   ${glslNoise}
-
-   // ── Gerstner Wave with analytical derivatives ──
-   struct Wave {
-     float steepness;
-     float wavelength;
-     vec2 direction;
-   };
-
-   vec3 gerstnerWave(vec3 pos, Wave w, float time, out vec3 ddx_out, out vec3 ddz_out) {
-     float k = 6.28318530718 / w.wavelength;
-     float c = sqrt(9.8 / k);
-     vec2 d = normalize(w.direction);
-     float f = k * (dot(d, pos.xz) - c * time);
-     float a = w.steepness / k;
-
-     float cosf = cos(f);
-     float sinf = sin(f);
-
-     vec3 p = vec3(
-       d.x * a * cosf,
-       a * sinf,
-       d.y * a * cosf
-     );
-
-     // Derivatives for normal calculation
-     float dk = k * a;
-     ddx_out = vec3(
-       -d.x * d.x * dk * sinf,
-       d.x * dk * cosf,
-       -d.x * d.y * dk * sinf
-     );
-     ddz_out = vec3(
-       -d.x * d.y * dk * sinf,
-       d.y * dk * cosf,
-       -d.y * d.y * dk * sinf
-     );
-
-     return p;
-   }
+   ${glslSnoise3}
 
    void main() {
-     vec3 pos = position;
-     vec2 uv = position.xz * 0.01;
      vUv = uv;
+     vec3 pos = position;
+     float t = uTime * 0.5;
 
-     Wave waves[5];
-     waves[0] = Wave(0.35, 55.0, vec2(1.0, 0.3));
-     waves[1] = Wave(0.22, 32.0, vec2(0.7, 0.8));
-     waves[2] = Wave(0.15, 18.0, vec2(-0.4, 0.9));
-     waves[3] = Wave(0.10, 10.0, vec2(0.5, -0.5));
-     waves[4] = Wave(0.06, 5.5, vec2(-0.8, -0.3));
+     float wave1  = sin(pos.x * 0.04 + t * 0.8) * cos(pos.y * 0.025 + t * 0.6) * 2.0;
+     float wave2  = sin(pos.x * 0.08 + t * 1.2 + 1.0) * cos(pos.y * 0.06 + t * 0.9) * 1.0;
+     float noise1 = snoise(vec3(pos.x * 0.015, pos.y * 0.015, t * 0.25)) * 3.0;
+     float noise2 = snoise(vec3(pos.x * 0.04, pos.y * 0.04, t * 0.4)) * 0.8;
+     float noise3 = snoise(vec3(pos.x * 0.1, pos.y * 0.08, t * 0.7)) * 0.3;
+     float elevation = wave1 + wave2 + noise1 + noise2 + noise3;
 
-     vec3 totalWave = vec3(0.0);
-     vec3 totalDdx = vec3(0.0);
-     vec3 totalDdz = vec3(0.0);
+     pos.z += elevation;
+     vElevation = elevation;
 
-     float t = uTime * uWaveSpeed;
-
-     for (int i = 0; i < 5; i++) {
-       vec3 ddx_i, ddz_i;
-       totalWave += gerstnerWave(pos, waves[i], t, ddx_i, ddz_i);
-       totalDdx += ddx_i;
-       totalDdz += ddz_i;
-     }
-
-     pos += totalWave;
-
-     // ── Ripple effect from click ──
-     float rippleOffset = 0.0;
-     if (uRippleTime > 0.0) {
-       float dist = distance(position.xz, uRippleOrigin.xz);
-       float rippleAge = uTime - uRippleTime;
-       float rippleRadius = rippleAge * 20.0;
-       float rippleWidth = 4.0;
-       float rippleFalloff = exp(-rippleAge * 0.8);
-       float ripple = smoothstep(rippleRadius - rippleWidth, rippleRadius, dist) *
-                      smoothstep(rippleRadius + rippleWidth, rippleRadius, dist);
-       rippleOffset = ripple * 2.5 * rippleFalloff;
-       pos.y += rippleOffset;
-
-       // Derivative of ripple for normal
-       float rippleDerivative = rippleFalloff * 2.5 * (
-         smoothstep(rippleRadius - rippleWidth, rippleRadius, dist) * (-1.0 / rippleWidth) +
-         smoothstep(rippleRadius + rippleWidth, rippleRadius, dist) * (1.0 / rippleWidth)
-       );
-       totalDdx.y += rippleDerivative * (pos.x - uRippleOrigin.x) / max(dist, 0.01);
-       totalDdz.y += rippleDerivative * (pos.z - uRippleOrigin.z) / max(dist, 0.01);
-     }
+     float eps = 0.5;
+     float hx = (snoise(vec3((pos.x+eps)*0.04, pos.y*0.04, t*0.4)) -
+                 snoise(vec3((pos.x-eps)*0.04, pos.y*0.04, t*0.4))) * 0.8;
+     float hy = (snoise(vec3(pos.x*0.04, (pos.y+eps)*0.04, t*0.4)) -
+                 snoise(vec3(pos.x*0.04, (pos.y-eps)*0.04, t*0.4))) * 0.8;
+     vNormal = normalize(vec3(-hx, -hy, 1.0));
 
      vWorldPos = (modelMatrix * vec4(pos, 1.0)).xyz;
-     vHeight = pos.y;
-
-     // Analytical normal from wave derivatives
-     vec3 tangent = vec3(1.0, 0.0, 0.0) + totalDdx;
-     vec3 bitangent = vec3(0.0, 0.0, 1.0) + totalDdz;
-     vNormal = normalize(cross(bitangent, tangent));
-
-     // Foam based on wave steepness (derivative magnitude)
-     float steepness = length(totalDdx) + length(totalDdz);
-     vFoam = smoothstep(0.15, 0.45, steepness) + smoothstep(0.5, 1.2, vHeight) * 0.6;
-
      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
    }`,
-  // Fragment Shader
   `uniform float uTime;
-   uniform vec3 uSunDir;
-   uniform vec3 uSunColor;
    uniform vec3 uDeepColor;
    uniform vec3 uShallowColor;
    uniform vec3 uFoamColor;
-   uniform float uFresnelPower;
-
+   uniform vec3 uSunDir;
+   uniform vec3 uSunColor;
+   uniform vec3 uCameraPos;
+   varying vec2 vUv;
    varying vec3 vWorldPos;
    varying vec3 vNormal;
-   varying float vHeight;
-   varying vec2 vUv;
-   varying float vFoam;
-
-   ${glslNoise}
+   varying float vElevation;
 
    void main() {
-     vec3 viewDir = normalize(cameraPosition - vWorldPos);
      vec3 normal = normalize(vNormal);
+     vec3 viewDir = normalize(uCameraPos - vWorldPos);
+     float fresnel = pow(1.0 - max(dot(viewDir, normal), 0.0), 4.0);
 
-     // ── Fresnel reflection — stronger for deep ocean look ──
-     float fresnel = pow(1.0 - max(dot(viewDir, normal), 0.0), uFresnelPower);
+     vec3 halfVec = normalize(uSunDir + viewDir);
+     float spec  = pow(max(dot(normal, halfVec), 0.0), 512.0);
+     float spec2 = pow(max(dot(normal, halfVec), 0.0), 128.0) * 0.3;
 
-     // ── Minimal SSS — deep water shouldn't glow from behind ──
-     float viewSunDot = dot(viewDir, -uSunDir);
-     float sss = pow(max(viewSunDot, 0.0), 3.0) * 0.15;
+     float depth = smoothstep(-4.0, 4.0, vElevation);
+     vec3 baseColor = mix(uDeepColor, uShallowColor, depth);
 
-     // ── Water depth coloring ──
-     float depthFactor = smoothstep(-4.0, 2.0, vHeight);
-     vec3 waterColor = mix(uDeepColor, uShallowColor, depthFactor);
+     float foamMask  = smoothstep(2.2, 3.5, vElevation);
+     foamMask += smoothstep(1.8, 2.8, vElevation) * 0.3 * (0.5 + 0.5*sin(vWorldPos.x*2.0 + uTime));
 
-     // ── Anisotropic specular stripes (parallel band reflections) ──
-     vec3 halfDir = normalize(uSunDir + viewDir);
-     float NdotH = max(dot(normal, halfDir), 0.0);
-     float spec = pow(NdotH, 512.0);
+     float sss = pow(max(dot(viewDir, -uSunDir), 0.0), 3.0) * 0.15;
+     vec3 sssColor = vec3(0.1, 0.5, 0.6) * sss;
 
-     // Anisotropic highlight: stretch along wave direction
-     vec2 anisoUv = vec2(dot(normal.xz, vec2(0.8, 0.6)), dot(normal.xz, vec2(-0.6, 0.8)));
-     float anisoStripe = pow(abs(anisoUv.x), 12.0) * pow(NdotH, 256.0);
-     float sparkle = pow(NdotH, 2048.0) * smoothstep(0.2, 1.0, vHeight);
+     vec3 col = baseColor;
+     col += uSunColor * (spec + spec2) * 1.5;
+     col  = mix(col, vec3(0.7, 0.9, 1.0), fresnel * 0.35);
+     col  = mix(col, uFoamColor, foamMask * 0.7);
+     col += sssColor;
+     col += vec3(0.4, 0.7, 0.9) * fresnel * 0.15;
 
-     vec3 specular = uSunColor * spec * 2.5;
-     vec3 anisoSpec = uSunColor * anisoStripe * 1.8;
-     vec3 sparkleCol = vec3(1.0, 0.97, 0.88) * sparkle * 3.5;
-
-     // ── Combine ──
-     vec3 color = waterColor;
-
-     // Fresnel reflection adds edge brightness
-     color = mix(color, uShallowColor * 1.2 + vec3(0.08, 0.12, 0.18), fresnel * 0.55);
-
-     // Minimal SSS
-     color += sss * vec3(0.08, 0.12, 0.18);
-
-     // Specular highlights
-     color += specular;
-     color += anisoSpec;
-     color += sparkleCol;
-
-     // ── Foam — threshold lowered for more white foam ──
-     float foamNoise = noise2(vUv * 40.0 + uTime * 0.3);
-     float foamMask = vFoam * (0.6 + foamNoise * 0.4);
-     color = mix(color, uFoamColor, clamp(foamMask, 0.0, 1.0) * 0.85);
-
-     // ── Alpha ──
-     float alpha = 0.85 + fresnel * 0.15;
-
-     gl_FragColor = vec4(color, alpha);
-   }`
+     gl_FragColor = vec4(col, 0.94);
+   }`,
 );
 
 extend({ OceanMaterial });
-
-type OceanMaterialType = THREE.ShaderMaterial & {
-  uTime: number;
-  uSunDir: THREE.Vector3;
-  uSunColor: THREE.Color;
-  uDeepColor: THREE.Color;
-  uShallowColor: THREE.Color;
-  uFoamColor: THREE.Color;
-  uFresnelPower: number;
-  uWaveSpeed: number;
-  uRippleOrigin: THREE.Vector3;
-  uRippleTime: number;
-};
-
+type OceanMat = THREE.ShaderMaterial & { [k: string]: any };
 declare module '@react-three/fiber' {
-  interface ThreeElements {
-    oceanMaterial: Object3DNode<OceanMaterialType, typeof OceanMaterial>;
-  }
+  interface ThreeElements { oceanMaterial: Object3DNode<OceanMat, typeof OceanMaterial> }
 }
 
-// ── Sand Shader — Procedural noise texture with wet/dry mix ──────
-const SandMaterial = shaderMaterial(
+// ═══════════════════════════════════════════════════════════════
+// Sky dome shader
+// ═══════════════════════════════════════════════════════════════
+const SkyMaterial = shaderMaterial(
   {
-    uTime: 0,
-    uDryColor: new THREE.Color('#f5e6c8'),
-    uWetColor: new THREE.Color('#8b7355'),
-    uWaterLevel: 0.0,
-    uTransitionWidth: 8.0,
+    uTopColor: new THREE.Color('#0066cc'),
+    uMidColor: new THREE.Color('#4db8ff'),
+    uHorizonColor: new THREE.Color('#b8e0ff'),
+    uSunPosition: new THREE.Vector3(0.6, 0.3, -0.8).normalize(),
   },
-  `varying vec3 vWorldPos;
-   varying vec2 vUv;
-   varying float vDistanceToWater;
-   varying vec3 vNormal;
-
-   ${glslNoise}
-
+  `varying vec3 vWorldPos; varying vec3 vNormal;
    void main() {
-     vec4 wp = modelMatrix * vec4(position, 1.0);
-     vWorldPos = wp.xyz;
-     vUv = uv;
-     vNormal = normalize(normalMatrix * normal);
-
-     // Distance to water level (z in local space determines shoreline)
-     vDistanceToWater = position.z - uWaterLevel;
-
-     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+     vWorldPos = (modelMatrix * vec4(position,1.0)).xyz;
+     vNormal = normalize(position);
+     gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
    }`,
-  `uniform float uTime;
-   uniform vec3 uDryColor;
-   uniform vec3 uWetColor;
-   uniform float uWaterLevel;
-   uniform float uTransitionWidth;
-
-   varying vec3 vWorldPos;
-   varying vec2 vUv;
-   varying float vDistanceToWater;
-   varying vec3 vNormal;
-
-   ${glslNoise}
-
+  `uniform vec3 uTopColor, uMidColor, uHorizonColor, uSunPosition;
+   varying vec3 vWorldPos; varying vec3 vNormal;
    void main() {
-     // ── Wet/Dry mix based on distance to water ──
-     float wetness = 1.0 - smoothstep(0.0, uTransitionWidth, vDistanceToWater);
-     wetness = clamp(wetness, 0.0, 1.0);
-
-     // ── Procedural sand grain texture ──
-     float grain = noise2(vUv * 200.0) * 0.5 + noise2(vUv * 80.0) * 0.3;
-     float largeNoise = fbm2(vUv * 15.0) * 0.15;
-
-     // ── Base color ──
-     vec3 dryCol = uDryColor + grain * 0.08 + largeNoise;
-     vec3 wetCol = uWetColor + grain * 0.05 + largeNoise * 0.5;
-
-     vec3 color = mix(dryCol, wetCol, wetness);
-
-     // ── Wet sand gets specular highlight (mirror-like) ──
-     vec3 viewDir = normalize(cameraPosition - vWorldPos);
-     vec3 sunDir = normalize(vec3(0.6, 0.75, 0.25));
-     vec3 halfDir = normalize(sunDir + viewDir);
-     float spec = pow(max(dot(normalize(vNormal), halfDir), 0.0), 64.0);
-     color += vec3(0.4, 0.35, 0.25) * spec * wetness * 1.5;
-
-     // ── Add some moisture darkening near water ──
-     color *= 1.0 - wetness * 0.15;
-
-     gl_FragColor = vec4(color, 1.0);
-   }`
+     float h = normalize(vWorldPos).y;
+     vec3 col;
+     if(h > 0.3) col = mix(uMidColor, uTopColor, smoothstep(0.3, 0.9, h));
+     else        col = mix(uHorizonColor, uMidColor, smoothstep(-0.1, 0.3, h));
+     float sunD = max(dot(normalize(vWorldPos), uSunPosition), 0.0);
+     col += vec3(1.0,0.95,0.7) * pow(sunD, 64.0) * 0.8;
+     col += vec3(1.0,0.85,0.5) * pow(sunD, 8.0) * 0.3;
+     gl_FragColor = vec4(col, 1.0);
+   }`,
 );
-
-extend({ SandMaterial });
-
-type SandMaterialType = THREE.ShaderMaterial & {
-  uTime: number;
-  uDryColor: THREE.Color;
-  uWetColor: THREE.Color;
-  uWaterLevel: number;
-  uTransitionWidth: number;
-};
-
+extend({ SkyMaterial });
+type SkyMat = THREE.ShaderMaterial & { [k: string]: any };
 declare module '@react-three/fiber' {
-  interface ThreeElements {
-    sandMaterial: Object3DNode<SandMaterialType, typeof SandMaterial>;
-  }
+  interface ThreeElements { skyMaterial: Object3DNode<SkyMat, typeof SkyMaterial> }
 }
 
-// ── Noise helpers (JS side) ──────────────────────────────────────
-function hash2D(x: number, y: number): number {
-  const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
-  return n - Math.floor(n);
+// ═══════════════════════════════════════════════════════════════
+// Beach sand shader (depth-based dry → wet gradient)
+// ═══════════════════════════════════════════════════════════════
+const BeachShaderMat = shaderMaterial(
+  {
+    uDrySand: new THREE.Color('#f2e2b6'),
+    uWetSand: new THREE.Color('#d4b86a'),
+    uDarkSand: new THREE.Color('#c4a050'),
+    uFoamLine: new THREE.Color('#ffffff'),
+  },
+  `varying vec2 vUv; varying vec3 vPosition;
+   void main() { vUv=uv; vPosition=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  `uniform vec3 uDrySand,uWetSand,uDarkSand,uFoamLine;
+   varying vec2 vUv; varying vec3 vPosition;
+   float random(vec2 st){return fract(sin(dot(st.xy,vec2(12.9898,78.233)))*43758.5453123);}
+   void main(){
+     float d = smoothstep(-20.0,35.0,vPosition.y);
+     float n = random(vUv*150.0)*0.08;
+     vec3 c;
+     if(d<0.4) c=mix(uDarkSand,uWetSand,d/0.4);
+     else if(d<0.7) c=mix(uWetSand,uDrySand,(d-0.4)/0.3);
+     else c=uDrySand;
+     c+=n;
+     float ed=min(min(abs(vPosition.x-95.0),abs(vPosition.x+90.0)),abs(vPosition.y+20.0));
+     c=mix(c,uFoamLine,smoothstep(8.0,2.0,ed)*0.3);
+     gl_FragColor=vec4(c,1.0);
+   }`,
+);
+extend({ BeachShaderMat });
+type BeachMat = THREE.ShaderMaterial & { [k: string]: any };
+declare module '@react-three/fiber' {
+  interface ThreeElements { beachShaderMat: Object3DNode<BeachMat, typeof BeachShaderMat> }
 }
 
-function smoothNoise2D(x: number, y: number): number {
-  const ix = Math.floor(x), iy = Math.floor(y);
-  const fx = x - ix, fy = y - iy;
-  const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
-  const a = hash2D(ix, iy), b = hash2D(ix + 1, iy);
-  const c = hash2D(ix, iy + 1), d = hash2D(ix + 1, iy + 1);
-  return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+// ═══════════════════════════════════════════════════════════════
+// Foam particle shader material
+// ═══════════════════════════════════════════════════════════════
+const FoamPartMat = shaderMaterial(
+  { uTime: 0, uColor: new THREE.Color('#ffffff') },
+  `attribute float size; attribute float phase; uniform float uTime; varying float vAlpha;
+   void main() {
+     vec3 p = position;
+     float t = uTime*0.5+phase;
+     p.y = sin(p.x*0.05+t)*cos(p.z*0.03+t*0.8)*1.5 + sin(p.x*0.1+t*1.3)*0.5 + 0.15;
+     vAlpha = 0.3 + 0.3*sin(t*2.0+phase);
+     vec4 mv = modelViewMatrix*vec4(p,1.0);
+     gl_PointSize = size*(250.0/-mv.z);
+     gl_Position  = projectionMatrix*mv;
+   }`,
+  `uniform vec3 uColor; varying float vAlpha;
+   void main() {
+     float d = length(gl_PointCoord-0.5);
+     if(d>0.5) discard;
+     gl_FragColor=vec4(uColor,(1.0-d*2.0)*vAlpha*0.5);
+   }`,
+);
+extend({ FoamPartMat });
+type FoamMat = THREE.ShaderMaterial & { [k: string]: any };
+declare module '@react-three/fiber' {
+  interface ThreeElements { foamPartMat: Object3DNode<FoamMat, typeof FoamPartMat> }
 }
 
-function fbm2D(x: number, y: number, octaves = 5): number {
-  let v = 0, a = 0.5, f = 1;
-  for (let i = 0; i < octaves; i++) {
-    v += a * smoothNoise2D(x * f, y * f);
-    f *= 2; a *= 0.5;
-  }
-  return v;
-}
+// ═══════════════════════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════════════════════
+function seededRandom(seed: number) { let s = seed; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
 
-// ── Ocean Component — ring-shaped (hole for island) ─────────────
-function Ocean({ onPointerDown }: { onPointerDown?: (point: THREE.Vector3) => void }) {
-  const matRef = useRef<OceanMaterialType>(null);
-  const [rippleOrigin, setRippleOrigin] = useState(new THREE.Vector3(0, 0, 0));
-  const [rippleTime, setRippleTime] = useState(-1);
-
-  useFrame(({ clock }) => {
-    if (matRef.current) {
-      matRef.current.uTime = clock.getElapsedTime();
-    }
-  });
-
-  const handleClick = useCallback((e: { point: THREE.Vector3 }) => {
-    if (e.point) {
-      setRippleOrigin(e.point.clone());
-      setRippleTime(matRef.current?.uTime ?? 0);
-      onPointerDown?.(e.point.clone());
-    }
-  }, [onPointerDown]);
-
-  // Ring-shaped ocean: large square with island-shaped hole cut out
-  const geometry = useMemo(() => {
-    const size = 300;
-    const shape = new THREE.Shape();
-    // Outer square
-    shape.moveTo(-size, -size);
-    shape.lineTo(size, -size);
-    shape.lineTo(size, size);
-    shape.lineTo(-size, size);
-    shape.closePath();
-
-    // Island hole — matches IslandTerrain outline
-    const hole = new THREE.Path();
-    const segments = 48;
-    const baseRx = 105, baseRz = 70;
-    for (let i = 0; i <= segments; i++) {
-      const angle = (i / segments) * Math.PI * 2;
-      const nr = 1.0 + fbm2D(Math.cos(angle) * 3 + 0.5, Math.sin(angle) * 3 + 0.5, 3) * 0.2;
-      const x = Math.cos(angle) * baseRx * nr;
-      const z = Math.sin(angle) * baseRz * nr;
-      if (i === 0) hole.moveTo(x, z);
-      else hole.lineTo(x, z);
-    }
-    shape.holes.push(hole);
-
-    const geo = new THREE.ShapeGeometry(shape, 128);
-    return geo;
-  }, []);
-
+// ═══════════════════════════════════════════════════════════════
+// Sky dome
+// ═══════════════════════════════════════════════════════════════
+function SkyDome() {
+  const geo = useMemo(() => new THREE.SphereGeometry(900, 64, 64), []);
   return (
-    <mesh
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, -0.5, 0]}
-      onPointerDown={handleClick}
-      geometry={geometry}
-    >
+    <mesh geometry={geo} renderOrder={-1}>
       {/* @ts-ignore */}
-      <oceanMaterial
-        ref={matRef}
-        attach="material"
-        transparent
-        side={THREE.DoubleSide}
-        uRippleOrigin={rippleOrigin}
-        uRippleTime={rippleTime}
-      />
+      <skyMaterial attach="material" side={THREE.BackSide} depthWrite={false} />
     </mesh>
   );
 }
 
-// ── Dark Sky Dome — deep midnight blue with sun glow ─────────────
-const DarkSkyMaterial = shaderMaterial(
-  {
-    uTime: 0,
-    uSunPos: new THREE.Vector3(350, 180, -450),
-    uTopColor: new THREE.Color('#0a1628'),
-    uMidColor: new THREE.Color('#1e90ff'),
-    uHorizonColor: new THREE.Color('#87ceeb'),
-  },
-  `varying vec3 vWorldPos;
-   void main() {
-     vec4 wp = modelMatrix * vec4(position, 1.0);
-     vWorldPos = wp.xyz;
-     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-   }`,
-  `uniform float uTime;
-   uniform vec3 uSunPos;
-   uniform vec3 uTopColor;
-   uniform vec3 uMidColor;
-   uniform vec3 uHorizonColor;
-   varying vec3 vWorldPos;
-
-   void main() {
-     vec3 dir = normalize(vWorldPos);
-     float h = dir.y;
-
-     vec3 skyColor;
-     if (h > 0.5) {
-       skyColor = mix(uMidColor, uTopColor, smoothstep(0.5, 0.85, h));
-     } else if (h > 0.0) {
-       skyColor = mix(uHorizonColor, uMidColor, smoothstep(0.0, 0.5, h));
-     } else {
-       skyColor = uHorizonColor * 0.85;
-     }
-
-     // Sun glow — strong, warm, low on horizon
-     vec3 sunDir = normalize(uSunPos);
-     float sunAngle = max(dot(dir, sunDir), 0.0);
-     float sunGlow = pow(sunAngle, 48.0) * 1.2;
-     float sunHalo = pow(sunAngle, 6.0) * 0.5;
-     float sunWide = pow(sunAngle, 2.5) * 0.25;
-
-     vec3 sunColor = vec3(1.0, 0.93, 0.53);
-     skyColor += sunColor * (sunGlow + sunHalo + sunWide);
-
-     gl_FragColor = vec4(skyColor, 1.0);
-   }`
-);
-
-extend({ DarkSkyMaterial });
-
-type DarkSkyMaterialType = THREE.ShaderMaterial & {
-  uTime: number;
-  uSunPos: THREE.Vector3;
-  uTopColor: THREE.Color;
-  uMidColor: THREE.Color;
-  uHorizonColor: THREE.Color;
-};
-
-declare module '@react-three/fiber' {
-  interface ThreeElements {
-    darkSkyMaterial: Object3DNode<DarkSkyMaterialType, typeof DarkSkyMaterial>;
-  }
-}
-
-function DarkSkyDome() {
-  const matRef = useRef<DarkSkyMaterialType>(null);
-
-  useFrame(({ clock }) => {
-    if (matRef.current) {
-      matRef.current.uTime = clock.getElapsedTime();
-    }
-  });
-
-  return (
-    <mesh renderOrder={-1}>
-      <sphereGeometry args={[500, 64, 32]} />
-      {/* @ts-ignore */}
-      <darkSkyMaterial
-        ref={matRef}
-        attach="material"
-        side={THREE.BackSide}
-        depthWrite={false}
-      />
-    </mesh>
-  );
-}
-
-// ── Sun + Light ──────────────────────────────────────────────────
-function SunLight() {
+// ═══════════════════════════════════════════════════════════════
+// Sun + halo + directional light
+// ═══════════════════════════════════════════════════════════════
+function SunAndLight() {
   const sunPos = useMemo(() => new THREE.Vector3(350, 180, -450), []);
-  const glowTex = useMemo(() => {
-    const size = 256;
-    const canvas = document.createElement('canvas');
-    canvas.width = size; canvas.height = size;
-    const ctx = canvas.getContext('2d')!;
-    const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-    g.addColorStop(0, 'rgba(255,238,136,1)');
-    g.addColorStop(0.04, 'rgba(255,238,136,1)');
-    g.addColorStop(0.2, 'rgba(255,200,80,0.6)');
-    g.addColorStop(0.5, 'rgba(255,140,30,0.15)');
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.needsUpdate = true;
-    return tex;
-  }, []);
+  const haloGeo = useMemo(() => new THREE.SphereGeometry(50, 32, 32), []);
 
   return (
     <group>
-      <directionalLight
-        position={sunPos}
-        intensity={2.2}
-        color="#fff0c0"
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-      />
-      {/* Sun body */}
+      <directionalLight position={[120, 100, -60]} intensity={1.8} color="#fff4d6"
+        castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
       <mesh position={sunPos}>
-        <sphereGeometry args={[8, 32, 32]} />
+        <sphereGeometry args={[20, 32, 32]} />
         <meshBasicMaterial color="#ffee88" />
       </mesh>
-      {/* Sun glow sprite */}
-      <sprite position={sunPos} scale={[80, 80, 1]}>
-        <spriteMaterial
-          map={glowTex}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          opacity={0.75}
-          color="#ffee88"
+      <mesh position={sunPos} geometry={haloGeo}>
+        <shaderMaterial
+          vertexShader="varying vec3 vNorm; void main() { vNorm=normalize(normalMatrix*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }"
+          fragmentShader="varying vec3 vNorm; void main() { float i=pow(0.7-dot(vNorm,vec3(0,0,1)),2.5); gl_FragColor=vec4(1.0,0.92,0.6,1.0)*i*0.6; }"
+          transparent side={THREE.BackSide} blending={THREE.AdditiveBlending} depthWrite={false}
         />
-      </sprite>
-      {/* Larger halo */}
-      <sprite position={sunPos} scale={[160, 160, 1]}>
-        <spriteMaterial
-          map={glowTex}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          opacity={0.2}
-          color="#ffcc66"
-        />
-      </sprite>
+      </mesh>
     </group>
   );
 }
 
-// ── Island Terrain — large central organic island ──────────────
-function IslandTerrain() {
-  const matRef = useRef<SandMaterialType>(null);
-  const { geometry } = useMemo(() => {
-    // Large organic island shape using ellipse + noise perturbation
-    const shape = new THREE.Shape();
-    const cx = 0, cz = 0;
-    const baseRx = 120, baseRz = 80; // Ellipse radii
-    const segments = 48;
+// ═══════════════════════════════════════════════════════════════
+// Ocean (Simplex noise waves)
+// ═══════════════════════════════════════════════════════════════
+function Ocean({ onClick }: { onClick: (p: THREE.Vector3) => void }) {
+  const matRef = useRef<OceanMat>(null);
+  const geo = useMemo(() => new THREE.PlaneGeometry(600, 600, 300, 300), []);
 
-    // Generate organic island outline with noise
-    const outline: THREE.Vector2[] = [];
-    for (let i = 0; i < segments; i++) {
-      const angle = (i / segments) * Math.PI * 2;
-      const noiseR = 1.0 + fbm2D(Math.cos(angle) * 3 + 0.5, Math.sin(angle) * 3 + 0.5, 3) * 0.25;
-      const rx = baseRx + (Math.random() - 0.5) * 10;
-      const rz = baseRz + (Math.random() - 0.5) * 8;
-      const x = cx + Math.cos(angle) * rx * noiseR;
-      const z = cz + Math.sin(angle) * rz * noiseR;
-      outline.push(new THREE.Vector2(x, z));
-    }
-
-    shape.moveTo(outline[0].x, outline[0].y);
-    for (let i = 1; i < outline.length; i++) {
-      const prev = outline[(i - 1 + outline.length) % outline.length];
-      const curr = outline[i];
-      const next = outline[(i + 1) % outline.length];
-      const cpx = curr.x + (next.x - prev.x) * 0.1;
-      const cpy = curr.y + (next.y - prev.y) * 0.1;
-      shape.quadraticCurveTo(cpx, cpy, next.x, next.y);
-    }
-
-    const geo = new THREE.ShapeGeometry(shape, 96);
-
-    // Add terrain height — island rises from water
-    const pos = geo.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const z = pos.getY(i);
-
-      // Distance from island center
-      const dist = Math.sqrt(x * x + z * z);
-      const maxDist = 130;
-
-      // Height profile: flat beach → gentle slope → inland plateau
-      let height = 0;
-      const normDist = dist / maxDist;
-
-      if (normDist < 0.3) {
-        // Interior plateau — flat, slightly elevated
-        height = 2.5 + fbm2D(x * 0.05, z * 0.05, 4) * 1.5;
-      } else if (normDist < 0.85) {
-        // Gradual slope from plateau to beach
-        const t = (normDist - 0.3) / 0.55;
-        height = 2.5 * (1.0 - t) + fbm2D(x * 0.06, z * 0.06, 4) * (1.0 - t) * 1.5;
-      } else if (normDist < 1.0) {
-        // Beach zone — very flat, slight wetness
-        const t2 = (normDist - 0.85) / 0.15;
-        height = (1.0 - t2) * 0.5 + smoothNoise2D(x * 0.5, z * 0.5) * 0.08;
-      } else {
-        // Slightly underwater (outer edge)
-        height = -0.3;
-      }
-
-      pos.setZ(i, height);
-    }
-
-    geo.computeVertexNormals();
-    return { geometry: geo };
-  }, []);
-
-  useFrame(({ clock }) => {
-    if (matRef.current) {
-      matRef.current.uTime = clock.getElapsedTime();
-    }
+  useFrame(({ clock, camera }) => {
+    if (!matRef.current) return;
+    matRef.current.uTime = clock.getElapsedTime();
+    matRef.current.uCameraPos.copy(camera.position);
   });
 
   return (
-    <group>
-      {/* Main island */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.3, 0]} receiveShadow castShadow>
-        <primitive object={geometry} attach="geometry" />
-        {/* @ts-ignore */}
-        <sandMaterial
-          ref={matRef}
-          attach="material"
-          uWaterLevel={130}
-          uTransitionWidth={25}
-        />
-      </mesh>
-
-      {/* Underwater sand shelf to blend island with ocean */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.15, 0]} receiveShadow>
-        <ringGeometry args={[90, 160, 64]} />
-        <meshStandardMaterial
-          color="#d4c4a0"
-          roughness={0.7}
-          metalness={0.0}
-          transparent
-          opacity={0.7}
-          depthWrite={true}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-// ── Rock — low poly with vertex displacement ─────────────────────
-function Rock({ position, scale, seed = 0 }: {
-  position: [number, number, number];
-  scale: number;
-  seed?: number;
-}) {
-  const geo = useMemo(() => {
-    const g = new THREE.DodecahedronGeometry(1, 1);
-    const pos = g.attributes.position;
-
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const y = pos.getY(i);
-      const z = pos.getZ(i);
-      const n = fbm2D((x + seed) * 3, (z + seed) * 3) * 0.35;
-      pos.setX(i, x + n);
-      pos.setY(i, y + n * 0.4);
-      pos.setZ(i, z + n);
-    }
-
-    g.computeVertexNormals();
-    return g;
-  }, [seed]);
-
-  return (
-    <mesh position={position} scale={scale} castShadow receiveShadow>
-      <primitive object={geo} attach="geometry" />
-      <meshStandardMaterial
-        color="#7a7a7a"
-        roughness={0.92}
-        metalness={0.08}
-        flatShading
-      />
+    <mesh geometry={geo} rotation={[-Math.PI/2, 0, 0]} position={[0, 0, 0]}
+      onClick={(e) => { if (e.point) onClick(e.point.clone()); }}>
+      {/* @ts-ignore */}
+      <oceanMaterial ref={matRef} attach="material" transparent side={THREE.DoubleSide} />
     </mesh>
   );
 }
 
-// ── Rocks Group ──────────────────────────────────────────────────
-function Rocks() {
-  const rocks = useMemo(() => {
-    const result: { pos: [number, number, number]; scale: number; seed: number }[] = [];
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-      // Place rocks ON the island shoreline (edge of land, not in water)
-      const dist = 75 + Math.random() * 25;
-      result.push({
-        pos: [
-          Math.cos(angle) * dist,
-          0.5 + Math.random() * 0.5, // Just above beach level
-          Math.sin(angle) * dist,
-        ],
-        scale: 1.2 + Math.random() * 3.0,
-        seed: i * 137.5,
+// ═══════════════════════════════════════════════════════════════
+// Beach — organic ShapeGeometry + sand dunes + debris
+// ═══════════════════════════════════════════════════════════════
+function Beach() {
+  const { geo: beachGeo, dunes } = useMemo(() => {
+    const shape = new THREE.Shape();
+    shape.moveTo(-90, -20);
+    shape.quadraticCurveTo(-70, 25, -40, 30);
+    shape.quadraticCurveTo(0, 35, 40, 30);
+    shape.quadraticCurveTo(75, 22, 95, -15);
+    shape.quadraticCurveTo(85, -5, 60, 5);
+    shape.quadraticCurveTo(30, 12, 0, 10);
+    shape.quadraticCurveTo(-30, 12, -60, 5);
+    shape.quadraticCurveTo(-85, -5, -90, -20);
+    const g = new THREE.ShapeGeometry(shape, 64, 64);
+
+    const dArray: { pos: [number, number, number]; scale: [number, number, number]; rot: number }[] = [];
+    const rng = seededRandom(42);
+    for (let i = 0; i < 12; i++) {
+      dArray.push({
+        pos: [(rng() - 0.5) * 120, -0.3, 40 + rng() * 30],
+        scale: [1.5 + rng(), 0.3 + rng() * 0.3, 1.5 + rng()],
+        rot: rng() * Math.PI,
       });
     }
-    return result;
+    return { geo: g, dunes: dArray };
   }, []);
 
-  return (
-    <>
-      {rocks.map((rock, i) => (
-        <Rock key={i} position={rock.pos} scale={rock.scale} seed={rock.seed} />
-      ))}
-    </>
-  );
-}
-
-// ── Palm Tree — drooping leaves with gravity, thinner trunk ─────
-function PalmTree({ position }: { position: [number, number, number] }) {
-  const trunkRef = useRef<THREE.Group>(null);
-  const leavesRef = useRef<THREE.Group>(null);
-
-  useFrame(({ clock }) => {
-    if (trunkRef.current && leavesRef.current) {
-      const t = clock.getElapsedTime();
-      // Subtle sway — small amplitude, low frequency
-      trunkRef.current.rotation.z = Math.sin(t * 0.8 + position[0] * 0.05) * 0.02;
-      trunkRef.current.rotation.x = Math.sin(t * 0.5 + position[2] * 0.05) * 0.01;
-      leavesRef.current.rotation.z = Math.sin(t * 0.9 + position[0] * 0.06) * 0.02;
-      leavesRef.current.rotation.x = Math.sin(t * 0.6 + position[2] * 0.06) * 0.015;
-    }
-  });
-
-  const trunkSegments = useMemo(() => {
-    const segments: { pos: THREE.Vector3; rot: number }[] = [];
-    // More pronounced S-curve trunk
-    const curve = new THREE.CubicBezierCurve3(
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(0.3, 3, 0),
-      new THREE.Vector3(-0.25, 7, 0),
-      new THREE.Vector3(0.1, 10, 0)
-    );
-
-    for (let i = 0; i <= 12; i++) {
-      const t = i / 12;
-      const point = curve.getPoint(t);
-      segments.push({
-        pos: point,
-        rot: Math.atan2(point.x, point.y) * 0.1,
-      });
-    }
-    return segments;
-  }, []);
-
-  // Drooping leaves — tilt downward (gravity), fewer
-  const leaves = useMemo(() => {
-    const result: { rot: number; tilt: number; length: number }[] = [];
-    const count = 7;
+  const debrisPts = useMemo(() => {
+    const count = 80;
+    const pos = new Float32Array(count * 3);
+    const col = new Float32Array(count * 3);
+    const rng = seededRandom(77);
     for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
-      result.push({
-        rot: angle,
-        tilt: 0.6 + Math.random() * 0.3, // More tilt = drooping down
-        length: 3.2 + Math.random() * 1.3,
-      });
+      pos[i*3]   = (rng() - 0.5) * 140;
+      pos[i*3+1] = -0.28;
+      pos[i*3+2] = 20 + rng() * 50;
+      const c = rng();
+      if (c < 0.4)      { col[i*3]=0.95; col[i*3+1]=0.93; col[i*3+2]=0.88; }
+      else if (c < 0.7) { col[i*3]=0.60; col[i*3+1]=0.58; col[i*3+2]=0.55; }
+      else              { col[i*3]=0.85; col[i*3+1]=0.75; col[i*3+2]=0.60; }
     }
-    return result;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    return g;
   }, []);
 
   return (
-    <group position={position}>
-      {/* Trunk — thinner, dark brown */}
-      <group ref={trunkRef}>
-        {trunkSegments.map((seg, i) => (
-          <mesh key={i} position={seg.pos} rotation={[0, 0, seg.rot]} castShadow>
-            <cylinderGeometry args={[0.09 - i * 0.006, 0.15 - i * 0.008, 1.0, 8]} />
-            <meshStandardMaterial color="#5c4033" roughness={0.92} />
-          </mesh>
-        ))}
-      </group>
-
-      {/* Leaves — drooping down */}
-      <group ref={leavesRef} position={[0.1, 10, 0]}>
-        {leaves.map((leaf, i) => (
-          <group key={i} rotation={[0, leaf.rot, 0]}>
-            <mesh rotation={[leaf.tilt, 0, 0]} position={[0, 0.2, 0]} castShadow>
-              <planeGeometry args={[0.22, leaf.length]} />
-              <meshStandardMaterial
-                color="#3d6030"
-                roughness={0.8}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-          </group>
-        ))}
-      </group>
+    <group>
+      {/* Main beach shape */}
+      <mesh geometry={beachGeo} rotation={[-Math.PI/2, 0, 0]} position={[0, -0.3, 35]} receiveShadow>
+        {/* @ts-ignore */}
+        <beachShaderMat attach="material" side={THREE.DoubleSide} />
+      </mesh>
+      {/* Sand dunes */}
+      {dunes.map((d, i) => (
+        <mesh key={`dune-${i}`} position={d.pos} scale={d.scale} rotation-y={d.rot} receiveShadow>
+          <sphereGeometry args={[3 + d.scale[0] * 2, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          <meshStandardMaterial color={new THREE.Color().setHSL(0.1, 0.5, 0.75 + d.scale[1] * 0.1)} roughness={0.95} metalness={0} />
+        </mesh>
+      ))}
+      {/* Debris particles */}
+      <points geometry={debrisPts} position={[0, 0, 0]}>
+        <pointsMaterial size={0.18} vertexColors roughness={0.9} />
+      </points>
     </group>
   );
 }
 
-// ── Palm Trees Group ─────────────────────────────────────────────
-function PalmTrees() {
-  const positions = useMemo<[number, number, number][]>(() => [
-    // On the island — scattered around the inland area
-    [-50, 0, -20],
-    [-30, 0, 30],
-    [40, 0, -15],
-    [55, 0, 20],
-    [-15, 0, -45],
-    [20, 0, 35],
-    [-60, 0, 10],
-    [10, 0, -10],
-    [65, 0, -35],
-    [-35, 0, -55],
-  ], []);
+// ═══════════════════════════════════════════════════════════════
+// Rocks — low-poly dodecahedrons with vertex noise
+// ═══════════════════════════════════════════════════════════════
+function buildRockGeo(scale: number) {
+  const g = new THREE.DodecahedronGeometry(scale, 2);
+  const p = g.attributes.position;
+  const rng = seededRandom(Math.floor(scale * 100));
+  for (let i = 0; i < p.count; i++) {
+    const n = (rng() - 0.5) * scale * 0.35;
+    p.setXYZ(i, p.getX(i) + n, p.getY(i) + n * 0.6, p.getZ(i) + n);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+function Rocks() {
+  const configs: { x: number; z: number; s: number; ry: number }[] = [
+    { x: -28, z: 10, s: 3.5, ry: 0.3 }, { x: -22, z: 6, s: 2.2, ry: 1.2 },
+    { x: 24, z: 12, s: 3.0, ry: -0.5 }, { x: 30, z: 17, s: 2.0, ry: 2.1 },
+    { x: -12, z: 19, s: 2.5, ry: 0.8 }, { x: 8, z: 22, s: 1.8, ry: -1.5 },
+    { x: -35, z: 14, s: 2.3, ry: 3.0 },
+  ];
+  const geos = useMemo(() => configs.map(c => buildRockGeo(c.s)), [configs]);
 
   return (
-    <>
-      {positions.map((pos, i) => (
-        <PalmTree key={i} position={pos} />
+    <group>
+      {configs.map((c, i) => (
+        <mesh key={`rock-${i}`} geometry={geos[i]}
+          position={[c.x, c.s * 0.1, c.z]}
+          rotation={[(Math.random()-0.5)*0.25, c.ry, (Math.random()-0.5)*0.25]}
+          castShadow receiveShadow>
+          <meshStandardMaterial color="#3d3d3d" roughness={0.96} metalness={0.02} flatShading />
+        </mesh>
       ))}
-    </>
+    </group>
   );
 }
 
-// ── Seagull ──────────────────────────────────────────────────────
-function Seagull({ offset }: { offset: number }) {
-  const ref = useRef<THREE.Group>(null);
-  const wingRef = useRef<THREE.Group>(null);
+// ═══════════════════════════════════════════════════════════════
+// Palm tree — CatmullRomCurve3 trunk + detailed leaflets
+// ═══════════════════════════════════════════════════════════════
+function buildPalmLeaflets() {
+  const group = new THREE.Group();
+  const length = 5 + Math.random() * 2;
+  const leafletCount = 18;
+
+  // Rachis (midrib)
+  const rachis = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.03, 0.06, length, 6),
+    new THREE.MeshStandardMaterial({ color: '#3d6b3d', roughness: 0.8 })
+  );
+  rachis.rotation.x = Math.PI / 2;
+  rachis.position.z = length / 2 - 0.5;
+  group.add(rachis);
+
+  for (let i = 0; i < leafletCount; i++) {
+    const t = i / (leafletCount - 1);
+    const z = t * (length - 1);
+    [-1, 1].forEach(side => {
+      const len = (1 - t * 0.6) * 1.8;
+      const w = 0.15 + (1 - t) * 0.15;
+      const g = new THREE.PlaneGeometry(w, len);
+      const hue = 0.28 + Math.random() * 0.05;
+      const light = 0.25 + t * 0.15;
+      const mat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color().setHSL(hue, 0.65, light),
+        side: THREE.DoubleSide, roughness: 0.7, metalness: 0.05,
+      });
+      const leaflet = new THREE.Mesh(g, mat);
+      leaflet.position.set(side * 0.1, 0, z);
+      leaflet.rotation.y = side * (0.4 + t * 0.8);
+      leaflet.rotation.x = -t * 0.8 * 0.3;
+      leaflet.rotation.z = side * 0.1 * Math.sin(t * Math.PI);
+      group.add(leaflet);
+    });
+  }
+  return group;
+}
+
+function PalmTree({ idx, position }: { idx: number; position: [number, number, number] }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const leafRefs = useRef<THREE.Mesh[]>([]);
+
+  const trunkHeight = 10 + (idx % 5) * 0.8;
+
+  // Trunk tube geometry
+  const trunkGeo = useMemo(() => {
+    const controlPoints = [];
+    const segments = 15;
+    const bendAmount = 1.5 + (idx % 3) * 1.2;
+    for (let i = 0; i <= segments; i++) {
+      const t = i / segments;
+      const y = t * trunkHeight;
+      const bend = Math.pow(t, 2.2) * bendAmount;
+      const twist = Math.sin(t * Math.PI * 1.5) * 0.3;
+      controlPoints.push(new THREE.Vector3(bend + twist, y, 0));
+    }
+    const curve = new THREE.CatmullRomCurve3(controlPoints);
+    return { curve, geo: new THREE.TubeGeometry(curve, 20, 0.25 + (idx % 2) * 0.1, 8, false) };
+  }, [trunkHeight, idx]);
+
+  // Tree rings
+  const rings = useMemo(() => {
+    const ringsData: { pos: THREE.Vector3; quat: THREE.Quaternion }[] = [];
+    for (let i = 1; i < 8; i++) {
+      const tt = i / 8;
+      const p = trunkGeo.curve.getPointAt(tt);
+      const t = trunkGeo.curve.getTangentAt(tt);
+      const q = new THREE.Quaternion();
+      const m = new THREE.Matrix4().lookAt(p, p.clone().add(t), new THREE.Vector3(0, 1, 0));
+      q.setFromRotationMatrix(m);
+      ringsData.push({ pos: p, quat: q });
+    }
+    return ringsData;
+  }, [trunkGeo.curve]);
+
+  // Canopy
+  const topPos = useMemo(() => trunkGeo.curve.getPointAt(1.0), [trunkGeo.curve]);
+
+  // Leaflets + coconuts
+  const canopyGroup = useMemo(() => {
+    const grp = new THREE.Group();
+    grp.position.copy(topPos);
+    const leafCount = 9 + (idx % 4);
+    const leafs: THREE.Group[] = [];
+    for (let i = 0; i < leafCount; i++) {
+      const leaf = buildPalmLeaflets();
+      const angle = (i / leafCount) * Math.PI * 2;
+      const droop = 0.4 + Math.random() * 0.3;
+      leaf.rotation.y = angle;
+      leaf.rotation.x = -(Math.PI / 2.5) * droop;
+      leaf.rotation.z = (Math.random() - 0.5) * 0.2;
+      leaf.userData = { baseRotX: leaf.rotation.x, phase: i * 0.5 + Math.random() };
+      leafs.push(leaf);
+      grp.add(leaf);
+    }
+    // Coconuts
+    const cocoCount = 2 + (idx % 3);
+    for (let i = 0; i < cocoCount; i++) {
+      const cGeo = new THREE.SphereGeometry(0.2, 12, 12);
+      cGeo.scale(1, 0.9, 1);
+      const cMat = new THREE.MeshStandardMaterial({ color: '#4a3728', roughness: 0.75, metalness: 0.1 });
+      const coconut = new THREE.Mesh(cGeo, cMat);
+      const phi = Math.acos(2 * Math.random() - 1);
+      const theta = Math.random() * Math.PI * 2;
+      const r = 0.3 + Math.random() * 0.2;
+      coconut.position.set(r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta));
+      coconut.position.y -= 0.8;
+      grp.add(coconut);
+    }
+    return { group: grp, leafs };
+  }, [topPos, idx]);
+
+  useEffect(() => { leafRefs.current = canopyGroup.leafs as any; }, [canopyGroup.leafs]);
 
   useFrame(({ clock }) => {
-    if (!ref.current || !wingRef.current) return;
-    const t = clock.getElapsedTime() + offset;
+    if (!groupRef.current) return;
+    const t = clock.getElapsedTime();
+    const off = idx * 0.7;
+    groupRef.current.rotation.x = Math.sin(t * 1.2 + off) * 0.02;
+    groupRef.current.rotation.z = Math.cos(t * 0.96 + off) * 0.015;
 
-    // Figure-8 flight path
-    const speed = 0.25;
-    const radius = 35;
-    const x = Math.sin(t * speed) * radius;
-    const z = Math.sin(t * speed * 2) * radius * 0.5;
-    const y = 28 + Math.sin(t * 0.4) * 6;
-
-    ref.current.position.set(x, y, z);
-
-    // Face direction of movement
-    const dx = Math.cos(t * speed) * radius * speed;
-    const dz = Math.cos(t * speed * 2) * radius * speed * 2;
-    ref.current.rotation.y = Math.atan2(dx, dz);
-
-    // Wing flapping
-    const flapSpeed = 3.5;
-    wingRef.current.rotation.x = Math.sin(t * flapSpeed) * 0.45;
+    leafRefs.current.forEach((leaf: any) => {
+      const ph = leaf.userData?.phase || 0;
+      const ws = 0.06 + Math.sin(t * 0.3) * 0.02;
+      leaf.rotation.x = leaf.userData?.baseRotX + Math.sin(t * 2.5 + ph) * ws;
+      leaf.rotation.z = Math.sin(t * 1.8 + ph * 2) * 0.03;
+    });
   });
 
   return (
-    <group ref={ref}>
-      <mesh>
-        <coneGeometry args={[0.25, 1.3, 4]} />
-        <meshStandardMaterial color="#f0f0f0" roughness={0.6} />
+    <group ref={groupRef} position={position} rotation-y={idx * 0.8}>
+      {/* Trunk */}
+      <mesh geometry={trunkGeo.geo} castShadow>
+        <meshStandardMaterial color="#5c4033" roughness={0.9} metalness={0} />
       </mesh>
-      <group ref={wingRef}>
-        <mesh position={[-0.9, 0, 0]} rotation={[0, 0, Math.PI / 5]}>
-          <planeGeometry args={[1.6, 0.35]} />
-          <meshStandardMaterial color="#f0f0f0" roughness={0.6} side={THREE.DoubleSide} />
+      {/* Rings */}
+      {rings.map((r, i) => (
+        <mesh key={`ring-${i}`} position={r.pos} quaternion={r.quat}>
+          <torusGeometry args={[0.28 + i * 0.02, 0.03, 6, 16]} />
+          <meshStandardMaterial color="#4a3428" roughness={0.95} />
         </mesh>
-        <mesh position={[0.9, 0, 0]} rotation={[0, 0, -Math.PI / 5]}>
-          <planeGeometry args={[1.6, 0.35]} />
-          <meshStandardMaterial color="#f0f0f0" roughness={0.6} side={THREE.DoubleSide} />
-        </mesh>
-      </group>
-      <mesh position={[0, 0.1, 0.55]}>
-        <sphereGeometry args={[0.12, 8, 8]} />
-        <meshStandardMaterial color="#f0f0f0" roughness={0.6} />
+      ))}
+      {/* Canopy */}
+      <primitive object={canopyGroup.group} />
+    </group>
+  );
+}
+
+function PalmForest() {
+  const positions: [number, number, number][] = useMemo(() => [
+    [-50, 0, 52], [-35, 0, 62], [-18, 0, 58],
+    [5, 0, 65], [28, 0, 58], [45, 0, 52],
+    [-62, 0, 45], [58, 0, 48],
+  ], []);
+  return <>{positions.map((p, i) => <PalmTree key={`palm-${i}`} idx={i} position={p} />)}</>;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Seagulls
+// ═══════════════════════════════════════════════════════════════
+function Seagull({ idx }: { idx: number }) {
+  const ref = useRef<THREE.Group>(null);
+  const wingL = useRef<THREE.Mesh>(null);
+  const wingR = useRef<THREE.Mesh>(null);
+  const path = useMemo(() => ({
+    cx: (seededRandom(idx * 13)() - 0.5) * 100,
+    cz: (seededRandom(idx * 17)() - 0.5) * 50 - 15,
+    rad: 25 + seededRandom(idx * 19)() * 40,
+    spd: 0.25 + seededRandom(idx * 23)() * 0.35,
+    alt: 18 + seededRandom(idx * 29)() * 25,
+    phase: seededRandom(idx * 31)() * Math.PI * 2,
+    vertAmp: 4 + seededRandom(idx * 37)() * 5,
+  }), [idx]);
+
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    const t = clock.getElapsedTime();
+    const p = path;
+    const ang = t * p.spd + p.phase;
+    ref.current.position.set(p.cx + Math.cos(ang) * p.rad, p.alt + Math.sin(ang * 2.5) * p.vertAmp, p.cz + Math.sin(ang) * p.rad);
+    ref.current.rotation.y = ang + Math.PI / 2 + Math.sin(ang) * 0.15;
+    ref.current.rotation.z = Math.sin(t * 3) * 0.08;
+    const flap = Math.sin(t * 9) * 0.6;
+    if (wingL.current) wingL.current.rotation.z = flap;
+    if (wingR.current) wingR.current.rotation.z = -flap;
+  });
+
+  return (
+    <group ref={ref} scale={0.85}>
+      <mesh rotation={[Math.PI/2, 0, 0]}>
+        <coneGeometry args={[0.28, 1.1, 5]} />
+        <meshStandardMaterial color="#fafafa" roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 0, -0.55]}>
+        <sphereGeometry args={[0.15, 8, 8]} />
+        <meshStandardMaterial color="#fafafa" roughness={0.6} />
+      </mesh>
+      <mesh ref={wingL} position={[-0.9, 0, 0]}>
+        <planeGeometry args={[1.8, 0.55]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.6} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh ref={wingR} position={[0.9, 0, 0]}>
+        <planeGeometry args={[1.8, 0.55]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.6} side={THREE.DoubleSide} />
       </mesh>
     </group>
   );
 }
 
 function Seagulls() {
-  return (
-    <>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Seagull key={i} offset={i * 1.8} />
-      ))}
-    </>
-  );
+  return <>{Array.from({ length: 6 }, (_, i) => <Seagull key={`gull-${i}`} idx={i} />)}</>;
 }
 
-// ── Jumping Fish ─────────────────────────────────────────────────
-function JumpingFish({ seed = 0 }: { seed?: number }) {
+// ═══════════════════════════════════════════════════════════════
+// Jumping fish
+// ═══════════════════════════════════════════════════════════════
+function Fish({ idx, onSplash }: { idx: number; onSplash: (x: number, z: number) => void }) {
   const ref = useRef<THREE.Group>(null);
-  const timeRef = useRef(seed * 1.3);
-  const nextJumpRef = useRef(seed * 2);
-  const jumpPhaseRef = useRef(0);
-  const startPosRef = useRef(new THREE.Vector3());
+  const timeRef = useRef(seededRandom(idx * 41)() * 8);
+  const nextJumpRef = useRef(6 + seededRandom(idx * 43)() * 10);
+  const activeRef = useRef(false);
+  const startTRef = useRef(0);
+  const startXRef = useRef(0);
+  const startZRef = useRef(0);
+  const peakRef = useRef(4 + seededRandom(idx * 47)() * 5);
+  const hue = 0.07 + idx * 0.02;
 
-  useFrame((_, delta) => {
+  useFrame(({ clock }, delta) => {
     if (!ref.current) return;
     timeRef.current += delta;
 
-    if (timeRef.current > nextJumpRef.current) {
-      nextJumpRef.current = timeRef.current + 3 + Math.random() * 6;
-      jumpPhaseRef.current = 0;
-      startPosRef.current.set(
-        (Math.random() - 0.5) * 80,
-        -0.5,
-        (Math.random() - 0.5) * 40 + 15,
-      );
+    if (!activeRef.current && timeRef.current > nextJumpRef.current) {
+      timeRef.current = 0;
+      activeRef.current = true;
+      startTRef.current = clock.getElapsedTime();
+      startXRef.current = (seededRandom(idx * 53)() - 0.5) * 70;
+      startZRef.current = (seededRandom(idx * 59)() - 0.5) * 50;
+      peakRef.current = 4 + seededRandom(idx * 61)() * 5;
+      ref.current.visible = true;
+      ref.current.position.set(startXRef.current, 0, startZRef.current);
     }
 
-    if (jumpPhaseRef.current < 1) {
-      jumpPhaseRef.current += delta * 0.7;
-      const t = jumpPhaseRef.current;
-      const height = 10 * (1.0 - (2.0 * t - 1.0) * (2.0 * t - 1.0));
-
-      ref.current.position.set(
-        startPosRef.current.x + t * 12,
-        startPosRef.current.y + height,
-        startPosRef.current.z,
-      );
-
-      ref.current.rotation.z = Math.atan2(10 * (-4 * t + 2), 12);
-      ref.current.visible = true;
-    } else {
-      ref.current.visible = false;
+    if (activeRef.current) {
+      const prog = (clock.getElapsedTime() - startTRef.current) / 1.8;
+      if (prog >= 1) {
+        activeRef.current = false;
+        ref.current.visible = false;
+        onSplash(ref.current.position.x, ref.current.position.z);
+      } else {
+        const p = 2 * prog - 1;
+        ref.current.position.y = peakRef.current * (1 - p * p);
+        ref.current.position.x = startXRef.current + prog * 18;
+        ref.current.rotation.x = -p * 0.6;
+      }
     }
   });
 
   return (
     <group ref={ref} visible={false}>
-      <mesh>
-        <sphereGeometry args={[0.45, 8, 6]} />
-        <meshStandardMaterial color="#b8c8d8" roughness={0.25} metalness={0.5} />
+      <mesh rotation={[Math.PI/2, 0, 0]}>
+        <coneGeometry args={[0.28, 1.3, 8]} />
+        <meshStandardMaterial color={new THREE.Color().setHSL(hue, 0.85, 0.52)} roughness={0.4} metalness={0.15} />
       </mesh>
-      <mesh position={[-0.5, 0, 0]} rotation={[0, 0, Math.PI / 4]}>
-        <coneGeometry args={[0.25, 0.7, 4]} />
-        <meshStandardMaterial color="#b8c8d8" roughness={0.25} metalness={0.5} />
+      <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0, 0.75]}>
+        <coneGeometry args={[0.22, 0.55, 4]} />
+        <meshStandardMaterial color={new THREE.Color().setHSL(hue, 0.85, 0.52)} roughness={0.4} metalness={0.15} />
+      </mesh>
+      <mesh position={[0, 0.15, -0.1]} rotation={[-0.3, 0, 0]}>
+        <coneGeometry args={[0.08, 0.3, 3]} />
+        <meshStandardMaterial color={new THREE.Color().setHSL(hue, 0.85, 0.52)} roughness={0.4} metalness={0.15} />
       </mesh>
     </group>
   );
 }
 
-function FishGroup() {
-  return (
-    <>
-      {Array.from({ length: 4 }).map((_, i) => (
-        <JumpingFish key={i} seed={i} />
-      ))}
-    </>
-  );
-}
-
-// ── Foam Particles — GPU-optimized with reduced count ────────────
+// ═══════════════════════════════════════════════════════════════
+// Foam particles
+// ═══════════════════════════════════════════════════════════════
 function FoamParticles() {
-  const ref = useRef<THREE.Points>(null);
-
-  const { geometry, phases } = useMemo(() => {
-    const count = 300; // Reduced from 500
-    const positions = new Float32Array(count * 3);
+  const matRef = useRef<FoamMat>(null);
+  const { geometry, sizes, phases } = useMemo(() => {
+    const count = 800;
+    const pos = new Float32Array(count * 3);
+    const sz = new Float32Array(count);
     const ph = new Float32Array(count);
-
     for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 200;
-      positions[i * 3 + 1] = Math.random() * 0.3;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 80 + 10;
+      pos[i*3] = (Math.random() - 0.5) * 200;
+      pos[i*3+1] = 0;
+      pos[i*3+2] = (Math.random() - 0.5) * 200;
+      sz[i] = 0.3 + Math.random() * 0.6;
       ph[i] = Math.random() * Math.PI * 2;
     }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-    return { geometry: geo, phases: ph };
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('size', new THREE.BufferAttribute(sz, 1));
+    g.setAttribute('phase', new THREE.BufferAttribute(ph, 1));
+    return { geometry: g, sizes: sz, phases: ph };
   }, []);
 
   useFrame(({ clock }) => {
-    if (!ref.current) return;
-    const t = clock.getElapsedTime();
-    const pos = geometry.attributes.position.array as Float32Array;
-
-    // Batch update — only update Y position
-    for (let i = 0; i < phases.length; i++) {
-      const x = pos[i * 3];
-      const z = pos[i * 3 + 2];
-      pos[i * 3 + 1] = Math.sin(t * 0.5 + x * 0.08 + z * 0.08 + phases[i]) * 0.25 + 0.15;
-    }
-
-    geometry.attributes.position.needsUpdate = true;
+    if (matRef.current) matRef.current.uTime = clock.getElapsedTime();
   });
 
   return (
-    <points ref={ref} geometry={geometry}>
-      <pointsMaterial
-        color="#ffffff"
-        size={0.35}
-        transparent
-        opacity={0.55}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-        sizeAttenuation
-      />
+    <points geometry={geometry}>
+      {/* @ts-ignore */}
+      <foamPartMat ref={matRef} attach="material" transparent depthWrite={false} blending={THREE.AdditiveBlending} />
     </points>
   );
 }
 
-// ── Splash Particles — Object-pooled, pre-allocated ──────────────
-function SplashParticles({ origin, active }: { origin: THREE.Vector3; active: boolean }) {
-  const ref = useRef<THREE.Points>(null);
-  const velocitiesRef = useRef<Float32Array>(new Float32Array(0));
-  const lifeRef = useRef<Float32Array>(new Float32Array(0));
-
-  const geometry = useMemo(() => {
-    const count = 40;
-    const positions = new Float32Array(count * 3);
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    return geo;
-  }, []);
-
-  // Initialize velocities and life on activation
-  useMemo(() => {
-    if (!active) return;
-    const count = 40;
-    velocitiesRef.current = new Float32Array(count * 3);
-    lifeRef.current = new Float32Array(count);
-
-    for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 3 + Math.random() * 6;
-      velocitiesRef.current[i * 3] = Math.cos(angle) * speed;
-      velocitiesRef.current[i * 3 + 1] = 6 + Math.random() * 10;
-      velocitiesRef.current[i * 3 + 2] = Math.sin(angle) * speed;
-      lifeRef.current[i] = 1.0 + Math.random() * 0.5;
-    }
-  }, [active, origin.x, origin.y, origin.z]);
-
-  useFrame((_, delta) => {
-    if (!ref.current || !active) return;
-
-    const pos = geometry.attributes.position.array as Float32Array;
-    const count = 40;
-    let aliveCount = 0;
-
-    for (let i = 0; i < count; i++) {
-      lifeRef.current[i] -= delta;
-
-      if (lifeRef.current[i] > 0) {
-        pos[i * 3] += velocitiesRef.current[i * 3] * delta;
-        pos[i * 3 + 1] += velocitiesRef.current[i * 3 + 1] * delta;
-        pos[i * 3 + 2] += velocitiesRef.current[i * 3 + 2] * delta;
-        velocitiesRef.current[i * 3 + 1] -= 12.0 * delta;
-        aliveCount++;
-      } else {
-        pos[i * 3] = 0;
-        pos[i * 3 + 1] = -100; // Hide below water
-        pos[i * 3 + 2] = 0;
-      }
-    }
-
-    geometry.attributes.position.needsUpdate = true;
-  });
-
-  if (!active) return null;
-
-  return (
-    <points ref={ref} position={origin}>
-      <primitive object={geometry} attach="geometry" />
-      <pointsMaterial
-        color="#ffffff"
-        size={0.25}
-        transparent
-        opacity={0.85}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-        sizeAttenuation
-      />
-    </points>
-  );
-}
-
-// ── Ripple Effect — Expand + fade ring ───────────────────────────
-function RippleMesh({ origin, startTime }: { origin: THREE.Vector3; startTime: number }) {
+// ═══════════════════════════════════════════════════════════════
+// Ripple ring
+// ═══════════════════════════════════════════════════════════════
+function Ripple({ pos, onDone }: { pos: THREE.Vector3; onDone: () => void }) {
   const ref = useRef<THREE.Mesh>(null);
+  const geo = useMemo(() => new THREE.RingGeometry(0.15, 0.4, 48), []);
+  const startTime = useRef(0);
 
   useFrame(({ clock }) => {
     if (!ref.current) return;
-    const age = clock.getElapsedTime() - startTime;
-
-    const scale = 1 + age * 12;
-    const opacity = Math.max(0, 1 - age * 0.6) * 0.4;
-
-    ref.current.scale.setScalar(scale);
-    (ref.current.material as THREE.MeshBasicMaterial).opacity = opacity;
-    ref.current.visible = opacity > 0.01;
+    if (!startTime.current) startTime.current = clock.getElapsedTime();
+    const age = clock.getElapsedTime() - startTime.current;
+    const life = 3.5;
+    const tt = age / life;
+    ref.current.scale.setScalar(1 + tt * 20);
+    (ref.current.material as THREE.MeshBasicMaterial).opacity = Math.max(0, (1 - tt) * 0.7);
+    if (tt >= 1) onDone();
   });
 
   return (
-    <mesh ref={ref} position={origin} rotation={[-Math.PI / 2, 0, 0]} visible>
-      <ringGeometry args={[0.7, 0.85, 48]} />
-      <meshBasicMaterial
-        color="#ccffff"
-        transparent
-        opacity={0.4}
-        side={THREE.DoubleSide}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-      />
+    <mesh ref={ref} geometry={geo} position={[pos.x, 0.12, pos.z]} rotation={[-Math.PI/2, 0, 0]}>
+      <meshBasicMaterial color="#ffffff" transparent opacity={0.85} side={THREE.DoubleSide} depthWrite={false} />
     </mesh>
   );
 }
 
-// ── Beach Auto Rotate Controller ─────────────────────────────────
-function BeachAutoRotate({ enabled }: { enabled: boolean }) {
-  const { camera } = useThree();
-  const timeRef = useRef(0);
+// ═══════════════════════════════════════════════════════════════
+// Splash particles
+// ═══════════════════════════════════════════════════════════════
+function Splash({ pos, intensity = 1, onDone }: { pos: THREE.Vector3; intensity?: number; onDone: () => void }) {
+  const ref = useRef<THREE.Points>(null);
+  const geo = useMemo(() => {
+    const c = Math.floor(40 * intensity);
+    const arr = new Float32Array(c * 3);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+    return g;
+  }, [intensity]);
+  const vels = useMemo(() => {
+    const c = Math.floor(40 * intensity);
+    return new Float32Array(c * 3);
+  }, [intensity]);
+  const startTime = useRef(0);
 
-  useFrame((_, delta) => {
-    if (!enabled) return;
-    timeRef.current += delta;
+  useEffect(() => {
+    const c = Math.floor(40 * intensity);
+    const posArr = geo.attributes.position.array as Float32Array;
+    for (let i = 0; i < c; i++) {
+      posArr[i*3]   = pos.x + (Math.random() - 0.5) * 2;
+      posArr[i*3+1] = 0.5;
+      posArr[i*3+2] = pos.z + (Math.random() - 0.5) * 2;
+      vels[i*3]   = (Math.random() - 0.5) * 10 * intensity;
+      vels[i*3+1] = 6 + Math.random() * 12 * intensity;
+      vels[i*3+2] = (Math.random() - 0.5) * 10 * intensity;
+    }
+    geo.attributes.position.needsUpdate = true;
+  }, [pos.x, pos.z, intensity]);
 
-    const t = timeRef.current * 0.04;
-    const orbitRadius = 55 + Math.sin(t * 0.3) * 12;
-    const camX = Math.sin(t) * orbitRadius;
-    const camZ = Math.cos(t) * orbitRadius * 0.65 + 15;
-    const camY = 18 + Math.sin(t * 0.35) * 6;
-
-    const lookX = Math.sin(t * 0.25) * 8;
-    const lookZ = 8 + Math.cos(t * 0.2) * 4;
-    const lookY = 1;
-
-    camera.position.x += (camX - camera.position.x) * 0.012;
-    camera.position.y += (camY - camera.position.y) * 0.012;
-    camera.position.z += (camZ - camera.position.z) * 0.012;
-    camera.lookAt(lookX, lookY, lookZ);
+  useFrame(({ clock }, delta) => {
+    if (!ref.current) return;
+    if (!startTime.current) startTime.current = clock.getElapsedTime();
+    const age = clock.getElapsedTime() - startTime.current;
+    const life = 2.2;
+    const tt = age / life;
+    const posArr = geo.attributes.position.array as Float32Array;
+    const c = Math.floor(40 * intensity);
+    for (let i = 0; i < c; i++) {
+      vels[i*3+1] -= 18 * delta;
+      posArr[i*3]   += vels[i*3] * delta;
+      posArr[i*3+1] += vels[i*3+1] * delta;
+      posArr[i*3+2] += vels[i*3+2] * delta;
+    }
+    geo.attributes.position.needsUpdate = true;
+    (ref.current.material as THREE.PointsMaterial).opacity = Math.max(0, (1 - tt) * 0.85);
+    if (tt >= 1) onDone();
   });
 
+  return (
+    <points ref={ref} geometry={geo}>
+      <pointsMaterial color="#e8f4fc" size={0.18} transparent opacity={0.9} blending={THREE.AdditiveBlending} depthWrite={false} />
+    </points>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FogExp2 helper
+// ═══════════════════════════════════════════════════════════════
+function SceneFog() {
+  const { scene } = useThree();
+  useEffect(() => {
+    scene.fog = new THREE.FogExp2('#87ceeb', 0.003);
+    return () => { scene.fog = null; };
+  }, [scene]);
   return null;
 }
 
-// ── Main BeachScene ──────────────────────────────────────────────
-export function BeachScene({ autoRotate = false, effects = { bloom: false, vignette: true } }: {
-  autoRotate?: boolean;
-  effects?: { bloom: boolean; vignette: boolean };
-}) {
-  const [splashOrigin, setSplashOrigin] = useState(new THREE.Vector3(0, 0, 0));
-  const [splashActive, setSplashActive] = useState(false);
-  const [rippleOrigins, setRippleOrigins] = useState<{ origin: THREE.Vector3; time: number }[]>([]);
+// ═══════════════════════════════════════════════════════════════
+// Main BeachScene
+// ═══════════════════════════════════════════════════════════════
+interface RippleItem { id: number; point: THREE.Vector3 }
+interface SplashItem { id: number; point: THREE.Vector3; intensity: number }
 
-  const handleOceanClick = useCallback((point: THREE.Vector3) => {
-    setSplashOrigin(point.clone());
-    setSplashActive(true);
-    setTimeout(() => setSplashActive(false), 1500);
+export function BeachScene({ autoRotate = false }: { autoRotate?: boolean; effects?: any }) {
+  const [ripples, setRipples] = useState<RippleItem[]>([]);
+  const [splashes, setSplashes] = useState<SplashItem[]>([]);
+  const nextId = useRef(0);
 
-    setRippleOrigins(prev => [...prev.slice(-4), { origin: point.clone(), time: performance.now() / 1000 }]);
+  const spawnRipple = useCallback((x: number, z: number) => {
+    const id = nextId.current++;
+    setRipples(p => [...p, { id, point: new THREE.Vector3(x, 0, z) }]);
   }, []);
+
+  const spawnSplash = useCallback((x: number, z: number, intensity = 0.6) => {
+    const id = nextId.current++;
+    setSplashes(p => [...p, { id, point: new THREE.Vector3(x, 0, z), intensity }]);
+  }, []);
+
+  const handleOceanClick = useCallback((pt: THREE.Vector3) => {
+    spawnRipple(pt.x, pt.z);
+    spawnSplash(pt.x, pt.z, 0.6);
+  }, [spawnRipple, spawnSplash]);
+
+  const handleFishSplash = useCallback((x: number, z: number) => {
+    spawnRipple(x, z);
+    spawnSplash(x, z, 0.35);
+  }, [spawnRipple, spawnSplash]);
 
   return (
     <>
-      {/* Environment */}
-      <DarkSkyDome />
-      <SunLight />
-      <fog attach="fog" args={['#cbd2d8', 60, 350]} />
+      {/* Atmosphere */}
+      <SkyDome />
+      <SunAndLight />
+      <SceneFog />
 
-      {/* Lighting — hemisphere + ambient, no harsh shadows */}
-      <ambientLight intensity={0.35} color="#e8ecef" />
-      <hemisphereLight intensity={0.7} color="#4682b4" groundColor="#deb887" />
+      {/* Lighting */}
+      <ambientLight intensity={0.55} color="#8ec8e8" />
+      <hemisphereLight intensity={0.45} color="#87ceeb" groundColor="#f4d998" />
+      <directionalLight intensity={0.35} color="#6eb5ff" position={[-60, 40, 60]} />
+      <pointLight intensity={0.3} color="#ffeedd" position={[0, 10, 50]} distance={100} />
 
-      {/* Ocean */}
-      <Ocean onPointerDown={handleOceanClick} />
-
-      {/* Island terrain */}
-      <IslandTerrain />
+      {/* Scene elements */}
+      <Ocean onClick={handleOceanClick} />
+      <Beach />
       <Rocks />
-
-      {/* Vegetation */}
-      <PalmTrees />
-
-      {/* Living entities */}
+      <PalmForest />
       <Seagulls />
-      <FishGroup />
-
-      {/* Particles */}
+      {Array.from({ length: 4 }, (_, i) => (
+        <Fish key={`fish-${i}`} idx={i} onSplash={handleFishSplash} />
+      ))}
       <FoamParticles />
-      <SplashParticles origin={splashOrigin} active={splashActive} />
 
-      {/* Ripple effects */}
-      {rippleOrigins.map((ripple, i) => (
-        <RippleMesh key={i} origin={ripple.origin} startTime={ripple.time} />
+      {/* Ripples */}
+      {ripples.map(r => (
+        <Ripple key={r.id} pos={r.point} onDone={() => setRipples(p => p.filter(x => x.id !== r.id))} />
       ))}
 
-      {/* Auto rotate */}
-      <BeachAutoRotate enabled={autoRotate} />
+      {/* Splashes */}
+      {splashes.map(s => (
+        <Splash key={s.id} pos={s.point} intensity={s.intensity}
+          onDone={() => setSplashes(p => p.filter(x => x.id !== s.id))} />
+      ))}
 
-      {/* Camera controls */}
+      {/* Orbit controls */}
       <OrbitControls
-        enableDamping
-        dampingFactor={0.08}
-        rotateSpeed={0.4}
-        zoomSpeed={1.0}
-        minDistance={30}
-        maxDistance={100}
-        maxPolarAngle={Math.PI * 0.48}
-        minPolarAngle={0.08}
-        target={[0, 1.5, 0]}
+        enableDamping dampingFactor={0.05}
+        minDistance={20} maxDistance={120}
+        maxPolarAngle={Math.PI / 2.05}
+        target={[0, 2, 0]}
       />
     </>
   );
