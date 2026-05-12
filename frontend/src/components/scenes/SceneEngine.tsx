@@ -3,6 +3,7 @@ import { CityScene } from './CityScene';
 import { StarryGalaxy } from './StarryGalaxy';
 import { RomanticShape } from './RomanticShape';
 import { ParticleTunnel } from './ParticleTunnel';
+import { BeachScene } from './BeachScene';
 
 interface Props {
   style: StyleType | null;
@@ -16,7 +17,7 @@ function resolveScene(style: StyleType | null, mood: MoodType | null, lockedScen
       case 'cyberpunk': return CityScene;
       case 'galaxy': return StarryGalaxy;
       case 'spring': return CityScene;
-      case 'beach': return CityScene;
+      case 'beach': return BeachScene;
       case 'rain': return CityScene;
       case 'mountain': return StarryGalaxy;
       default: return CityScene;

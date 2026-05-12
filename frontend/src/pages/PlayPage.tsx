@@ -10,7 +10,10 @@ import { favoritesApi } from '@/api/favorites';
 import { TopIcons } from '@/components/layout/TopIcons';
 import { RightControls } from '@/components/layout/RightControls';
 import { RadioPanel } from '@/components/layout/RadioPanel';
+import { QueuePanel } from '@/components/layout/QueuePanel';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
+import { SolarSystem } from '@/components/scenes/SolarSystem';
+import { BeachScene } from '@/components/scenes/BeachScene';
 import type { Song } from '@/types';
 
 const DEMO_SONG: Song = {
@@ -168,6 +171,58 @@ function Lighthouse() {
         </mesh>
       </group>
     </group>
+  );
+}
+
+// ===== GALAXY PARTICLES =====
+function GalaxyParticles() {
+  const ref = useRef<THREE.Points>(null);
+  const { geom, phases } = useMemo(() => {
+    const count = 600;
+    const pos = new Float32Array(count * 3);
+    const ph = new Float32Array(count);
+    for (let i = 0; i < count; i++) {
+      const r = 10 + Math.random() * 80;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) * 0.4;
+      pos[i * 3 + 2] = r * Math.cos(phi);
+      ph[i] = Math.random() * Math.PI * 2;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    return { geom: g, phases: ph };
+  }, []);
+
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    const t = clock.getElapsedTime();
+    const pos = ref.current.geometry.attributes.position;
+    const arr = pos.array as Float32Array;
+    for (let i = 0; i < phases.length; i++) {
+      const base = i * 3;
+      const twinkle = 0.5 + 0.5 * Math.sin(t * (1.5 + i * 0.01) + phases[i]);
+      arr[base + 1] += Math.sin(t * 0.3 + phases[i]) * 0.002;
+    }
+    pos.needsUpdate = true;
+    const mat = ref.current.material as THREE.PointsMaterial;
+    mat.opacity = 0.5 + 0.3 * Math.sin(t * 0.8);
+  });
+
+  return (
+    <points ref={ref}>
+      <primitive object={geom} attach="geometry" />
+      <pointsMaterial
+        size={0.6}
+        color="#aaccff"
+        transparent
+        opacity={0.6}
+        sizeAttenuation
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
   );
 }
 
@@ -846,6 +901,34 @@ function AutoRotateController({ enabled }: { enabled: boolean }) {
   return null;
 }
 
+function GalaxyAutoRotate({ enabled }: { enabled: boolean }) {
+  const { camera } = useThree();
+  const timeRef = useRef(0);
+
+  useFrame((_, delta) => {
+    if (!enabled) return;
+    timeRef.current += delta;
+
+    const t = timeRef.current * 0.08;
+    // Incommensurate frequencies → non-repeating organic path
+    const camX = Math.sin(t * 1.0) * 40 + Math.sin(t * 2.3) * 15 + Math.cos(t * 0.7) * 10;
+    const camZ = Math.cos(t * 0.9) * 45 + Math.sin(t * 1.7) * 12 + Math.cos(t * 3.1) * 8;
+    const camY = 20 + Math.sin(t * 0.5) * 18 + Math.sin(t * 1.4) * 6;
+
+    // Look-at target also drifts — keeps planets roughly centered but with parallax
+    const lookX = Math.sin(t * 0.6) * 12 + Math.cos(t * 1.3) * 5;
+    const lookZ = Math.cos(t * 0.8) * 10 + Math.sin(t * 2.1) * 4;
+    const lookY = Math.sin(t * 0.4) * 5;
+
+    camera.position.x += (camX - camera.position.x) * 0.015;
+    camera.position.y += (camY - camera.position.y) * 0.015;
+    camera.position.z += (camZ - camera.position.z) * 0.015;
+    camera.lookAt(lookX, lookY, lookZ);
+  });
+
+  return null;
+}
+
 function Scene3D({ zoomLevel, effects, autoRotate }: {
   zoomLevel: number;
   effects: { particles: boolean; bloom: boolean; vignette: boolean };
@@ -886,6 +969,7 @@ export default function PlayPage() {
   const [demoSong, setDemoSong] = useState<Song | null>(null);
   const [showPanel, setShowPanel] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [showQueue, setShowQueue] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const { isLoggedIn } = useAuthStore();
   const [isMuted, setIsMuted] = useState(false);
@@ -962,10 +1046,35 @@ export default function PlayPage() {
 
   return (
     <>
-    <div className="fixed inset-0" style={{ background: '#0a0a18' }}>
+    <div className="fixed inset-0" style={{ background: '#000000' }}>
       <div className="absolute inset-0 z-0">
-        <Canvas camera={{ position: [80, 55, -100], fov: 55 }}>
-          <Scene3D zoomLevel={zoomLevel} effects={effects} autoRotate={autoRotate} />
+        <Canvas
+          gl={{ antialias: true }}
+          camera={{ position: selectedScene === 'galaxy' ? [0, 40, 60] : selectedScene === 'beach' ? [0, 20, 50] : [80, 55, -100], fov: 55 }}
+        >
+          {selectedScene === 'galaxy' ? (
+            <>
+              <color attach="background" args={['#000000']} />
+              <SolarSystem />
+              {effects.particles && <GalaxyParticles />}
+              {effects.bloom && (
+                <pointLight position={[0, 0, 0]} intensity={80} distance={200} decay={1.5} color="#ffe8cc" />
+              )}
+              <GalaxyAutoRotate enabled={autoRotate} />
+              <OrbitControls
+                enableDamping dampingFactor={0.08}
+                rotateSpeed={0.3} zoomSpeed={0.8}
+                minDistance={15} maxDistance={200}
+                target={[0, 0, 0]}
+              />
+            </>
+          ) : selectedScene === 'beach' ? (
+            <>
+              <BeachScene autoRotate={autoRotate} />
+            </>
+          ) : (
+            <Scene3D zoomLevel={zoomLevel} effects={effects} autoRotate={autoRotate} />
+          )}
         </Canvas>
       </div>
 
@@ -1009,6 +1118,8 @@ export default function PlayPage() {
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             onToggleFullscreen={handleToggleFullscreen}
+            onToggleQueue={() => setShowQueue(!showQueue)}
+            queueOpen={showQueue}
           />
           {showPanel && (
             <RadioPanel
@@ -1019,6 +1130,9 @@ export default function PlayPage() {
               onToggleFavorite={handleToggleFavorite}
               onClose={() => setShowPanel(false)}
             />
+          )}
+          {showQueue && (
+            <QueuePanel onClose={() => setShowQueue(false)} />
           )}
         </div>
         {effects.vignette && <div className="absolute inset-0 vignette pointer-events-none" />}
@@ -1031,7 +1145,7 @@ export default function PlayPage() {
 
     <SettingsPanel
       open={showSettings} onClose={() => setShowSettings(false)}
-      selectedScene={selectedScene} onSelectScene={setSelectedScene}
+      selectedScene={selectedScene} onSelectScene={(key) => { setSelectedScene(key); if (key === 'galaxy') setEffects((e) => ({ ...e, particles: false })); }}
       effects={effects}
       onToggleEffect={(key) => setEffects((e) => ({ ...e, [key]: !e[key] }))}
     />
