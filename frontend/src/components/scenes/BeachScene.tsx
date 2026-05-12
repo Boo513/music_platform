@@ -204,9 +204,12 @@ function SkyBackground() {
     const ctx = canvas.getContext('2d')!;
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 512);
-    gradient.addColorStop(0, '#5BB5FF');
-    gradient.addColorStop(0.4, '#8ED4FF');
-    gradient.addColorStop(1, '#BCE9FF');
+    // Equirectangular: 0=南极 0.5=赤道(地平线) 1=北极(天顶)
+    gradient.addColorStop(0, '#87CEEB');   // 南极(不可见/地平线色)
+    gradient.addColorStop(0.5, '#87CEEB'); // 赤道=地平线(最亮)
+    gradient.addColorStop(0.7, '#1E90FF'); // 中天
+    gradient.addColorStop(0.85, '#0066DD');// 天顶附近(深蓝)
+    gradient.addColorStop(1, '#0044AA');   // 天顶(最深蓝)
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 2, 512);
 
@@ -214,7 +217,7 @@ function SkyBackground() {
     tex.mapping = THREE.EquirectangularReflectionMapping;
     scene.background = tex;
     // Also set renderer clear color as fallback
-    gl.setClearColor(new THREE.Color('#5BB5FF'));
+    gl.setClearColor(new THREE.Color('#1E90FF'));
 
     return () => {
       scene.background = null;
