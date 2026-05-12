@@ -204,8 +204,9 @@ function SkyBackground() {
     const ctx = canvas.getContext('2d')!;
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 512);
-    gradient.addColorStop(0, '#4facfe');
-    gradient.addColorStop(1, '#00f2fe');
+    gradient.addColorStop(0, '#2B7FFF');
+    gradient.addColorStop(0.5, '#6495ED');
+    gradient.addColorStop(1, '#87CEEB');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 2, 512);
 
