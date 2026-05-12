@@ -1,6 +1,6 @@
 import { useRef, useMemo, useCallback, useState, useEffect } from 'react';
 import { useFrame, extend, type Object3DNode } from '@react-three/fiber';
-import { OrbitControls, shaderMaterial, Sky } from '@react-three/drei';
+import { OrbitControls, shaderMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 
 // ═══════════════════════════════════════════════════════════════
@@ -190,21 +190,44 @@ function rng(seed: number) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Sky dome (drei Sky — stable atmospheric scattering)
+// Sky dome — simple gradient (no shaderMaterial, raw ShaderMaterial)
 // ═══════════════════════════════════════════════════════════════
 function SkyDome() {
-  return (
-    <Sky
-      distance={450000}
-      sunPosition={[0.6, 0.3, -0.8]}
-      inclination={0.6}
-      azimuth={0.25}
-      turbidity={3}
-      rayleigh={3}
-      mieCoefficient={0.002}
-      mieDirectionalG={0.5}
-    />
-  );
+  const { material, geometry } = useMemo(() => {
+    const geo = new THREE.SphereGeometry(900, 64, 32);
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {
+        uTopColor: { value: new THREE.Color('#0066cc') },
+        uHorizonColor: { value: new THREE.Color('#b8e0ff') },
+        uSunPos: { value: new THREE.Vector3(0.6, 0.25, -0.8).normalize() },
+      },
+      vertexShader: `
+        varying vec3 vDir;
+        void main() {
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vDir = wp.xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        uniform vec3 uTopColor;
+        uniform vec3 uHorizonColor;
+        uniform vec3 uSunPos;
+        varying vec3 vDir;
+        void main() {
+          float h = normalize(vDir).y;
+          vec3 col = mix(uHorizonColor, uTopColor, smoothstep(0.0, 0.7, h));
+          float sunD = max(dot(normalize(vDir), uSunPos), 0.0);
+          col += vec3(1.0, 0.95, 0.7) * pow(sunD, 80.0) * 1.2;
+          col += vec3(1.0, 0.85, 0.5) * pow(sunD, 10.0) * 0.5;
+          gl_FragColor = vec4(col, 1.0);
+        }`,
+      side: THREE.BackSide,
+      depthWrite: false,
+    });
+    return { material: mat, geometry: geo };
+  }, []);
+
+  return <mesh geometry={geometry} material={material} renderOrder={-1} />;
 }
 
 // ═══════════════════════════════════════════════════════════════
