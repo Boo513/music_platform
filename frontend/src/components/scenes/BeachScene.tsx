@@ -318,12 +318,12 @@ function Beach() {
     const g = new THREE.ShapeGeometry(shape, 64, 64);
 
     const dArray: { pos: [number, number, number]; scale: [number, number, number]; rot: number }[] = [];
-    const rng = rng(42);
+    const rand = rng(42);
     for (let i = 0; i < 12; i++) {
       dArray.push({
-        pos: [(rng() - 0.5) * 120, -0.3, 40 + rng() * 30],
-        scale: [1.5 + rng(), 0.3 + rng() * 0.3, 1.5 + rng()],
-        rot: rng() * Math.PI,
+        pos: [(rand() - 0.5) * 120, -0.3, 40 + rand() * 30],
+        scale: [1.5 + rand(), 0.3 + rand() * 0.3, 1.5 + rand()],
+        rot: rand() * Math.PI,
       });
     }
     return { geo: g, dunes: dArray };
@@ -333,12 +333,12 @@ function Beach() {
     const count = 80;
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
-    const rng = rng(77);
+    const rand = rng(77);
     for (let i = 0; i < count; i++) {
-      pos[i*3]   = (rng() - 0.5) * 140;
+      pos[i*3]   = (rand() - 0.5) * 140;
       pos[i*3+1] = -0.28;
-      pos[i*3+2] = 20 + rng() * 50;
-      const c = rng();
+      pos[i*3+2] = 20 + rand() * 50;
+      const c = rand();
       if (c < 0.4)      { col[i*3]=0.95; col[i*3+1]=0.93; col[i*3+2]=0.88; }
       else if (c < 0.7) { col[i*3]=0.60; col[i*3+1]=0.58; col[i*3+2]=0.55; }
       else              { col[i*3]=0.85; col[i*3+1]=0.75; col[i*3+2]=0.60; }
@@ -377,9 +377,9 @@ function Beach() {
 function buildRockGeo(scale: number) {
   const g = new THREE.DodecahedronGeometry(scale, 2);
   const p = g.attributes.position;
-  const rng = rng(Math.floor(scale * 100));
+  const rand = rng(Math.floor(scale * 100));
   for (let i = 0; i < p.count; i++) {
-    const n = (rng() - 0.5) * scale * 0.35;
+    const n = (rand() - 0.5) * scale * 0.35;
     p.setXYZ(i, p.getX(i) + n, p.getY(i) + n * 0.6, p.getZ(i) + n);
   }
   g.computeVertexNormals();
