@@ -218,37 +218,11 @@ declare module '@react-three/fiber' {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Foam particle shader material
-// ═══════════════════════════════════════════════════════════════
-const FoamPartMat = shaderMaterial(
-  { uTime: 0, uColor: new THREE.Color('#ffffff') },
-  `attribute float size; attribute float phase; uniform float uTime; varying float vAlpha;
-   void main() {
-     vec3 p = position;
-     float t = uTime*0.5+phase;
-     p.y = sin(p.x*0.05+t)*cos(p.z*0.03+t*0.8)*1.5 + sin(p.x*0.1+t*1.3)*0.5 + 0.15;
-     vAlpha = 0.3 + 0.3*sin(t*2.0+phase);
-     vec4 mv = modelViewMatrix*vec4(p,1.0);
-     gl_PointSize = size*(250.0/-mv.z);
-     gl_Position  = projectionMatrix*mv;
-   }`,
-  `uniform vec3 uColor; varying float vAlpha;
-   void main() {
-     float d = length(gl_PointCoord-0.5);
-     if(d>0.5) discard;
-     gl_FragColor=vec4(uColor,(1.0-d*2.0)*vAlpha*0.5);
-   }`,
-);
-extend({ FoamPartMat });
-type FoamMat = THREE.ShaderMaterial & { [k: string]: any };
-declare module '@react-three/fiber' {
-  interface ThreeElements { foamPartMat: Object3DNode<FoamMat, typeof FoamPartMat> }
-}
-
-// ═══════════════════════════════════════════════════════════════
 // Helpers
 // ═══════════════════════════════════════════════════════════════
-function seededRandom(seed: number) { let s = seed; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+function rng(seed: number) {
+  return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+}
 
 // ═══════════════════════════════════════════════════════════════
 // Sky dome
@@ -344,7 +318,7 @@ function Beach() {
     const g = new THREE.ShapeGeometry(shape, 64, 64);
 
     const dArray: { pos: [number, number, number]; scale: [number, number, number]; rot: number }[] = [];
-    const rng = seededRandom(42);
+    const rng = rng(42);
     for (let i = 0; i < 12; i++) {
       dArray.push({
         pos: [(rng() - 0.5) * 120, -0.3, 40 + rng() * 30],
@@ -359,7 +333,7 @@ function Beach() {
     const count = 80;
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
-    const rng = seededRandom(77);
+    const rng = rng(77);
     for (let i = 0; i < count; i++) {
       pos[i*3]   = (rng() - 0.5) * 140;
       pos[i*3+1] = -0.28;
@@ -403,7 +377,7 @@ function Beach() {
 function buildRockGeo(scale: number) {
   const g = new THREE.DodecahedronGeometry(scale, 2);
   const p = g.attributes.position;
-  const rng = seededRandom(Math.floor(scale * 100));
+  const rng = rng(Math.floor(scale * 100));
   for (let i = 0; i < p.count; i++) {
     const n = (rng() - 0.5) * scale * 0.35;
     p.setXYZ(i, p.getX(i) + n, p.getY(i) + n * 0.6, p.getZ(i) + n);
@@ -603,13 +577,13 @@ function Seagull({ idx }: { idx: number }) {
   const wingL = useRef<THREE.Mesh>(null);
   const wingR = useRef<THREE.Mesh>(null);
   const path = useMemo(() => ({
-    cx: (seededRandom(idx * 13)() - 0.5) * 100,
-    cz: (seededRandom(idx * 17)() - 0.5) * 50 - 15,
-    rad: 25 + seededRandom(idx * 19)() * 40,
-    spd: 0.25 + seededRandom(idx * 23)() * 0.35,
-    alt: 18 + seededRandom(idx * 29)() * 25,
-    phase: seededRandom(idx * 31)() * Math.PI * 2,
-    vertAmp: 4 + seededRandom(idx * 37)() * 5,
+    cx: (rng(idx * 13)() - 0.5) * 100,
+    cz: (rng(idx * 17)() - 0.5) * 50 - 15,
+    rad: 25 + rng(idx * 19)() * 40,
+    spd: 0.25 + rng(idx * 23)() * 0.35,
+    alt: 18 + rng(idx * 29)() * 25,
+    phase: rng(idx * 31)() * Math.PI * 2,
+    vertAmp: 4 + rng(idx * 37)() * 5,
   }), [idx]);
 
   useFrame(({ clock }) => {
@@ -656,13 +630,13 @@ function Seagulls() {
 // ═══════════════════════════════════════════════════════════════
 function Fish({ idx, onSplash }: { idx: number; onSplash: (x: number, z: number) => void }) {
   const ref = useRef<THREE.Group>(null);
-  const timeRef = useRef(seededRandom(idx * 41)() * 8);
-  const nextJumpRef = useRef(6 + seededRandom(idx * 43)() * 10);
+  const timeRef = useRef(rng(idx * 41)() * 8);
+  const nextJumpRef = useRef(6 + rng(idx * 43)() * 10);
   const activeRef = useRef(false);
   const startTRef = useRef(0);
   const startXRef = useRef(0);
   const startZRef = useRef(0);
-  const peakRef = useRef(4 + seededRandom(idx * 47)() * 5);
+  const peakRef = useRef(4 + rng(idx * 47)() * 5);
   const hue = 0.07 + idx * 0.02;
 
   useFrame(({ clock }, delta) => {
@@ -673,9 +647,9 @@ function Fish({ idx, onSplash }: { idx: number; onSplash: (x: number, z: number)
       timeRef.current = 0;
       activeRef.current = true;
       startTRef.current = clock.getElapsedTime();
-      startXRef.current = (seededRandom(idx * 53)() - 0.5) * 70;
-      startZRef.current = (seededRandom(idx * 59)() - 0.5) * 50;
-      peakRef.current = 4 + seededRandom(idx * 61)() * 5;
+      startXRef.current = (rng(idx * 53)() - 0.5) * 70;
+      startZRef.current = (rng(idx * 59)() - 0.5) * 50;
+      peakRef.current = 4 + rng(idx * 61)() * 5;
       ref.current.visible = true;
       ref.current.position.set(startXRef.current, 0, startZRef.current);
     }
@@ -714,37 +688,42 @@ function Fish({ idx, onSplash }: { idx: number; onSplash: (x: number, z: number)
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Foam particles
+// Foam particles (simple CPU-updated, no custom shader)
 // ═══════════════════════════════════════════════════════════════
 function FoamParticles() {
-  const matRef = useRef<FoamMat>(null);
-  const { geometry, sizes, phases } = useMemo(() => {
-    const count = 800;
+  const ref = useRef<THREE.Points>(null);
+  const { geometry, phases } = useMemo(() => {
+    const count = 600;
     const pos = new Float32Array(count * 3);
-    const sz = new Float32Array(count);
     const ph = new Float32Array(count);
     for (let i = 0; i < count; i++) {
       pos[i*3] = (Math.random() - 0.5) * 200;
-      pos[i*3+1] = 0;
+      pos[i*3+1] = 0.15;
       pos[i*3+2] = (Math.random() - 0.5) * 200;
-      sz[i] = 0.3 + Math.random() * 0.6;
       ph[i] = Math.random() * Math.PI * 2;
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    g.setAttribute('size', new THREE.BufferAttribute(sz, 1));
-    g.setAttribute('phase', new THREE.BufferAttribute(ph, 1));
-    return { geometry: g, sizes: sz, phases: ph };
+    return { geometry: g, phases: ph };
   }, []);
 
   useFrame(({ clock }) => {
-    if (matRef.current) matRef.current.uTime = clock.getElapsedTime();
+    if (!ref.current) return;
+    const t = clock.getElapsedTime();
+    const pos = geometry.attributes.position.array as Float32Array;
+    for (let i = 0; i < phases.length; i++) {
+      const px = pos[i*3];
+      const pz = pos[i*3+2];
+      pos[i*3+1] = Math.sin(px * 0.05 + t * 0.5 + phases[i]) * Math.cos(pz * 0.03 + t * 0.4) * 1.5
+                 + Math.sin(px * 0.1 + t * 1.3) * 0.5 + 0.2;
+    }
+    geometry.attributes.position.needsUpdate = true;
   });
 
   return (
-    <points geometry={geometry}>
-      {/* @ts-ignore */}
-      <foamPartMat ref={matRef} attach="material" transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+    <points ref={ref} geometry={geometry}>
+      <pointsMaterial color="#ffffff" size={0.35} transparent opacity={0.5}
+        depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation />
     </points>
   );
 }
@@ -834,13 +813,14 @@ function Splash({ pos, intensity = 1, onDone }: { pos: THREE.Vector3; intensity?
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FogExp2 helper
+// Scene setup: background + fog
 // ═══════════════════════════════════════════════════════════════
-function SceneFog() {
+function SceneSetup() {
   const { scene } = useThree();
   useEffect(() => {
-    scene.fog = new THREE.FogExp2('#87ceeb', 0.003);
-    return () => { scene.fog = null; };
+    scene.background = new THREE.Color('#0066cc');
+    scene.fog = new THREE.FogExp2('#87ceeb', 0.0025);
+    return () => { scene.background = null; scene.fog = null; };
   }, [scene]);
   return null;
 }
@@ -881,7 +861,8 @@ export function BeachScene({ autoRotate = false }: { autoRotate?: boolean; effec
       {/* Atmosphere */}
       <SkyDome />
       <SunAndLight />
-      <SceneFog />
+      <SceneSetup />
+      <color attach="background" args={['#0066cc']} />
 
       {/* Lighting */}
       <ambientLight intensity={0.55} color="#8ec8e8" />
