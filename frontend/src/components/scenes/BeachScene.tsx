@@ -1,7 +1,6 @@
 import { useRef, useMemo, useCallback, useState } from 'react';
 import { useFrame, useThree, extend, type Object3DNode } from '@react-three/fiber';
-import { OrbitControls, shaderMaterial, Sky } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { OrbitControls, shaderMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 
 // ── GLSL Noise Library ───────────────────────────────────────────
@@ -31,13 +30,13 @@ const glslNoise = `
 const OceanMaterial = shaderMaterial(
   {
     uTime: 0,
-    uSunDir: new THREE.Vector3(0.6, 0.75, 0.25).normalize(),
-    uSunColor: new THREE.Color('#fff8e7'),
-    uDeepColor: new THREE.Color('#0a4b6e'),
-    uShallowColor: new THREE.Color('#20a0b0'),
-    uFoamColor: new THREE.Color('#ffffff'),
+    uSunDir: new THREE.Vector3(0.6, 0.25, -0.8).normalize(),
+    uSunColor: new THREE.Color('#ffee88'),
+    uDeepColor: new THREE.Color('#001f3f'),
+    uShallowColor: new THREE.Color('#0077be'),
+    uFoamColor: new THREE.Color('#e0ffff'),
     uFresnelPower: 4.0,
-    uWaveSpeed: 1.0,
+    uWaveSpeed: 1.2,
     uRippleOrigin: new THREE.Vector3(0, 0, 0),
     uRippleTime: -1,
   },
@@ -100,11 +99,11 @@ const OceanMaterial = shaderMaterial(
      vUv = uv;
 
      Wave waves[5];
-     waves[0] = Wave(0.22, 55.0, vec2(1.0, 0.3));
-     waves[1] = Wave(0.15, 32.0, vec2(0.7, 0.8));
-     waves[2] = Wave(0.10, 18.0, vec2(-0.4, 0.9));
-     waves[3] = Wave(0.06, 10.0, vec2(0.5, -0.5));
-     waves[4] = Wave(0.04, 5.5, vec2(-0.8, -0.3));
+     waves[0] = Wave(0.35, 55.0, vec2(1.0, 0.3));
+     waves[1] = Wave(0.22, 32.0, vec2(0.7, 0.8));
+     waves[2] = Wave(0.15, 18.0, vec2(-0.4, 0.9));
+     waves[3] = Wave(0.10, 10.0, vec2(0.5, -0.5));
+     waves[4] = Wave(0.06, 5.5, vec2(-0.8, -0.3));
 
      vec3 totalWave = vec3(0.0);
      vec3 totalDdx = vec3(0.0);
@@ -153,7 +152,7 @@ const OceanMaterial = shaderMaterial(
 
      // Foam based on wave steepness (derivative magnitude)
      float steepness = length(totalDdx) + length(totalDdz);
-     vFoam = smoothstep(0.25, 0.55, steepness) + smoothstep(0.8, 1.5, vHeight) * 0.5;
+     vFoam = smoothstep(0.15, 0.45, steepness) + smoothstep(0.5, 1.2, vHeight) * 0.6;
 
      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
    }`,
@@ -178,54 +177,52 @@ const OceanMaterial = shaderMaterial(
      vec3 viewDir = normalize(cameraPosition - vWorldPos);
      vec3 normal = normalize(vNormal);
 
-     // ── Fresnel reflection ──
+     // ── Fresnel reflection — stronger for deep ocean look ──
      float fresnel = pow(1.0 - max(dot(viewDir, normal), 0.0), uFresnelPower);
 
-     // ── Subsurface scattering (SSS) ──
-     // Light passing through water from behind
+     // ── Minimal SSS — deep water shouldn't glow from behind ──
      float viewSunDot = dot(viewDir, -uSunDir);
-     float sss = pow(max(viewSunDot, 0.0), 3.0) * 0.4;
+     float sss = pow(max(viewSunDot, 0.0), 3.0) * 0.15;
 
      // ── Water depth coloring ──
-     // Height-based blend: negative = deep, positive = shallow
-     float depthFactor = smoothstep(-3.0, 2.0, vHeight);
+     float depthFactor = smoothstep(-4.0, 2.0, vHeight);
      vec3 waterColor = mix(uDeepColor, uShallowColor, depthFactor);
 
-     // Add some procedural variation
-     float waterNoise = fbm2(vUv * 8.0 + uTime * 0.05) * 0.08;
-     waterColor += waterNoise;
-
-     // ── Sun specular highlight (Blinn-Phong with high exponent) ──
+     // ── Anisotropic specular stripes (parallel band reflections) ──
      vec3 halfDir = normalize(uSunDir + viewDir);
      float NdotH = max(dot(normal, halfDir), 0.0);
      float spec = pow(NdotH, 512.0);
 
-     // Glitter / sparkles on wave peaks
-     float sparkle = pow(NdotH, 2048.0) * smoothstep(0.0, 1.0, vHeight);
+     // Anisotropic highlight: stretch along wave direction
+     vec2 anisoUv = vec2(dot(normal.xz, vec2(0.8, 0.6)), dot(normal.xz, vec2(-0.6, 0.8)));
+     float anisoStripe = pow(abs(anisoUv.x), 12.0) * pow(NdotH, 256.0);
+     float sparkle = pow(NdotH, 2048.0) * smoothstep(0.2, 1.0, vHeight);
 
-     vec3 specular = uSunColor * spec * 2.0;
-     vec3 sparkleCol = vec3(1.0, 0.98, 0.92) * sparkle * 3.0;
+     vec3 specular = uSunColor * spec * 2.5;
+     vec3 anisoSpec = uSunColor * anisoStripe * 1.8;
+     vec3 sparkleCol = vec3(1.0, 0.97, 0.88) * sparkle * 3.5;
 
      // ── Combine ──
      vec3 color = waterColor;
 
-     // Fresnel makes shallow water brighter at glancing angles
-     color = mix(color, uShallowColor * 1.4 + vec3(0.1), fresnel * 0.6);
+     // Fresnel reflection adds edge brightness
+     color = mix(color, uShallowColor * 1.2 + vec3(0.08, 0.12, 0.18), fresnel * 0.55);
 
-     // SSS adds warm translucency
-     color += sss * vec3(0.15, 0.25, 0.2);
+     // Minimal SSS
+     color += sss * vec3(0.08, 0.12, 0.18);
 
      // Specular highlights
      color += specular;
+     color += anisoSpec;
      color += sparkleCol;
 
-     // ── Foam at wave peaks ──
+     // ── Foam — threshold lowered for more white foam ──
      float foamNoise = noise2(vUv * 40.0 + uTime * 0.3);
-     float foamMask = vFoam * (0.7 + foamNoise * 0.3);
-     color = mix(color, uFoamColor, clamp(foamMask, 0.0, 1.0) * 0.75);
+     float foamMask = vFoam * (0.6 + foamNoise * 0.4);
+     color = mix(color, uFoamColor, clamp(foamMask, 0.0, 1.0) * 0.85);
 
      // ── Alpha ──
-     float alpha = 0.88 + fresnel * 0.12;
+     float alpha = 0.85 + fresnel * 0.15;
 
      gl_FragColor = vec4(color, alpha);
    }`
@@ -404,94 +401,201 @@ function Ocean({ onPointerDown }: { onPointerDown?: (point: THREE.Vector3) => vo
   );
 }
 
-// ── Physical Sky (drei Sky) ──────────────────────────────────────
-function BeachSky() {
-  const sunPosition = useMemo(() => new THREE.Vector3(100, 40, 50), []);
+// ── Dark Sky Dome — deep midnight blue with sun glow ─────────────
+const DarkSkyMaterial = shaderMaterial(
+  {
+    uTime: 0,
+    uSunPos: new THREE.Vector3(350, 180, -450),
+    uTopColor: new THREE.Color('#0a1628'),
+    uMidColor: new THREE.Color('#1e90ff'),
+    uHorizonColor: new THREE.Color('#87ceeb'),
+  },
+  `varying vec3 vWorldPos;
+   void main() {
+     vec4 wp = modelMatrix * vec4(position, 1.0);
+     vWorldPos = wp.xyz;
+     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+   }`,
+  `uniform float uTime;
+   uniform vec3 uSunPos;
+   uniform vec3 uTopColor;
+   uniform vec3 uMidColor;
+   uniform vec3 uHorizonColor;
+   varying vec3 vWorldPos;
+
+   void main() {
+     vec3 dir = normalize(vWorldPos);
+     float h = dir.y;
+
+     vec3 skyColor;
+     if (h > 0.5) {
+       skyColor = mix(uMidColor, uTopColor, smoothstep(0.5, 0.85, h));
+     } else if (h > 0.0) {
+       skyColor = mix(uHorizonColor, uMidColor, smoothstep(0.0, 0.5, h));
+     } else {
+       skyColor = uHorizonColor * 0.85;
+     }
+
+     // Sun glow — strong, warm, low on horizon
+     vec3 sunDir = normalize(uSunPos);
+     float sunAngle = max(dot(dir, sunDir), 0.0);
+     float sunGlow = pow(sunAngle, 48.0) * 1.2;
+     float sunHalo = pow(sunAngle, 6.0) * 0.5;
+     float sunWide = pow(sunAngle, 2.5) * 0.25;
+
+     vec3 sunColor = vec3(1.0, 0.93, 0.53);
+     skyColor += sunColor * (sunGlow + sunHalo + sunWide);
+
+     gl_FragColor = vec4(skyColor, 1.0);
+   }`
+);
+
+extend({ DarkSkyMaterial });
+
+type DarkSkyMaterialType = THREE.ShaderMaterial & {
+  uTime: number;
+  uSunPos: THREE.Vector3;
+  uTopColor: THREE.Color;
+  uMidColor: THREE.Color;
+  uHorizonColor: THREE.Color;
+};
+
+declare module '@react-three/fiber' {
+  interface ThreeElements {
+    darkSkyMaterial: Object3DNode<DarkSkyMaterialType, typeof DarkSkyMaterial>;
+  }
+}
+
+function DarkSkyDome() {
+  const matRef = useRef<DarkSkyMaterialType>(null);
+
+  useFrame(({ clock }) => {
+    if (matRef.current) {
+      matRef.current.uTime = clock.getElapsedTime();
+    }
+  });
 
   return (
-    <>
-      <Sky
-        distance={450000}
-        sunPosition={sunPosition}
-        inclination={0.52}
-        azimuth={0.25}
-        turbidity={8}
-        rayleigh={2}
-        mieCoefficient={0.005}
-        mieDirectionalG={0.8}
+    <mesh renderOrder={-1}>
+      <sphereGeometry args={[500, 64, 32]} />
+      {/* @ts-ignore */}
+      <darkSkyMaterial
+        ref={matRef}
+        attach="material"
+        side={THREE.BackSide}
+        depthWrite={false}
       />
+    </mesh>
+  );
+}
+
+// ── Sun + Light ──────────────────────────────────────────────────
+function SunLight() {
+  const sunPos = useMemo(() => new THREE.Vector3(350, 180, -450), []);
+  const glowTex = useMemo(() => {
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    g.addColorStop(0, 'rgba(255,238,136,1)');
+    g.addColorStop(0.04, 'rgba(255,238,136,1)');
+    g.addColorStop(0.2, 'rgba(255,200,80,0.6)');
+    g.addColorStop(0.5, 'rgba(255,140,30,0.15)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
+  }, []);
+
+  return (
+    <group>
+      <directionalLight
+        position={sunPos}
+        intensity={2.2}
+        color="#fff0c0"
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+      />
+      {/* Sun body */}
+      <mesh position={sunPos}>
+        <sphereGeometry args={[8, 32, 32]} />
+        <meshBasicMaterial color="#ffee88" />
+      </mesh>
       {/* Sun glow sprite */}
-      <mesh position={sunPosition.clone().normalize().multiplyScalar(400)}>
-        <planeGeometry args={[60, 60]} />
-        <meshBasicMaterial
-          color="#ffe8cc"
-          transparent
-          opacity={0.15}
+      <sprite position={sunPos} scale={[80, 80, 1]}>
+        <spriteMaterial
+          map={glowTex}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
+          opacity={0.75}
+          color="#ffee88"
         />
-      </mesh>
-    </>
+      </sprite>
+      {/* Larger halo */}
+      <sprite position={sunPos} scale={[160, 160, 1]}>
+        <spriteMaterial
+          map={glowTex}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          opacity={0.2}
+          color="#ffcc66"
+        />
+      </sprite>
+    </group>
   );
 }
 
-// ── Sun Light ────────────────────────────────────────────────────
-function SunLight() {
-  const lightRef = useRef<THREE.DirectionalLight>(null);
-
-  return (
-    <directionalLight
-      ref={lightRef}
-      position={[100, 80, 50]}
-      intensity={2.5}
-      color="#fff5e0"
-      castShadow
-      shadow-mapSize-width={2048}
-      shadow-mapSize-height={2048}
-      shadow-camera-near={0.5}
-      shadow-camera-far={500}
-      shadow-camera-left={-200}
-      shadow-camera-right={200}
-      shadow-camera-top={200}
-      shadow-camera-bottom={-200}
-      shadow-bias={-0.0005}
-    />
-  );
-}
-
-// ── Beach Terrain — Procedural with noise-based shoreline ────────
+// ── Beach Terrain — Organic curved shoreline with noise ──────────
 function BeachTerrain() {
   const matRef = useRef<SandMaterialType>(null);
   const { geometry } = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(400, 400, 160, 160);
-    const pos = geo.attributes.position;
+    // Build organic coastline using Shape + Bezier curves
+    const shorelineControlPoints = [
+      [-140, -25], [-80, 12], [-35, 28], [10, 38],
+      [60, 35], [105, 22], [130, 0], [110, -20],
+      [60, -32], [10, -28], [-50, -18], [-100, -10],
+    ];
 
+    // Add noise to control points
+    const jittered = shorelineControlPoints.map(([x, y]) => [
+      x + (Math.random() - 0.5) * 15,
+      y + (Math.random() - 0.5) * 10,
+    ]);
+
+    const shape = new THREE.Shape();
+    shape.moveTo(jittered[0][0], jittered[0][1]);
+    shape.quadraticCurveTo(jittered[1][0], jittered[1][1], jittered[2][0], jittered[2][1]);
+    shape.quadraticCurveTo(jittered[3][0], jittered[3][1], jittered[4][0], jittered[4][1]);
+    shape.quadraticCurveTo(jittered[5][0], jittered[5][1], jittered[6][0], jittered[6][1]);
+    shape.quadraticCurveTo(jittered[7][0], jittered[7][1], jittered[8][0], jittered[8][1]);
+    shape.quadraticCurveTo(jittered[9][0], jittered[9][1], jittered[10][0], jittered[10][1]);
+    shape.quadraticCurveTo(jittered[11][0], jittered[11][1], jittered[0][0], jittered[0][1]);
+
+    // Extrude shape into a flat geometry with subdivisions
+    const geo = new THREE.ShapeGeometry(shape, 128);
+
+    // Add height variation based on distance from shoreline
+    const pos = geo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
-      const z = pos.getY(i); // Y in plane becomes Z in world after rotation
+      const z = pos.getY(i);
 
-      // Noise-based irregular shoreline
-      const shorelineNoise = fbm2D(x * 0.03, z * 0.03, 4) * 12;
-      const waterLine = 5 + shorelineNoise;
-
+      // Distance from waterline (approximate — points further -Z are drier)
+      const distFromWater = z * 0.8 + fbm2D(x * 0.05, z * 0.05, 4) * 6;
       let height = 0;
 
-      if (z < waterLine - 15) {
+      if (distFromWater < -5) {
         // Dry sand — gentle dunes
-        const duneHeight = fbm2D(x * 0.04, z * 0.04, 5) * 2.5;
-        const slope = (waterLine - 15 - z) * 0.04;
-        height = slope + duneHeight;
-      } else if (z < waterLine + 3) {
-        // Wet sand / shoreline — very flat
-        const microBump = fbm2D(x * 0.1, z * 0.1, 3) * 0.15;
-        height = -(z - waterLine + 15) * 0.015 + microBump;
+        const dune = fbm2D(x * 0.04, z * 0.04, 5) * 2.5;
+        height = (-distFromWater - 5) * 0.03 + dune;
       } else {
-        // Underwater sand slope
-        height = -0.8 - (z - waterLine) * 0.03;
+        // Wet sand / transition — very flat with micro detail
+        const micro = smoothNoise2D(x * 0.5, z * 0.5) * 0.1;
+        height = -distFromWater * 0.01 + micro;
       }
-
-      // Small detail noise everywhere
-      height += smoothNoise2D(x * 0.5, z * 0.5) * 0.08;
 
       pos.setZ(i, height);
     }
@@ -507,14 +611,14 @@ function BeachTerrain() {
   });
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 30]} receiveShadow castShadow>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 35]} receiveShadow castShadow>
       <primitive object={geometry} attach="geometry" />
       {/* @ts-ignore */}
       <sandMaterial
         ref={matRef}
         attach="material"
-        uWaterLevel={5}
-        uTransitionWidth={10}
+        uWaterLevel={-2}
+        uTransitionWidth={8}
       />
     </mesh>
   );
@@ -586,7 +690,7 @@ function Rocks() {
   );
 }
 
-// ── Palm Tree ────────────────────────────────────────────────────
+// ── Palm Tree — drooping leaves with gravity, thinner trunk ─────
 function PalmTree({ position }: { position: [number, number, number] }) {
   const trunkRef = useRef<THREE.Group>(null);
   const leavesRef = useRef<THREE.Group>(null);
@@ -594,21 +698,22 @@ function PalmTree({ position }: { position: [number, number, number] }) {
   useFrame(({ clock }) => {
     if (trunkRef.current && leavesRef.current) {
       const t = clock.getElapsedTime();
-      const windStrength = 0.5 + Math.sin(t * 0.2) * 0.3; // Varying wind
-      trunkRef.current.rotation.z = Math.sin(t * 0.6 + position[0] * 0.1) * 0.025 * windStrength;
-      trunkRef.current.rotation.x = Math.sin(t * 0.4 + position[2] * 0.1) * 0.015 * windStrength;
-      leavesRef.current.rotation.z = Math.sin(t * 0.8 + position[0] * 0.1) * 0.06 * windStrength;
-      leavesRef.current.rotation.x = Math.sin(t * 0.5 + position[2] * 0.1) * 0.04 * windStrength;
+      // Subtle sway — small amplitude, low frequency
+      trunkRef.current.rotation.z = Math.sin(t * 0.8 + position[0] * 0.05) * 0.02;
+      trunkRef.current.rotation.x = Math.sin(t * 0.5 + position[2] * 0.05) * 0.01;
+      leavesRef.current.rotation.z = Math.sin(t * 0.9 + position[0] * 0.06) * 0.02;
+      leavesRef.current.rotation.x = Math.sin(t * 0.6 + position[2] * 0.06) * 0.015;
     }
   });
 
   const trunkSegments = useMemo(() => {
     const segments: { pos: THREE.Vector3; rot: number }[] = [];
+    // More pronounced S-curve trunk
     const curve = new THREE.CubicBezierCurve3(
       new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(0.4, 3.5, 0),
-      new THREE.Vector3(-0.2, 7.5, 0),
-      new THREE.Vector3(0.15, 11, 0)
+      new THREE.Vector3(0.3, 3, 0),
+      new THREE.Vector3(-0.25, 7, 0),
+      new THREE.Vector3(0.1, 10, 0)
     );
 
     for (let i = 0; i <= 12; i++) {
@@ -616,19 +721,22 @@ function PalmTree({ position }: { position: [number, number, number] }) {
       const point = curve.getPoint(t);
       segments.push({
         pos: point,
-        rot: Math.atan2(point.x, point.y) * 0.08,
+        rot: Math.atan2(point.x, point.y) * 0.1,
       });
     }
     return segments;
   }, []);
 
+  // Drooping leaves — tilt downward (gravity), fewer
   const leaves = useMemo(() => {
     const result: { rot: number; tilt: number; length: number }[] = [];
-    for (let i = 0; i < 9; i++) {
+    const count = 7;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
       result.push({
-        rot: (i / 9) * Math.PI * 2,
-        tilt: 0.25 + Math.random() * 0.35,
-        length: 3.5 + Math.random() * 1.5,
+        rot: angle,
+        tilt: 0.6 + Math.random() * 0.3, // More tilt = drooping down
+        length: 3.2 + Math.random() * 1.3,
       });
     }
     return result;
@@ -636,44 +744,29 @@ function PalmTree({ position }: { position: [number, number, number] }) {
 
   return (
     <group position={position}>
-      {/* Trunk */}
+      {/* Trunk — thinner, dark brown */}
       <group ref={trunkRef}>
         {trunkSegments.map((seg, i) => (
           <mesh key={i} position={seg.pos} rotation={[0, 0, seg.rot]} castShadow>
-            <cylinderGeometry args={[0.12 - i * 0.008, 0.18 - i * 0.008, 1.1, 8]} />
-            <meshStandardMaterial color="#7a6040" roughness={0.9} />
+            <cylinderGeometry args={[0.09 - i * 0.006, 0.15 - i * 0.008, 1.0, 8]} />
+            <meshStandardMaterial color="#5c4033" roughness={0.92} />
           </mesh>
         ))}
       </group>
 
-      {/* Leaves */}
-      <group ref={leavesRef} position={[0.15, 11, 0]}>
+      {/* Leaves — drooping down */}
+      <group ref={leavesRef} position={[0.1, 10, 0]}>
         {leaves.map((leaf, i) => (
           <group key={i} rotation={[0, leaf.rot, 0]}>
-            <mesh rotation={[leaf.tilt, 0, 0]} position={[0, 0.3, 0]} castShadow>
-              <planeGeometry args={[0.25, leaf.length]} />
+            <mesh rotation={[leaf.tilt, 0, 0]} position={[0, 0.2, 0]} castShadow>
+              <planeGeometry args={[0.22, leaf.length]} />
               <meshStandardMaterial
-                color="#2d8a3e"
-                roughness={0.75}
+                color="#3d6030"
+                roughness={0.8}
                 side={THREE.DoubleSide}
               />
             </mesh>
           </group>
-        ))}
-
-        {/* Coconuts */}
-        {Array.from({ length: 3 }).map((_, i) => (
-          <mesh
-            key={`coconut-${i}`}
-            position={[
-              Math.cos(i * 2.1) * 0.4,
-              -0.2,
-              Math.sin(i * 2.1) * 0.4,
-            ]}
-          >
-            <sphereGeometry args={[0.18, 8, 8]} />
-            <meshStandardMaterial color="#6b4226" roughness={0.7} />
-          </mesh>
         ))}
       </group>
     </group>
@@ -1016,21 +1109,6 @@ function BeachAutoRotate({ enabled }: { enabled: boolean }) {
   return null;
 }
 
-// ── Post Processing — Bloom ──────────────────────────────────────
-function BeachPostProcessing({ enabled }: { enabled: boolean }) {
-  if (!enabled) return null;
-  return (
-    <EffectComposer>
-      <Bloom
-        luminanceThreshold={0.9}
-        luminanceSmoothing={0.4}
-        intensity={0.4}
-        mipmapBlur
-      />
-    </EffectComposer>
-  );
-}
-
 // ── Main BeachScene ──────────────────────────────────────────────
 export function BeachScene({ autoRotate = false, effects = { bloom: false, vignette: true } }: {
   autoRotate?: boolean;
@@ -1051,14 +1129,13 @@ export function BeachScene({ autoRotate = false, effects = { bloom: false, vigne
   return (
     <>
       {/* Environment */}
-      <BeachSky />
+      <DarkSkyDome />
       <SunLight />
-      <fog attach="fog" args={['#b8d4e8', 80, 400]} />
+      <fog attach="fog" args={['#cbd2d8', 60, 350]} />
 
-      {/* Lighting */}
-      <ambientLight intensity={0.35} color="#b8d4e8" />
-      <hemisphereLight intensity={0.5} color="#87ceeb" groundColor="#d4c4a0" />
-      <pointLight position={[50, 30, 20]} intensity={0.8} color="#ffe4c4" distance={150} />
+      {/* Lighting — hemisphere + ambient, no harsh shadows */}
+      <ambientLight intensity={0.35} color="#e8ecef" />
+      <hemisphereLight intensity={0.7} color="#4682b4" groundColor="#deb887" />
 
       {/* Ocean */}
       <Ocean onPointerDown={handleOceanClick} />
@@ -1086,17 +1163,14 @@ export function BeachScene({ autoRotate = false, effects = { bloom: false, vigne
       {/* Auto rotate */}
       <BeachAutoRotate enabled={autoRotate} />
 
-      {/* Post processing */}
-      <BeachPostProcessing enabled={effects.bloom} />
-
       {/* Camera controls */}
       <OrbitControls
         enableDamping
         dampingFactor={0.08}
         rotateSpeed={0.4}
         zoomSpeed={1.0}
-        minDistance={15}
-        maxDistance={120}
+        minDistance={30}
+        maxDistance={100}
         maxPolarAngle={Math.PI * 0.48}
         minPolarAngle={0.08}
         target={[0, 0, 0]}
