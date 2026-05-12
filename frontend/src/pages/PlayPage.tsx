@@ -1070,7 +1070,7 @@ export default function PlayPage() {
             </>
           ) : selectedScene === 'beach' ? (
             <>
-              <BeachScene autoRotate={autoRotate} />
+              <BeachScene autoRotate={autoRotate} effects={{ bloom: effects.bloom, vignette: effects.vignette }} />
             </>
           ) : (
             <Scene3D zoomLevel={zoomLevel} effects={effects} autoRotate={autoRotate} />
