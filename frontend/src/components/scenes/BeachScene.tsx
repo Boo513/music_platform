@@ -197,12 +197,12 @@ function SkyDome() {
     <Sky
       distance={450000}
       sunPosition={[0.6, 0.3, -0.8]}
-      inclination={0.52}
+      inclination={0.6}
       azimuth={0.25}
-      turbidity={8}
-      rayleigh={2}
-      mieCoefficient={0.005}
-      mieDirectionalG={0.8}
+      turbidity={3}
+      rayleigh={3}
+      mieCoefficient={0.002}
+      mieDirectionalG={0.5}
     />
   );
 }
