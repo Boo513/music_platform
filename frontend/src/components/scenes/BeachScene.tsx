@@ -204,8 +204,8 @@ function SkyBackground() {
     const ctx = canvas.getContext('2d')!;
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 512);
-    gradient.addColorStop(0, '#2B7FFF');
-    gradient.addColorStop(0.5, '#6495ED');
+    gradient.addColorStop(0, '#1E90FF');
+    gradient.addColorStop(0.5, '#63B8FF');
     gradient.addColorStop(1, '#87CEEB');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 2, 512);
@@ -275,7 +275,7 @@ function SunAndLight() {
 
   return (
     <group>
-      <directionalLight position={[120, 100, -60]} intensity={1.8} color="#fff4d6" />
+      <directionalLight position={[120, 100, -60]} intensity={1.8} color="#FFF5E6" />
       {/* Sun body */}
       <mesh position={sunPos}>
         <sphereGeometry args={[20, 32, 32]} />
@@ -862,13 +862,13 @@ export function BeachScene({ autoRotate = false }: { autoRotate?: boolean; effec
       <SkyBackground />
       <SkyDome />
       <SunAndLight />
-      <fogExp2 attach="fog" args={['#87ceeb', 0.0025]} />
+      <fogExp2 attach="fog" args={['#4D9BFF', 0.0015]} />
 
       {/* Lighting */}
-      <ambientLight intensity={0.55} color="#8ec8e8" />
-      <hemisphereLight intensity={0.45} color="#87ceeb" groundColor="#f4d998" />
-      <directionalLight intensity={0.35} color="#6eb5ff" position={[-60, 40, 60]} />
-      <pointLight intensity={0.3} color="#ffeedd" position={[0, 10, 50]} distance={100} />
+      <ambientLight intensity={0.6} color="#E8F0FF" />
+      <hemisphereLight intensity={0.5} color="#87CEEB" groundColor="#f4d998" />
+      <directionalLight intensity={0.3} color="#E0E8FF" position={[-60, 40, 60]} />
+      <pointLight intensity={0.3} color="#FFF5E6" position={[0, 10, 50]} distance={100} />
 
       {/* Scene elements */}
       <Ocean onClick={handleOceanClick} />
