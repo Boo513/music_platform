@@ -149,41 +149,6 @@ declare module '@react-three/fiber' {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Sky dome shader
-// ═══════════════════════════════════════════════════════════════
-const SkyMaterial = shaderMaterial(
-  {
-    uTopColor: new THREE.Color('#0066cc'),
-    uMidColor: new THREE.Color('#4db8ff'),
-    uHorizonColor: new THREE.Color('#b8e0ff'),
-    uSunPosition: new THREE.Vector3(0.6, 0.3, -0.8).normalize(),
-  },
-  `varying vec3 vWorldPos; varying vec3 vNormal;
-   void main() {
-     vWorldPos = (modelMatrix * vec4(position,1.0)).xyz;
-     vNormal = normalize(position);
-     gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
-   }`,
-  `uniform vec3 uTopColor, uMidColor, uHorizonColor, uSunPosition;
-   varying vec3 vWorldPos; varying vec3 vNormal;
-   void main() {
-     float h = normalize(vWorldPos).y;
-     vec3 col;
-     if(h > 0.3) col = mix(uMidColor, uTopColor, smoothstep(0.3, 0.9, h));
-     else        col = mix(uHorizonColor, uMidColor, smoothstep(-0.1, 0.3, h));
-     float sunD = max(dot(normalize(vWorldPos), uSunPosition), 0.0);
-     col += vec3(1.0,0.95,0.7) * pow(sunD, 64.0) * 0.8;
-     col += vec3(1.0,0.85,0.5) * pow(sunD, 8.0) * 0.3;
-     gl_FragColor = vec4(col, 1.0);
-   }`,
-);
-extend({ SkyMaterial });
-type SkyMat = THREE.ShaderMaterial & { [k: string]: any };
-declare module '@react-three/fiber' {
-  interface ThreeElements { skyMaterial: Object3DNode<SkyMat, typeof SkyMaterial> }
-}
-
-// ═══════════════════════════════════════════════════════════════
 // Beach sand shader (depth-based dry → wet gradient)
 // ═══════════════════════════════════════════════════════════════
 const BeachShaderMat = shaderMaterial(
@@ -218,48 +183,74 @@ declare module '@react-three/fiber' {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Foam particle shader material
+// Helpers
 // ═══════════════════════════════════════════════════════════════
-const FoamPartMat = shaderMaterial(
-  { uTime: 0, uColor: new THREE.Color('#ffffff') },
-  `attribute float size; attribute float phase; uniform float uTime; varying float vAlpha;
-   void main() {
-     vec3 p = position;
-     float t = uTime*0.5+phase;
-     p.y = sin(p.x*0.05+t)*cos(p.z*0.03+t*0.8)*1.5 + sin(p.x*0.1+t*1.3)*0.5 + 0.15;
-     vAlpha = 0.3 + 0.3*sin(t*2.0+phase);
-     vec4 mv = modelViewMatrix*vec4(p,1.0);
-     gl_PointSize = size*(250.0/-mv.z);
-     gl_Position  = projectionMatrix*mv;
-   }`,
-  `uniform vec3 uColor; varying float vAlpha;
-   void main() {
-     float d = length(gl_PointCoord-0.5);
-     if(d>0.5) discard;
-     gl_FragColor=vec4(uColor,(1.0-d*2.0)*vAlpha*0.5);
-   }`,
-);
-extend({ FoamPartMat });
-type FoamMat = THREE.ShaderMaterial & { [k: string]: any };
-declare module '@react-three/fiber' {
-  interface ThreeElements { foamPartMat: Object3DNode<FoamMat, typeof FoamPartMat> }
+function rng(seed: number) {
+  return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Helpers
+// Sky background — Canvas gradient texture on scene.background
+// Avoids WebGL2 BackSide ShaderMaterial bug entirely
 // ═══════════════════════════════════════════════════════════════
-function seededRandom(seed: number) { let s = seed; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+function SkyBackground() {
+  const { scene } = useThree();
+  const { gl } = useThree();
 
-// ═══════════════════════════════════════════════════════════════
-// Sky dome
-// ═══════════════════════════════════════════════════════════════
+  useEffect(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 2;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d')!;
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+    // Equirectangular: 0=南极 0.5=赤道(地平线) 1=北极(天顶)
+    gradient.addColorStop(0, '#87CEEB');   // 南极(地平线色)
+    gradient.addColorStop(0.45, '#87CEEB');// 地平线
+    gradient.addColorStop(0.6, '#3399DD'); // 低空
+    gradient.addColorStop(0.78, '#1155AA');// 中高空
+    gradient.addColorStop(1, '#0A2A5C');   // 天顶(深蓝)
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 2, 512);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    scene.background = tex;
+    // Also set renderer clear color as fallback
+    gl.setClearColor(new THREE.Color('#1155AA'));
+
+    return () => {
+      scene.background = null;
+      tex.dispose();
+    };
+  }, [scene, gl]);
+
+  return null;
+}
+
 function SkyDome() {
-  const geo = useMemo(() => new THREE.SphereGeometry(900, 64, 64), []);
+  // Sun glow sphere — warm tone atmosphere near sun position
+  const glowTex = useMemo(() => {
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    const g = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+    g.addColorStop(0, 'rgba(255,240,180,0.6)');
+    g.addColorStop(0.1, 'rgba(255,220,120,0.3)');
+    g.addColorStop(0.4, 'rgba(255,180,60,0.05)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
+  }, []);
+
   return (
-    <mesh geometry={geo} renderOrder={-1}>
-      {/* @ts-ignore */}
-      <skyMaterial attach="material" side={THREE.BackSide} depthWrite={false} />
-    </mesh>
+    <sprite position={[300, 120, -400]} scale={[350, 350, 1]}>
+      <spriteMaterial map={glowTex} blending={THREE.AdditiveBlending}
+        depthWrite={false} depthTest={false} opacity={0.95} />
+    </sprite>
   );
 }
 
@@ -268,23 +259,38 @@ function SkyDome() {
 // ═══════════════════════════════════════════════════════════════
 function SunAndLight() {
   const sunPos = useMemo(() => new THREE.Vector3(350, 180, -450), []);
-  const haloGeo = useMemo(() => new THREE.SphereGeometry(50, 32, 32), []);
+  const glowTex = useMemo(() => {
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    g.addColorStop(0, 'rgba(255,238,136,1)');
+    g.addColorStop(0.05, 'rgba(255,238,136,0.9)');
+    g.addColorStop(0.2, 'rgba(255,200,80,0.5)');
+    g.addColorStop(0.5, 'rgba(255,140,30,0.1)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
+  }, []);
 
   return (
     <group>
-      <directionalLight position={[120, 100, -60]} intensity={1.8} color="#fff4d6"
-        castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
+      <directionalLight position={[100, 200, 50]} intensity={3.0} color="#FFFAF0" />
+      {/* Sun body */}
       <mesh position={sunPos}>
         <sphereGeometry args={[20, 32, 32]} />
         <meshBasicMaterial color="#ffee88" />
       </mesh>
-      <mesh position={sunPos} geometry={haloGeo}>
-        <shaderMaterial
-          vertexShader="varying vec3 vNorm; void main() { vNorm=normalize(normalMatrix*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }"
-          fragmentShader="varying vec3 vNorm; void main() { float i=pow(0.7-dot(vNorm,vec3(0,0,1)),2.5); gl_FragColor=vec4(1.0,0.92,0.6,1.0)*i*0.6; }"
-          transparent side={THREE.BackSide} blending={THREE.AdditiveBlending} depthWrite={false}
-        />
-      </mesh>
+      {/* Sun glow — sprite instead of sphere to avoid black ball artifact */}
+      <sprite position={sunPos} scale={[120, 120, 1]}>
+        <spriteMaterial map={glowTex} blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.85} />
+      </sprite>
+      <sprite position={sunPos} scale={[200, 200, 1]}>
+        <spriteMaterial map={glowTex} blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.35} />
+      </sprite>
     </group>
   );
 }
@@ -328,12 +334,12 @@ function Beach() {
     const g = new THREE.ShapeGeometry(shape, 64, 64);
 
     const dArray: { pos: [number, number, number]; scale: [number, number, number]; rot: number }[] = [];
-    const rng = seededRandom(42);
+    const rand = rng(42);
     for (let i = 0; i < 12; i++) {
       dArray.push({
-        pos: [(rng() - 0.5) * 120, -0.3, 40 + rng() * 30],
-        scale: [1.5 + rng(), 0.3 + rng() * 0.3, 1.5 + rng()],
-        rot: rng() * Math.PI,
+        pos: [(rand() - 0.5) * 120, -0.3, 40 + rand() * 30],
+        scale: [1.5 + rand(), 0.3 + rand() * 0.3, 1.5 + rand()],
+        rot: rand() * Math.PI,
       });
     }
     return { geo: g, dunes: dArray };
@@ -343,12 +349,12 @@ function Beach() {
     const count = 80;
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
-    const rng = seededRandom(77);
+    const rand = rng(77);
     for (let i = 0; i < count; i++) {
-      pos[i*3]   = (rng() - 0.5) * 140;
+      pos[i*3]   = (rand() - 0.5) * 140;
       pos[i*3+1] = -0.28;
-      pos[i*3+2] = 20 + rng() * 50;
-      const c = rng();
+      pos[i*3+2] = 20 + rand() * 50;
+      const c = rand();
       if (c < 0.4)      { col[i*3]=0.95; col[i*3+1]=0.93; col[i*3+2]=0.88; }
       else if (c < 0.7) { col[i*3]=0.60; col[i*3+1]=0.58; col[i*3+2]=0.55; }
       else              { col[i*3]=0.85; col[i*3+1]=0.75; col[i*3+2]=0.60; }
@@ -362,13 +368,13 @@ function Beach() {
   return (
     <group>
       {/* Main beach shape */}
-      <mesh geometry={beachGeo} rotation={[-Math.PI/2, 0, 0]} position={[0, -0.3, 35]} receiveShadow>
+      <mesh geometry={beachGeo} rotation={[-Math.PI/2, 0, 0]} position={[0, -0.3, 35]}>
         {/* @ts-ignore */}
         <beachShaderMat attach="material" side={THREE.DoubleSide} />
       </mesh>
       {/* Sand dunes */}
       {dunes.map((d, i) => (
-        <mesh key={`dune-${i}`} position={d.pos} scale={d.scale} rotation-y={d.rot} receiveShadow>
+        <mesh key={`dune-${i}`} position={d.pos} scale={d.scale} rotation-y={d.rot}>
           <sphereGeometry args={[3 + d.scale[0] * 2, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
           <meshStandardMaterial color={new THREE.Color().setHSL(0.1, 0.5, 0.75 + d.scale[1] * 0.1)} roughness={0.95} metalness={0} />
         </mesh>
@@ -387,9 +393,9 @@ function Beach() {
 function buildRockGeo(scale: number) {
   const g = new THREE.DodecahedronGeometry(scale, 2);
   const p = g.attributes.position;
-  const rng = seededRandom(Math.floor(scale * 100));
+  const rand = rng(Math.floor(scale * 100));
   for (let i = 0; i < p.count; i++) {
-    const n = (rng() - 0.5) * scale * 0.35;
+    const n = (rand() - 0.5) * scale * 0.35;
     p.setXYZ(i, p.getX(i) + n, p.getY(i) + n * 0.6, p.getZ(i) + n);
   }
   g.computeVertexNormals();
@@ -411,7 +417,7 @@ function Rocks() {
         <mesh key={`rock-${i}`} geometry={geos[i]}
           position={[c.x, c.s * 0.1, c.z]}
           rotation={[(Math.random()-0.5)*0.25, c.ry, (Math.random()-0.5)*0.25]}
-          castShadow receiveShadow>
+         >
           <meshStandardMaterial color="#3d3d3d" roughness={0.96} metalness={0.02} flatShading />
         </mesh>
       ))}
@@ -554,7 +560,7 @@ function PalmTree({ idx, position }: { idx: number; position: [number, number, n
   return (
     <group ref={groupRef} position={position} rotation-y={idx * 0.8}>
       {/* Trunk */}
-      <mesh geometry={trunkGeo.geo} castShadow>
+      <mesh geometry={trunkGeo.geo}>
         <meshStandardMaterial color="#5c4033" roughness={0.9} metalness={0} />
       </mesh>
       {/* Rings */}
@@ -587,13 +593,13 @@ function Seagull({ idx }: { idx: number }) {
   const wingL = useRef<THREE.Mesh>(null);
   const wingR = useRef<THREE.Mesh>(null);
   const path = useMemo(() => ({
-    cx: (seededRandom(idx * 13)() - 0.5) * 100,
-    cz: (seededRandom(idx * 17)() - 0.5) * 50 - 15,
-    rad: 25 + seededRandom(idx * 19)() * 40,
-    spd: 0.25 + seededRandom(idx * 23)() * 0.35,
-    alt: 18 + seededRandom(idx * 29)() * 25,
-    phase: seededRandom(idx * 31)() * Math.PI * 2,
-    vertAmp: 4 + seededRandom(idx * 37)() * 5,
+    cx: (rng(idx * 13)() - 0.5) * 100,
+    cz: (rng(idx * 17)() - 0.5) * 50 - 15,
+    rad: 25 + rng(idx * 19)() * 40,
+    spd: 0.25 + rng(idx * 23)() * 0.35,
+    alt: 18 + rng(idx * 29)() * 25,
+    phase: rng(idx * 31)() * Math.PI * 2,
+    vertAmp: 4 + rng(idx * 37)() * 5,
   }), [idx]);
 
   useFrame(({ clock }) => {
@@ -640,13 +646,13 @@ function Seagulls() {
 // ═══════════════════════════════════════════════════════════════
 function Fish({ idx, onSplash }: { idx: number; onSplash: (x: number, z: number) => void }) {
   const ref = useRef<THREE.Group>(null);
-  const timeRef = useRef(seededRandom(idx * 41)() * 8);
-  const nextJumpRef = useRef(6 + seededRandom(idx * 43)() * 10);
+  const timeRef = useRef(rng(idx * 41)() * 8);
+  const nextJumpRef = useRef(6 + rng(idx * 43)() * 10);
   const activeRef = useRef(false);
   const startTRef = useRef(0);
   const startXRef = useRef(0);
   const startZRef = useRef(0);
-  const peakRef = useRef(4 + seededRandom(idx * 47)() * 5);
+  const peakRef = useRef(4 + rng(idx * 47)() * 5);
   const hue = 0.07 + idx * 0.02;
 
   useFrame(({ clock }, delta) => {
@@ -657,9 +663,9 @@ function Fish({ idx, onSplash }: { idx: number; onSplash: (x: number, z: number)
       timeRef.current = 0;
       activeRef.current = true;
       startTRef.current = clock.getElapsedTime();
-      startXRef.current = (seededRandom(idx * 53)() - 0.5) * 70;
-      startZRef.current = (seededRandom(idx * 59)() - 0.5) * 50;
-      peakRef.current = 4 + seededRandom(idx * 61)() * 5;
+      startXRef.current = (rng(idx * 53)() - 0.5) * 70;
+      startZRef.current = (rng(idx * 59)() - 0.5) * 50;
+      peakRef.current = 4 + rng(idx * 61)() * 5;
       ref.current.visible = true;
       ref.current.position.set(startXRef.current, 0, startZRef.current);
     }
@@ -698,37 +704,42 @@ function Fish({ idx, onSplash }: { idx: number; onSplash: (x: number, z: number)
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Foam particles
+// Foam particles (simple CPU-updated, no custom shader)
 // ═══════════════════════════════════════════════════════════════
 function FoamParticles() {
-  const matRef = useRef<FoamMat>(null);
-  const { geometry, sizes, phases } = useMemo(() => {
-    const count = 800;
+  const ref = useRef<THREE.Points>(null);
+  const { geometry, phases } = useMemo(() => {
+    const count = 600;
     const pos = new Float32Array(count * 3);
-    const sz = new Float32Array(count);
     const ph = new Float32Array(count);
     for (let i = 0; i < count; i++) {
       pos[i*3] = (Math.random() - 0.5) * 200;
-      pos[i*3+1] = 0;
+      pos[i*3+1] = 0.15;
       pos[i*3+2] = (Math.random() - 0.5) * 200;
-      sz[i] = 0.3 + Math.random() * 0.6;
       ph[i] = Math.random() * Math.PI * 2;
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    g.setAttribute('size', new THREE.BufferAttribute(sz, 1));
-    g.setAttribute('phase', new THREE.BufferAttribute(ph, 1));
-    return { geometry: g, sizes: sz, phases: ph };
+    return { geometry: g, phases: ph };
   }, []);
 
   useFrame(({ clock }) => {
-    if (matRef.current) matRef.current.uTime = clock.getElapsedTime();
+    if (!ref.current) return;
+    const t = clock.getElapsedTime();
+    const pos = geometry.attributes.position.array as Float32Array;
+    for (let i = 0; i < phases.length; i++) {
+      const px = pos[i*3];
+      const pz = pos[i*3+2];
+      pos[i*3+1] = Math.sin(px * 0.05 + t * 0.5 + phases[i]) * Math.cos(pz * 0.03 + t * 0.4) * 1.5
+                 + Math.sin(px * 0.1 + t * 1.3) * 0.5 + 0.2;
+    }
+    geometry.attributes.position.needsUpdate = true;
   });
 
   return (
-    <points geometry={geometry}>
-      {/* @ts-ignore */}
-      <foamPartMat ref={matRef} attach="material" transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+    <points ref={ref} geometry={geometry}>
+      <pointsMaterial color="#ffffff" size={0.35} transparent opacity={0.5}
+        depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation />
     </points>
   );
 }
@@ -818,14 +829,15 @@ function Splash({ pos, intensity = 1, onDone }: { pos: THREE.Vector3; intensity?
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FogExp2 helper
+// Tone mapping setup
 // ═══════════════════════════════════════════════════════════════
-function SceneFog() {
-  const { scene } = useThree();
+function ToneMappingSetup() {
+  const { gl } = useThree();
   useEffect(() => {
-    scene.fog = new THREE.FogExp2('#87ceeb', 0.003);
-    return () => { scene.fog = null; };
-  }, [scene]);
+    gl.toneMapping = THREE.ACESFilmicToneMapping;
+    gl.toneMappingExposure = 1.4;
+    gl.outputColorSpace = THREE.SRGBColorSpace;
+  }, [gl]);
   return null;
 }
 
@@ -863,15 +875,17 @@ export function BeachScene({ autoRotate = false }: { autoRotate?: boolean; effec
   return (
     <>
       {/* Atmosphere */}
+      <ToneMappingSetup />
+      <SkyBackground />
       <SkyDome />
       <SunAndLight />
-      <SceneFog />
+      <fogExp2 attach="fog" args={['#4D9BFF', 0.0008]} />
 
       {/* Lighting */}
-      <ambientLight intensity={0.55} color="#8ec8e8" />
-      <hemisphereLight intensity={0.45} color="#87ceeb" groundColor="#f4d998" />
-      <directionalLight intensity={0.35} color="#6eb5ff" position={[-60, 40, 60]} />
-      <pointLight intensity={0.3} color="#ffeedd" position={[0, 10, 50]} distance={100} />
+      <ambientLight intensity={0.85} color="#FFFFFF" />
+      <hemisphereLight intensity={0.6} color="#87CEEB" groundColor="#004466" />
+      <directionalLight intensity={0.8} color="#E6F3FF" position={[-50, 20, -50]} />
+      <pointLight intensity={0.3} color="#FFF5E6" position={[0, 10, 50]} distance={100} />
 
       {/* Scene elements */}
       <Ocean onClick={handleOceanClick} />

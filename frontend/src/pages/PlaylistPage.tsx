@@ -95,6 +95,7 @@ export default function PlaylistPage() {
     return (
       <div className={styles.page}>
         <div className={styles.stripes} />
+        <button onClick={() => navigate('/profile')} style={{ position: 'fixed', top: 24, left: 24, zIndex: 100, width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 18, cursor: 'pointer' }}>←</button>
         <span style={{ color: '#fff', position: 'relative', zIndex: 1, margin: 'auto', fontSize: 14 }}>加载中...</span>
       </div>
     );
@@ -104,6 +105,7 @@ export default function PlaylistPage() {
     return (
       <div className={styles.page}>
         <div className={styles.stripes} />
+        <button onClick={() => navigate('/profile')} style={{ position: 'fixed', top: 24, left: 24, zIndex: 100, width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 18, cursor: 'pointer' }}>←</button>
         <span style={{ color: '#ff0000', position: 'relative', zIndex: 1, margin: 'auto', fontSize: 14 }}>
           {loadError ? '加载失败' : '歌单不存在'}
         </span>
@@ -131,6 +133,30 @@ export default function PlaylistPage() {
   return (
     <div className={styles.page}>
       <div className={styles.stripes} />
+
+      {/* 返回按钮 */}
+      <button
+        onClick={() => navigate('/profile')}
+        style={{
+          position: 'fixed', top: 24, left: 24, zIndex: 100,
+          width: 40, height: 40, borderRadius: '50%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
+          color: 'rgba(255,255,255,0.7)', fontSize: 18, cursor: 'pointer',
+          transition: 'all 0.2s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.14)';
+          e.currentTarget.style.color = '#fff';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+          e.currentTarget.style.color = 'rgba(255,255,255,0.7)';
+        }}
+        title="返回个人中心"
+      >
+        ←
+      </button>
 
       {/* 黑色闪屏 */}
       <AnimatePresence>

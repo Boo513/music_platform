@@ -53,19 +53,59 @@ public class SongController {
     }
 
     @GetMapping("/{id}/stream")
-    public ResponseEntity<Resource> stream(@PathVariable Long id) {
+    public ResponseEntity<Resource> stream(@PathVariable Long id,
+                                           @RequestHeader(value = "Range", required = false) String rangeHeader) {
         String filePath = songService.getStreamPath(id);
         try {
             Path path = Path.of(filePath);
             Resource resource = new FileSystemResource(path);
+            long fileLength = resource.contentLength();
+
+            if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+                return handleRangeRequest(rangeHeader, resource, fileLength);
+            }
+
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_TYPE, "audio/mpeg")
                     .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                    .contentLength(resource.contentLength())
+                    .contentLength(fileLength)
                     .body(resource);
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.FILE_NOT_FOUND);
         }
+    }
+
+    private ResponseEntity<Resource> handleRangeRequest(String rangeHeader, Resource resource, long fileLength) throws IOException {
+        String rangeValue = rangeHeader.substring("bytes=".length());
+        String[] parts = rangeValue.split(",")[0].split("-");
+        long start = Long.parseLong(parts[0].trim());
+        long end = parts.length > 1 && !parts[1].trim().isEmpty() ? Long.parseLong(parts[1].trim()) : fileLength - 1;
+
+        if (start >= fileLength) {
+            return ResponseEntity.status(416)
+                    .header(HttpHeaders.CONTENT_RANGE, "bytes */" + fileLength)
+                    .build();
+        }
+
+        end = Math.min(end, fileLength - 1);
+        long contentLength = end - start + 1;
+
+        // Read only the requested byte range
+        byte[] data = new byte[(int) contentLength];
+        try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(resource.getFile(), "r")) {
+            raf.seek(start);
+            raf.readFully(data);
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_TYPE, "audio/mpeg");
+        headers.add(HttpHeaders.ACCEPT_RANGES, "bytes");
+        headers.add(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + fileLength);
+        headers.setContentLength(contentLength);
+
+        return ResponseEntity.status(206)
+                .headers(headers)
+                .body(new org.springframework.core.io.ByteArrayResource(data));
     }
 
     @PostMapping("/upload")

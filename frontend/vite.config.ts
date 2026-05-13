@@ -9,12 +9,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    allowedHosts: [
-      'localhost',
-      '.ngrok-free.dev',
-      '.netlify.app',
-      '.trycloudflare.com',
-    ],
+    allowedHosts: true,
     proxy: {
       '/api': 'http://localhost:8080',
       '/uploads': 'http://localhost:8080'

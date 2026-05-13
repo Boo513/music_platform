@@ -666,6 +666,14 @@
   cursor: pointer;
 }
 
+/* ===== IMMERSIVE MODE ===== */
+body.immersive-mode .home-overlay {
+  display: none !important;
+}
+body.immersive-mode [data-immersive-hide] {
+  display: none !important;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 900px) {
   .home-title { font-size: 32px; }
