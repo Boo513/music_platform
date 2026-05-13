@@ -122,11 +122,12 @@ export function MusicList({ searchKeyword = '' }: Props) {
           <>
             {songs.map((s) => (
               <div key={s.id} className="song-row" onClick={() => handlePlay(s)}>
-                <div className="song-cover-mini">
-                  {s.coverUrl ? (
-                    <img src={s.coverUrl} alt="" className="song-cover-img" />
-                  ) : (
-                    <div className="song-cover-placeholder">🎵</div>
+                <div className="song-cover-mini" style={{ position: 'relative' }}>
+                  <div className="song-cover-placeholder">🎵</div>
+                  {s.coverUrl && (
+                    <img src={s.coverUrl} alt="" className="song-cover-img"
+                      style={{ position: 'absolute', inset: 0 }}
+                      onError={(e) => (e.target as HTMLImageElement).remove()} />
                   )}
                 </div>
                 <div className="song-info">

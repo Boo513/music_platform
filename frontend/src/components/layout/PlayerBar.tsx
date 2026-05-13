@@ -115,7 +115,7 @@ export function PlayerBar() {
   return (
     <>
       {/* 音量控制 - 唱片右侧，底部 */}
-      <div style={{
+      <div data-immersive-hide style={{
         position: 'fixed',
         left: 200, bottom: 16,
         zIndex: 10000,
@@ -147,7 +147,7 @@ export function PlayerBar() {
       </div>
 
       {/* 唱片样式 - 左下角 */}
-      <div style={{
+      <div data-immersive-hide style={{
         position: 'fixed', bottom: -65, left: -65, zIndex: 9999,
         width: RECORD_SIZE, height: RECORD_SIZE,
         pointerEvents: 'none',
@@ -234,22 +234,27 @@ export function PlayerBar() {
             width: 108, height: 108,
             borderRadius: '50%',
             overflow: 'hidden',
+            position: 'relative',
             animation: isPlaying ? 'spin 8s linear infinite' : 'none',
             border: '3px solid rgba(255,255,255,0.12)',
             boxShadow: '0 0 30px rgba(255,140,66,0.2), inset 0 0 20px rgba(0,0,0,0.3)',
             zIndex: 1,
           }}>
-            {song.coverUrl ? (
+            {/* 封面图或CD占位 */}
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(145deg, #1e1830, #141020)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 36, borderRadius: '50%',
+            }}>💿</div>
+            {song.coverUrl && (
               <img src={song.coverUrl} alt="" style={{
-                width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                position: 'absolute', inset: 0,
+                width: '100%', height: '100%', objectFit: 'cover',
+                display: 'block', borderRadius: '50%',
+              }} onError={(e) => {
+                (e.target as HTMLImageElement).remove();
               }} />
-            ) : (
-              <div style={{
-                width: '100%', height: '100%',
-                background: 'linear-gradient(145deg, #1e1830, #141020)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 36,
-              }}>💿</div>
             )}
           </div>
         </div>
