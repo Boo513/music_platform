@@ -17,4 +17,5 @@ WORKDIR /app
 COPY --from=build /build/target/music-platform-1.0.0.jar app.jar
 
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENV TZ=Asia/Shanghai
+ENTRYPOINT ["java", "-Duser.timezone=Asia/Shanghai", "-jar", "app.jar"]

@@ -1,6 +1,11 @@
 server:
   port: 8080
 
+logging:
+  pattern:
+    # 显式指定 Asia/Shanghai，避免容器内 JVM 默认 UTC 导致日志时间慢 8 小时
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS,Asia/Shanghai} %-5level [%thread] %logger{36} - %msg%n"
+
 spring:
   datasource:
     # 本地开发默认连 localhost；Docker 部署由 docker-compose.yml 注入 SPRING_DATASOURCE_URL 覆盖为 jdbc:mysql://mysql:3306/...
