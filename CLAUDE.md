@@ -14,6 +14,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 完整设计文档：`docs/开发文档.md`
 
+## 环境配置
+
+| 工具 | 路径 |
+|------|------|
+| JDK 17 | `C:/Users/26489/.jdks/ms-17.0.17` |
+| Maven | `C:/Users/26489/.m2/wrapper/dists/apache-maven-3.9.14/db91789b` |
+| MySQL | `C:/Program Files/MySQL/MySQL Server 8.0` |
+
 ## 开发命令
 
 ### 前端 (React + TypeScript + Vite)

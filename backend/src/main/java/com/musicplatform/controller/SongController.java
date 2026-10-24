@@ -1,5 +1,6 @@
 package com.musicplatform.controller;
 
+import com.musicplatform.annotation.RequestLog;
 import com.musicplatform.dto.*;
 import com.musicplatform.exception.BusinessException;
 import com.musicplatform.exception.ErrorCode;
@@ -31,6 +32,7 @@ public class SongController {
     }
 
     @GetMapping
+    @RequestLog("歌曲列表")
     public ResponseEntity<ApiResponse<PageData<SongResponse>>> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -77,14 +79,34 @@ public class SongController {
 
     private ResponseEntity<Resource> handleRangeRequest(String rangeHeader, Resource resource, long fileLength) throws IOException {
         String rangeValue = rangeHeader.substring("bytes=".length());
-        String[] parts = rangeValue.split(",")[0].split("-");
-        long start = Long.parseLong(parts[0].trim());
-        long end = parts.length > 1 && !parts[1].trim().isEmpty() ? Long.parseLong(parts[1].trim()) : fileLength - 1;
+        String firstRange = rangeValue.split(",")[0].trim();
+        int dash = firstRange.indexOf('-');
+        if (dash < 0) {
+            return rangeNotSatisfiable(fileLength);
+        }
 
-        if (start >= fileLength) {
-            return ResponseEntity.status(416)
-                    .header(HttpHeaders.CONTENT_RANGE, "bytes */" + fileLength)
-                    .build();
+        String startStr = firstRange.substring(0, dash).trim();
+        String endStr = firstRange.substring(dash + 1).trim();
+
+        long start;
+        long end;
+        try {
+            if (startStr.isEmpty()) {
+                // 后缀范围 bytes=-N：最后 N 字节
+                long suffix = Long.parseLong(endStr);
+                if (suffix <= 0) return rangeNotSatisfiable(fileLength);
+                start = Math.max(0, fileLength - suffix);
+                end = fileLength - 1;
+            } else {
+                start = Long.parseLong(startStr);
+                end = endStr.isEmpty() ? fileLength - 1 : Long.parseLong(endStr);
+            }
+        } catch (NumberFormatException ex) {
+            return rangeNotSatisfiable(fileLength);
+        }
+
+        if (start < 0 || start >= fileLength || start > end) {
+            return rangeNotSatisfiable(fileLength);
         }
 
         end = Math.min(end, fileLength - 1);
@@ -108,7 +130,14 @@ public class SongController {
                 .body(new org.springframework.core.io.ByteArrayResource(data));
     }
 
+    private ResponseEntity<Resource> rangeNotSatisfiable(long fileLength) {
+        return ResponseEntity.status(416)
+                .header(HttpHeaders.CONTENT_RANGE, "bytes */" + fileLength)
+                .build();
+    }
+
     @PostMapping("/upload")
+    @RequestLog("上传歌曲")
     public ResponseEntity<ApiResponse<SongResponse>> upload(
             @RequestParam("title") String title,
             @RequestParam("artist") String artist,
@@ -206,6 +235,7 @@ public class SongController {
     }
 
     @PutMapping("/{id}")
+    @RequestLog("编辑歌曲")
     public ResponseEntity<ApiResponse<SongResponse>> update(
             @PathVariable Long id,
             @RequestBody SongUpdateRequest req,
@@ -215,6 +245,7 @@ public class SongController {
     }
 
     @DeleteMapping("/{id}")
+    @RequestLog("删除歌曲")
     public ResponseEntity<ApiResponse<Void>> delete(
             @PathVariable Long id,
             @AuthenticationPrincipal UserPrincipal principal) {
